@@ -1,40 +1,97 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# wmcyn online 🌐
 
-## Getting Started
+official front-end repository for wmcyn online
 
-First, run the development server:
+## overview 🚀
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+front-end for [wmcyn.online](https://wmcyn.online/) and [whatmorecouldyouneed.com](https://whatmorecouldyouneed.com/) developed to showcase wmcyn's diverse offerings, including but not limited to future events, our online store, our xr experiences, and more. built with next.js and typescript, the website is optimized for scalability, performance, seo, and ease of maintenance.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## tech stack 🛠️
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+- **framework**: [next.js](https://nextjs.org/)
+- **language**: [typescript](https://www.typescriptlang.org/)
+- **styling**: css modules / scss
+- **backend**: firebase (realtime database)
+- **deployment**: github pages & squarespace domains
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+## features 💡
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+- **static and server-side rendering**: utilizing next.js to render pages both statically and server-side for optimal performance.
+- **type safety**: leveraging typescript to ensure type safety throughout the application.
+- **firebase integration**: includes a backend setup with firebase for user authentication, realtime database storage, and more.
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## prerequisites 📋
 
-## Learn More
+make sure you have the following installed:
 
-To learn more about Next.js, take a look at the following resources:
+- [node.js](https://nodejs.org/) (v14 or later)
+- [yarn](https://yarnpkg.com/)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
+## getting started 🏁
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **clone the repository**
 
-## Deploy on Vercel
+   ```bash
+   git clone https://github.com/your-username/wmcyn-online-front-end.git
+   cd wmcyn-online-front-end
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+2. **install dependencies**
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+   using yarn:
+
+   ```bash
+   yarn install
+   ```
+
+3. **set up environment variables**
+
+   create a `.env.local` file in the root directory and add your environment variables. refer to `.env.example` for the required variables. (hit Jared up)
+
+4. **run the development server**
+
+   ```bash
+   yarn dev
+   ```
+
+   the website should now be available at [http://localhost:3000](http://localhost:3000).
+
+## scripts 🎮
+
+- `yarn dev` - runs the development server.
+- `yarn build` - builds the application for production.
+- `yarn deploy` - deploys the application to github pages.
+- `yarn lint` - runs eslint to analyze the code for potential errors.
+- `yarn preview` - previews the production build.
+
+## project structure 🗂️
+
+- `/pages` - contains all the pages for the website.
+- `/components` - reusable ui components used across the website.
+- `/styles` - contains global and modular stylesheets.
+- `/utils` - utility functions and helpers.
+- `/public` - static assets like images, icons, etc.
+
+## deployment 🚀
+
+the website is deployed using [github pages](https://pages.github.com/) and utilizes [squarespace domains](https://www.squarespace.com/domains) for domain management. to deploy your own version:
+
+1. push the code to your github repository.
+2. configure github pages in your repository settings.
+3. set up environment variables if needed.
+4. build first and then deploy using the following script:
+
+   ```bash
+   yarn build
+   yarn deploy
+   ```
+
+    this script builds the application and starts the deploy process in github actions which is configured to deploy the dist directory to github pages.
+
+## contributing 🤝🏽
+
+contributions are welcome! if you'd like to contribute, please open an issue or submit a pull request.
+
+## license 📜
+
+this project is licensed under the mit license.
