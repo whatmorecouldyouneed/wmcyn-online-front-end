@@ -3,13 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-  "dev": "next dev",
-  "build": "next build",
-  "deploy": "yarn build",
-  "lint": "next lint",
-  "start": "next start"
-}
-,
+    "dev": "next dev",
+    "build": "next build",
+    "deploy": "yarn build && gh-pages -d out",
+    "lint": "next lint",
+    "start": "next start"
+  },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.6.0",
     "@fortawesome/free-solid-svg-icons": "^6.6.0",
@@ -26,6 +25,7 @@
     "@types/react-dom": "^18",
     "eslint": "^8",
     "eslint-config-next": "15.0.2",
+    "gh-pages": "^6.2.0",
     "typescript": "^5"
   }
 }
