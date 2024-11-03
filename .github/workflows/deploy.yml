@@ -16,7 +16,7 @@ jobs:
         run: yarn install
 
       - name: Build and Export
-        run: yarn build
+        run: yarn build && yarn export  # Ensure it exports static files to `out`
 
       - name: Deploy to GitHub Pages
         env:
@@ -24,6 +24,10 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          # Move to gh-pages branch and copy files from `out`
+          git switch --orphan gh-pages
+          git rm -rf .  # Clear out old files
+          cp -r out/* .
           git add -A
           git commit -m "Deploy to GitHub Pages"
-          git push -f "https://${{ secrets.GH_PAGES_TOKEN }}@github.com/whatmorecouldyouneed/wmcyn-online-front-end.git" HEAD:gh-pages
+          git push -f "https://${{ secrets.GH_PAGES_TOKEN }}@github.com/whatmorecouldyouneed/wmcyn-online-front-end.git" gh-pages
