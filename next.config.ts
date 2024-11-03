@@ -1,8 +1,14 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
+
+const isProd = process.env.NODE_ENV === 'production';
 
 const nextConfig: NextConfig = {
-  /* config options here */
   reactStrictMode: true,
+  basePath: isProd ? '/<your-github-repo-name>' : '',
+  assetPrefix: isProd ? '/<your-github-repo-name>/' : '',
+  images: {
+    unoptimized: true,
+  },
 };
 
 export default nextConfig;

@@ -1,168 +1,210 @@
-.page {
-  --gray-rgb: 0, 0, 0;
-  --gray-alpha-200: rgba(var(--gray-rgb), 0.08);
-  --gray-alpha-100: rgba(var(--gray-rgb), 0.05);
-
-  --button-primary-hover: #383838;
-  --button-secondary-hover: #f2f2f2;
-
-  display: grid;
-  grid-template-rows: 20px 1fr 20px;
-  align-items: center;
-  justify-items: center;
-  min-height: 100svh;
-  padding: 80px;
-  gap: 64px;
-  font-family: var(--font-geist-sans);
+/* Scroll snapping container */
+.pageContainer {
+  scroll-snap-type: y mandatory; /* Enables vertical scroll snapping */
+  overflow-y: scroll; /* Enables scrolling */
+  height: 100vh; /* Ensures each section takes up the full viewport height */
 }
 
-@media (prefers-color-scheme: dark) {
-  .page {
-    --gray-rgb: 255, 255, 255;
-    --gray-alpha-200: rgba(var(--gray-rgb), 0.145);
-    --gray-alpha-100: rgba(var(--gray-rgb), 0.06);
-
-    --button-primary-hover: #ccc;
-    --button-secondary-hover: #1a1a1a;
-  }
-}
-
-.main {
+/* Container styles */
+.container {
+  background-color: #000;
+  color: #fff;
+  height: 100vh; /* Ensures each section takes up the full viewport height */
   display: flex;
   flex-direction: column;
-  gap: 32px;
-  grid-row-start: 2;
+  justify-content: center; /* Vertically centers the content */
+  align-items: center; /* Horizontally centers the content */
+  padding: 20px;
+  box-sizing: border-box;
+  width: 100%;
+  scroll-snap-align: center; /* Ensures each section centers in the viewport */
 }
 
-.main ol {
-  font-family: var(--font-geist-mono);
-  padding-left: 0;
-  margin: 0;
-  font-size: 14px;
-  line-height: 24px;
-  letter-spacing: -0.01em;
-  list-style-position: inside;
+/* Typewriter animation text */
+.typewriter {
+  margin-bottom: 20px;
+  font-size: 2rem;
+  text-align: center;
 }
 
-.main li:not(:last-of-type) {
-  margin-bottom: 8px;
-}
-
-.main code {
-  font-family: inherit;
-  background: var(--gray-alpha-100);
-  padding: 2px 4px;
-  border-radius: 4px;
-  font-weight: 600;
-}
-
-.ctas {
+/* Form styling */
+.form {
   display: flex;
-  gap: 16px;
+  flex-direction: column;
+  align-items: center;
+  max-width: 400px;
+  width: 100%;
 }
 
-.ctas a {
-  appearance: none;
-  border-radius: 128px;
-  height: 48px;
-  padding: 0 20px;
+/* Input fields */
+.inputField {
+  margin-bottom: 10px;
+  padding: 10px;
+  width: 100%;
   border: none;
-  border: 1px solid transparent;
-  transition:
-    background 0.2s,
-    color 0.2s,
-    border-color 0.2s;
+  border-radius: 4px;
+  background-color: #fff;
+  color: #000;
+  text-align: center;
+}
+
+/* Submit button */
+.submitButton {
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.submitButton:hover {
+  color: #ccc;
+}
+
+/* Section headings */
+.sectionHeading {
+  font-size: 3.2rem;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* Friends and Family Section */
+.friendsAndFamilySection {
+  padding: 60px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  scroll-snap-align: center; /* Centers the section when scrolling */
+}
+
+/* About Section */
+.aboutSection {
+  padding: 60px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  scroll-snap-align: center; /* Centers the section when scrolling */
+}
+
+/* Section text */
+.sectionText {
+  font-size: 2.1rem;
+  color: white;
+  line-height: 1.5;
+  margin-bottom: 20px;
+  text-align: center;
+  margin-left: 20px;
+  margin-right: 20px;
+}
+
+/* Instagram container */
+.instagramContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: black;
+  padding: 20px;
+}
+
+.instagramLogo {
+  width: 75px;
+  height: 75px;
+  margin: 0;
+}
+
+.instagramLink {
+  text-decoration: none;
+  color: #fff;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+/* Scroll button styling */
+.scrollButton {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 24px;
+  background: transparent;
+  border: none;
+  color: #fff;
   cursor: pointer;
   display: flex;
-  align-items: center;
   justify-content: center;
-  font-size: 16px;
-  line-height: 20px;
-  font-weight: 500;
-}
-
-a.primary {
-  background: var(--foreground);
-  color: var(--background);
-  gap: 8px;
-}
-
-a.secondary {
-  border-color: var(--gray-alpha-200);
-  min-width: 180px;
-}
-
-.footer {
-  grid-row-start: 3;
-  display: flex;
-  gap: 24px;
-}
-
-.footer a {
-  display: flex;
   align-items: center;
-  gap: 8px;
+  width: 50px;
+  height: 50px;
 }
 
-.footer img {
-  flex-shrink: 0;
+.scrollButton:hover {
+  background-color: #555;
 }
 
-/* Enable hover only on non-touch devices */
-@media (hover: hover) and (pointer: fine) {
-  a.primary:hover {
-    background: var(--button-primary-hover);
-    border-color: transparent;
-  }
-
-  a.secondary:hover {
-    background: var(--button-secondary-hover);
-    border-color: transparent;
-  }
-
-  .footer a:hover {
-    text-decoration: underline;
-    text-underline-offset: 4px;
-  }
+.scrollButton:focus {
+  outline: none;
 }
 
-@media (max-width: 600px) {
-  .page {
-    padding: 32px;
-    padding-bottom: 80px;
+.scrollButton:hover,
+.scrollButton:active,
+.scrollButton:focus {
+  background-color: transparent;
+  box-shadow: none;
+}
+
+/* Logo styling */
+.logo {
+  max-width: 350px;
+  height: auto;
+  margin-bottom: 20px;
+}
+
+/* Responsive styling */
+@media screen and (max-width: 767px) {
+  .container {
+    margin-top: 10px;
   }
 
-  .main {
-    align-items: center;
-  }
-
-  .main ol {
+  .typewriter {
+    margin-bottom: 10px;
+    font-size: 24px;
     text-align: center;
   }
 
-  .ctas {
-    flex-direction: column;
+  .form {
+    max-width: 300px;
   }
 
-  .ctas a {
+  .inputField,
+  .submitButton {
     font-size: 14px;
+  }
+
+  .sectionHeading {
+    font-size: 2rem;
+    text-align: center;
+  }
+
+  .sectionText {
+    font-size: 1.6rem;
+    margin-left: 10px;
+    margin-right: 10px;
+  }
+
+  .scrollButton {
+    font-size: 16px;
+    width: 40px;
     height: 40px;
-    padding: 0 16px;
   }
 
-  a.secondary {
-    min-width: auto;
+  .scrollButton:hover {
+    transform: scale(1.1);
+    background-color: transparent;
   }
 
-  .footer {
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  .logo {
-    filter: invert();
+  .instagramContainer {
+    padding: 10px;
   }
 }
