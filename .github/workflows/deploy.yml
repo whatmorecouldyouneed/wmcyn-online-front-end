@@ -15,18 +15,29 @@ jobs:
       - name: Install Dependencies
         run: yarn install
 
-      - name: Build and Export
-        run: yarn build  # No need to run `yarn export`
+      - name: Build for Static Export
+        run: yarn build  # Only `yarn build` needed because of `output: 'export'` in next.config.js
 
       - name: Deploy to GitHub Pages
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAGES_TOKEN }} 
         run: |
+          # Configure Git for the bot
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Switch to a new orphan branch (no history)
           git switch --orphan gh-pages
+          
+          # Remove everything from the working tree
           git rm -rf .
+
+          # Copy the built static site from the `out` directory to the root of the `gh-pages` branch
           cp -r out/* .
+
+          # Add and commit the files in the new branch
           git add -A
           git commit -m "Deploy to GitHub Pages"
+
+          # Force push to update the `gh-pages` branch on GitHub
           git push -f "https://${{ secrets.GH_PAGES_TOKEN }}@github.com/whatmorecouldyouneed/wmcyn-online-front-end.git" gh-pages
