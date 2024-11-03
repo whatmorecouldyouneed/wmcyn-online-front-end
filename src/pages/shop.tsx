@@ -1,3 +1,4 @@
+/* eslint-enable @typescript-eslint/no-explicit-any */
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
@@ -8,7 +9,17 @@ declare global {
     ShopifyBuy?: {
       buildClient: (options: { domain: string; storefrontAccessToken: string }) => unknown;
       UI: {
-        onReady: (client: unknown) => Promise<{ createComponent: Function }>;
+        onReady: (client: unknown) => Promise<{
+          createComponent: (
+            type: string,
+            options: {
+              id: string;
+              node: HTMLElement | null;
+              moneyFormat: string;
+              options: Record<string, unknown>;
+            }
+          ) => void;
+        }>;
       };
     };
     ShopifyBuyInit?: () => void;
@@ -42,7 +53,7 @@ const Shop = () => {
 
       if (client && window.ShopifyBuy?.UI) {
         window.ShopifyBuy.UI.onReady(client).then((ui) => {
-          (ui as { createComponent: Function }).createComponent('product', {
+          ui.createComponent('product', {
             id: '8779870208235',
             node: document.getElementById('product-component-1730653944519'),
             moneyFormat: '%24%7B%7Bamount%7D%7D',
