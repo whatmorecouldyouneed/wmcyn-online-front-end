@@ -16,7 +16,7 @@ jobs:
         run: yarn install
 
       - name: Build and Export
-        run: yarn build && yarn export  # Ensure it exports static files to `out`
+        run: yarn build  # No need to run `yarn export`
 
       - name: Deploy to GitHub Pages
         env:
@@ -24,9 +24,8 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          # Move to gh-pages branch and copy files from `out`
           git switch --orphan gh-pages
-          git rm -rf .  # Clear out old files
+          git rm -rf .
           cp -r out/* .
           git add -A
           git commit -m "Deploy to GitHub Pages"
