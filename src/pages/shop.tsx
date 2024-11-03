@@ -1,4 +1,3 @@
-/* eslint-enable @typescript-eslint/no-explicit-any */
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
@@ -6,7 +5,12 @@ import Head from 'next/head';
 declare global {
   interface Window {
     shopifyScriptInitialized?: boolean;
-    ShopifyBuy?: any;
+    ShopifyBuy?: {
+      buildClient: (options: { domain: string; storefrontAccessToken: string }) => unknown;
+      UI: {
+        onReady: (client: unknown) => Promise<{ createComponent: Function }>;
+      };
+    };
     ShopifyBuyInit?: () => void;
   }
 }
@@ -31,73 +35,75 @@ const Shop = () => {
 
     // Define the ShopifyBuyInit function
     window.ShopifyBuyInit = function () {
-      const client = window.ShopifyBuy.buildClient({
+      const client = window.ShopifyBuy?.buildClient({
         domain: 'wmcyn-online-shop.myshopify.com',
         storefrontAccessToken: '4c1fff0b93d13d31f5cebbb8ac9f10c0',
       });
 
-      window.ShopifyBuy.UI.onReady(client).then(function (ui: any) {
-        ui.createComponent('product', {
-          id: '8779870208235',
-          node: document.getElementById('product-component-1730653944519'),
-          moneyFormat: '%24%7B%7Bamount%7D%7D',
-          options: {
-            product: {
-              styles: {
-                product: {
-                  '@media (min-width: 601px)': {
-                    'max-width': '100%',
-                    'margin-left': '0',
-                    'margin-bottom': '50px',
+      if (client && window.ShopifyBuy?.UI) {
+        window.ShopifyBuy.UI.onReady(client).then((ui) => {
+          (ui as { createComponent: Function }).createComponent('product', {
+            id: '8779870208235',
+            node: document.getElementById('product-component-1730653944519'),
+            moneyFormat: '%24%7B%7Bamount%7D%7D',
+            options: {
+              product: {
+                styles: {
+                  product: {
+                    '@media (min-width: 601px)': {
+                      'max-width': '100%',
+                      'margin-left': '0',
+                      'margin-bottom': '50px',
+                    },
+                    'text-align': 'center',
                   },
-                  'text-align': 'center',
+                  title: { 'font-size': '26px' },
+                  button: {
+                    'font-family': 'Montserrat, sans-serif',
+                    'font-weight': 'bold',
+                    'font-size': '14px',
+                    'padding-top': '15px',
+                    'padding-bottom': '15px',
+                    ':hover': { 'background-color': '#000000' },
+                    'background-color': '#000000',
+                    ':focus': { 'background-color': '#000000' },
+                    'border-radius': '4px',
+                    'padding-left': '30px',
+                    'padding-right': '30px',
+                  },
+                  quantityInput: { 'font-size': '14px', 'padding-top': '15px', 'padding-bottom': '15px' },
+                  price: { 'font-size': '18px' },
+                  compareAt: { 'font-size': '15.3px' },
+                  unitPrice: { 'font-size': '15.3px' },
                 },
-                title: { 'font-size': '26px' },
-                button: {
-                  'font-family': 'Montserrat, sans-serif',
-                  'font-weight': 'bold',
-                  'font-size': '14px',
-                  'padding-top': '15px',
-                  'padding-bottom': '15px',
-                  ':hover': { 'background-color': '#000000' },
-                  'background-color': '#000000',
-                  ':focus': { 'background-color': '#000000' },
-                  'border-radius': '4px',
-                  'padding-left': '30px',
-                  'padding-right': '30px',
-                },
-                quantityInput: { 'font-size': '14px', 'padding-top': '15px', 'padding-bottom': '15px' },
-                price: { 'font-size': '18px' },
-                compareAt: { 'font-size': '15.3px' },
-                unitPrice: { 'font-size': '15.3px' },
+                buttonDestination: 'checkout',
+                layout: 'horizontal',
+                contents: { img: false, imgWithCarousel: true, description: true },
+                width: '100%',
+                text: { button: 'Buy now' },
+                googleFonts: ['Montserrat'],
               },
-              buttonDestination: 'checkout',
-              layout: 'horizontal',
-              contents: { img: false, imgWithCarousel: true, description: true },
-              width: '100%',
-              text: { button: 'Buy now' },
-              googleFonts: ['Montserrat'],
-            },
-            cart: {
-              styles: {
-                button: {
-                  'font-family': 'Montserrat, sans-serif',
-                  'font-weight': 'bold',
-                  'font-size': '14px',
-                  'padding-top': '15px',
-                  'padding-bottom': '15px',
-                  ':hover': { 'background-color': '#000000' },
-                  'background-color': '#000000',
-                  ':focus': { 'background-color': '#000000' },
-                  'border-radius': '4px',
+              cart: {
+                styles: {
+                  button: {
+                    'font-family': 'Montserrat, sans-serif',
+                    'font-weight': 'bold',
+                    'font-size': '14px',
+                    'padding-top': '15px',
+                    'padding-bottom': '15px',
+                    ':hover': { 'background-color': '#000000' },
+                    'background-color': '#000000',
+                    ':focus': { 'background-color': '#000000' },
+                    'border-radius': '4px',
+                  },
                 },
+                text: { total: 'Subtotal', button: 'Checkout' },
+                googleFonts: ['Montserrat'],
               },
-              text: { total: 'Subtotal', button: 'Checkout' },
-              googleFonts: ['Montserrat'],
             },
-          },
+          });
         });
-      });
+      }
     };
 
     // Load Shopify Buy Button script
