@@ -1,17 +1,15 @@
 import type { NextConfig } from 'next';
 
 const isGithubActions = process.env.GITHUB_ACTIONS === 'true';
-const basePath = isGithubActions ? '/whatmorecouldyouneed.github.io' : '';
-const assetPrefix = isGithubActions ? '/whatmorecouldyouneed.github.io/' : '';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  basePath,
-  assetPrefix,
+  basePath: isGithubActions ? '/whatmorecouldyouneed.github.io' : '',
+  assetPrefix: isGithubActions ? '/whatmorecouldyouneed.github.io/' : '',
   images: {
-    unoptimized: isGithubActions, // Disable image optimization for GitHub Pages
+    unoptimized: true,
   },
-  output: 'export', // Enable static export for Next.js
+  output: 'export',
 };
 
 export default nextConfig;
