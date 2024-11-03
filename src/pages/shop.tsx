@@ -1,3 +1,4 @@
+/* eslint-enable @typescript-eslint/no-explicit-any */
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
