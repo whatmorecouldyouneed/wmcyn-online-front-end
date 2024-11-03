@@ -16,28 +16,40 @@ jobs:
         run: yarn install
 
       - name: Build for Static Export
-        run: yarn build  # Only `yarn build` needed because of `output: 'export'` in next.config.js
+        run: yarn build  # Generates output in `out` folder
+
+      - name: Verify Build Output
+        run: |
+          if [ ! -d "out" ] || [ -z "$(ls -A out)" ]; then
+            echo "Error: Build output directory 'out' is empty. Check your build step."
+            exit 1
+          fi
 
       - name: Deploy to GitHub Pages
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAGES_TOKEN }} 
         run: |
-          # Configure Git for the bot
+          # Configure Git
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Switch to a new orphan branch (no history)
+          # Create and switch to gh-pages branch
           git switch --orphan gh-pages
           
-          # Remove everything from the working tree
+          # Remove any existing files in the branch
           git rm -rf .
+          
+          # Copy the files from `out` directory if it exists
+          if [ -d "out" ]; then
+            cp -r out/* .
+          else
+            echo "Error: No output directory found."
+            exit 1
+          fi
 
-          # Copy the built static site from the `out` directory to the root of the `gh-pages` branch
-          cp -r out/* .
-
-          # Add and commit the files in the new branch
+          # Add and commit the files
           git add -A
           git commit -m "Deploy to GitHub Pages"
 
-          # Force push to update the `gh-pages` branch on GitHub
+          # Force push to gh-pages branch
           git push -f "https://${{ secrets.GH_PAGES_TOKEN }}@github.com/whatmorecouldyouneed/wmcyn-online-front-end.git" gh-pages
