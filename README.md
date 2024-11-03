@@ -1,10 +1,10 @@
 # wmcyn online 🌐
 
-this is the official repository for the wmcyn online, built using next.js and typescript.
+official front-end repository for wmcyn online
 
 ## overview 🚀
 
-the wmcyn online website is a modern web application developed to showcase wmcyn's diverse offerings, including but not limited to future events, an online store, our xr experiences, and more. built with next.js and typescript, the website is optimized for scalability, performance, seo, and ease of maintenance.
+front-end for [wmcyn.online](https://wmcyn.online/) and [whatmorecouldyouneed.com](https://whatmorecouldyouneed.com/) developed to showcase wmcyn's diverse offerings, including but not limited to future events, our online store, our xr experiences, and more. built with next.js and typescript, the website is optimized for scalability, performance, seo, and ease of maintenance.
 
 ## tech stack 🛠️
 
@@ -32,8 +32,8 @@ make sure you have the following installed:
 1. **clone the repository**
 
    ```bash
-   git clone https://github.com/your-username/wmcyn-online.git
-   cd wmcyn-online
+   git clone https://github.com/your-username/wmcyn-online-front-end.git
+   cd wmcyn-online-front-end
    ```
 
 2. **install dependencies**
