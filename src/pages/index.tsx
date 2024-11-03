@@ -1,5 +1,4 @@
 import { useState, SetStateAction } from 'react';
-import Head from 'next/head';
 import { db, ref, push, set } from '../utils/lib/firebase';
 import Typewriter from 'typewriter-effect';
 import Image from 'next/image';
