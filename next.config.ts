@@ -11,16 +11,6 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
   trailingSlash: true,
-  compiler: {
-    removeConsole: isProd,
-  },
-  webpack: (config) => {
-    config.module.rules.push({
-      test: /\.css$/,
-      use: ['style-loader', 'css-loader'],
-    });
-    return config;
-  },
 };
 
 export default nextConfig;

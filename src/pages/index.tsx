@@ -1,7 +1,7 @@
 import { useState, SetStateAction } from 'react';
 import { db, ref, push, set } from '../utils/lib/firebase';
 import Typewriter from 'typewriter-effect';
-import Image from 'next/image';
+import NextImage from '../components/NextImage';
 import WMCYNLOGO from '../../public/wmcyn_logo_white.png';
 import InstagramLogo from '../../public/instagram-logo.png';
 import styles from '../styles/Home.module.css';
@@ -49,7 +49,7 @@ export default function Home() {
     <>
       <div className={styles.pageContainer}>
         <div className={styles.container} id="homeSection">
-          <Image src={WMCYNLOGO} alt="WMCYN Logo" className={styles.logo} priority />
+          <NextImage src={WMCYNLOGO} alt="WMCYN Logo" className={styles.logo} priority />
 
           {hasSubscribed ? (
             <>
@@ -85,7 +85,7 @@ export default function Home() {
           </p>
           <div className={styles.instagramContainer}>
             <a href="https://instagram.com/whatmorecouldyouneed" className={styles.instagramLink}>
-              <Image src={InstagramLogo} alt="Instagram Logo" className={styles.instagramLogo} />
+              <NextImage src={InstagramLogo} alt="Instagram Logo" className={styles.instagramLogo} />
             </a>
           </div>
         </div>
