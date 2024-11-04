@@ -1,14 +1,13 @@
 import type { NextConfig } from 'next';
 
-const isGithubActions = process.env.GITHUB_ACTIONS === 'true';
-const repo = 'whatmorecouldyouneed'; // Your repository name without .github.io
+const isProd = process.env.NODE_ENV === 'production';
+const repoName = 'whatmorecouldyouneed.github.io';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  output: 'export',
-  basePath: isGithubActions ? `/${repo}` : '',
-  assetPrefix: isGithubActions ? `/${repo}/` : '',
-  trailingSlash: true,
+  output: 'export',  // Add this line
+  basePath: isProd ? `/${repoName}` : '',
+  assetPrefix: isProd ? `/${repoName}` : '',
   images: {
     unoptimized: true,
   },

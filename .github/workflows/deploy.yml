@@ -12,44 +12,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
       - name: Install Dependencies
         run: yarn install
 
-      - name: Build for Static Export
-        run: yarn build  # Generates output in `out` folder
-
-      - name: Verify Build Output
-        run: |
-          if [ ! -d "out" ] || [ -z "$(ls -A out)" ]; then
-            echo "Error: Build output directory 'out' is empty. Check your build step."
-            exit 1
-          fi
+      - name: Build
+        run: yarn build
 
       - name: Deploy to GitHub Pages
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAGES_TOKEN }} 
-        run: |
-          # Configure Git
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Create and switch to gh-pages branch
-          git switch --orphan gh-pages
-          
-          # Remove any existing files in the branch
-          git rm -rf .
-          
-          # Copy the files from `out` directory if it exists
-          if [ -d "out" ]; then
-            cp -r out/* .
-          else
-            echo "Error: No output directory found."
-            exit 1
-          fi
-
-          # Add and commit the files
-          git add -A
-          git commit -m "Deploy to GitHub Pages"
-
-          # Force push to gh-pages branch
-          git push -f "https://${{ secrets.GH_PAGES_TOKEN }}@github.com/whatmorecouldyouneed/wmcyn-online-front-end.git" gh-pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: out
+          token: ${{ secrets.GH_PAGES_TOKEN }}
