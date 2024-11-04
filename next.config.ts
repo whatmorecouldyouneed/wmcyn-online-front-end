@@ -1,16 +1,15 @@
 import type { NextConfig } from 'next';
 
 const isProd = process.env.NODE_ENV === 'production';
-const repoName = 'whatmorecouldyouneed.github.io';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  basePath: isProd ? `/${repoName}` : '',
-  assetPrefix: isProd ? `/${repoName}` : '',
+  basePath: isProd ? '/whatmorecouldyouneed.github.io' : '',
+  assetPrefix: isProd ? '/whatmorecouldyouneed.github.io' : '',
   images: {
-    unoptimized: true,
+    unoptimized: true, // Disable Next.js image optimization for GitHub Pages
   },
-  trailingSlash: true,
+  output: 'export', // Set output to export to support static build
 };
 
 export default nextConfig;
