@@ -1,15 +1,17 @@
 import type { NextConfig } from 'next';
 
-const isProd = process.env.NODE_ENV === 'production';
+const isGithubActions = process.env.GITHUB_ACTIONS === 'true';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  basePath: isProd ? '/wmcyn-online-front-end' : '',
-  assetPrefix: isProd ? '/wmcyn-online-front-end/' : '',
+  // Set basePath and assetPrefix to empty so it works for custom domains without breaking asset paths.
+  basePath: '',
+  assetPrefix: '',
   images: {
-    unoptimized: true, // Disable Next.js image optimization for GitHub Pages
+    unoptimized: true, // Disable image optimization for GitHub Pages/static export
   },
-  output: 'export', // Use 'output: export' to support static build
+  trailingSlash: true, // Ensures that all routes have trailing slashes for proper directory resolution.
+  output: 'export', // Supports a static HTML build for GitHub Pages.
 };
 
 export default nextConfig;
