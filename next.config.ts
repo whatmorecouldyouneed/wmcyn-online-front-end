@@ -5,11 +5,21 @@ const repoName = 'whatmorecouldyouneed.github.io';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  output: 'export',  // Add this line
   basePath: isProd ? `/${repoName}` : '',
   assetPrefix: isProd ? `/${repoName}` : '',
   images: {
     unoptimized: true,
+  },
+  trailingSlash: true,
+  compiler: {
+    removeConsole: isProd,
+  },
+  webpack: (config) => {
+    config.module.rules.push({
+      test: /\.css$/,
+      use: ['style-loader', 'css-loader'],
+    });
+    return config;
   },
 };
 
