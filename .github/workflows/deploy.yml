@@ -18,31 +18,10 @@ jobs:
           node-version: '18'
 
       - name: Install Dependencies
-        run: |
-          yarn install --frozen-lockfile
-          yarn add -D css-loader style-loader postcss postcss-preset-env
-
-      - name: Clean Build Directories
-        run: |
-          rm -rf .next
-          rm -rf out
+        run: yarn install
 
       - name: Build
-        env:
-          NODE_ENV: production
-        run: |
-          yarn build
-          touch out/.nojekyll
-          [ -d "public" ] && cp -r public/* out/ || true
-
-      - name: Verify Build Output
-        run: |
-          echo "Checking build output..."
-          ls -la out/
-          echo "Checking for CSS files..."
-          find out -name "*.css"
-          echo "Checking for JS files..."
-          find out -name "*.js"
+        run: yarn build
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
@@ -50,4 +29,3 @@ jobs:
           branch: gh-pages
           folder: out
           token: ${{ secrets.GH_PAGES_TOKEN }}
-          clean: true
