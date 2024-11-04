@@ -4,12 +4,12 @@ const isProd = process.env.NODE_ENV === 'production';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  basePath: isProd ? '/whatmorecouldyouneed.github.io' : '',
-  assetPrefix: isProd ? '/whatmorecouldyouneed.github.io' : '',
+  basePath: isProd ? '/wmcyn-online-front-end' : '',
+  assetPrefix: isProd ? '/wmcyn-online-front-end/' : '',
   images: {
     unoptimized: true, // Disable Next.js image optimization for GitHub Pages
   },
-  output: 'export', // Set output to export to support static build
+  output: 'export', // Use 'output: export' to support static build
 };
 
 export default nextConfig;
