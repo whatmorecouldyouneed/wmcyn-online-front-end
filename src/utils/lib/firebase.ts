@@ -1,5 +1,5 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
-import { getAnalytics, Analytics } from 'firebase/analytics';
+import { getAnalytics, Analytics, isSupported as isAnalyticsSupported } from 'firebase/analytics';
 import { getDatabase, Database, ref, push, set } from 'firebase/database';
 
 // Firebase configuration
@@ -19,9 +19,19 @@ let analytics: Analytics | undefined;
 let db: Database | undefined;
 
 if (typeof window !== 'undefined') {
-  app = initializeApp(firebaseConfig);
-  analytics = getAnalytics(app);
-  db = getDatabase(app);
+  try {
+    app = initializeApp(firebaseConfig);
+    db = getDatabase(app);
+    
+    // Only initialize analytics if supported by the current environment
+    isAnalyticsSupported().then((supported) => {
+      if (supported) {
+        analytics = getAnalytics(app);
+      }
+    });
+  } catch (error) {
+    console.error('Firebase initialization error:', error);
+  }
 }
 
-export { analytics, db, ref, push, set };
+export { app, analytics, db, ref, push, set };
