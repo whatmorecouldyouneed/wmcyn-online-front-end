@@ -10,6 +10,7 @@ export default function App({ Component, pageProps }: AppProps) {
       <Head>
         <link rel="icon" href="/wmcyn_logo_condensed.png" type="image/png" />
         <title>WMCYN</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
         <meta name="description" content="WMCYN - A future-forward startup combining modern technology with everyday lifestyle." />
         <meta name="keywords" content="WMCYN, technology, lifestyle, newsletter, shop, VR, AR" />
         <meta property="og:title" content="WMCYN" />
