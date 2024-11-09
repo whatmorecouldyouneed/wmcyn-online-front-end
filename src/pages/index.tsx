@@ -1,4 +1,5 @@
-import { useState, useEffect, SetStateAction } from 'react';
+/* eslint-disable @typescript-eslint/no-namespace */
+import { useState, useEffect } from 'react';
 import { db, ref, push, set } from '../utils/lib/firebase';
 import Typewriter from 'typewriter-effect';
 import NextImage from '../components/NextImage';
@@ -8,15 +9,24 @@ import WMCYNQRCODE from '../../public/wmcyn-qr.png';
 import styles from '../styles/Home.module.css';
 import router from 'next/router';
 
-// Declare custom elements for TypeScript
+// Define custom elements in the global JSX namespace
+// Replace the `namespace` declaration with this interface augmentation
 declare global {
   namespace JSX {
     interface IntrinsicElements {
-      'a-scene': any;
-      'a-entity': any;
+      'a-scene': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
+        embedded?: boolean;
+        arjs?: string;
+        renderer?: string;
+        'vr-mode-ui'?: string;
+      };
+      'a-entity': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
+        camera?: boolean;
+      };
     }
   }
 }
+
 
 interface ARCameraProps {
   onClose: () => void;
@@ -65,13 +75,13 @@ export default function Home() {
     };
   }, [showCamera]);
 
-  const handleEmailChange = (e: { target: { value: SetStateAction<string> } }) => setEmail(e.target.value);
-  const handlePasswordChange = (e: { target: { value: SetStateAction<string> } }) => setPassword(e.target.value);
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value);
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
-      setError('email is required.');
+      setError('Email is required.');
       return;
     }
     writeUserData(email);
@@ -85,7 +95,7 @@ export default function Home() {
       localStorage.setItem('hasAccessToShop', 'true');
       router.push('/shop');
     } else {
-      setError('incorrect password');
+      setError('Incorrect password');
     }
   };
 
@@ -112,7 +122,7 @@ export default function Home() {
                 <form onSubmit={handleSubmit} className={styles.form}>
                   <input
                     type="email"
-                    placeholder="enter your email"
+                    placeholder="Enter your email"
                     value={email}
                     onChange={handleEmailChange}
                     className={styles.inputField}
@@ -128,7 +138,7 @@ export default function Home() {
           <div className={`${styles.container} ${styles.aboutSection}`} id="aboutSection">
             <h2 className={styles.sectionHeading}>ABOUT WMCYN</h2>
             <p className={styles.sectionText}>
-              future-forward start-up built on the advancement of modern technology intertwined with the basics of everyday lifestyle
+              future-forward start-up built on the advancement of modern technology intertwined with the basics of everyday lifestyle.
             </p>
             <div className={styles.instagramContainer}>
               <a href="https://instagram.com/whatmorecouldyouneed" className={styles.instagramLink}>
@@ -142,7 +152,7 @@ export default function Home() {
             <form onSubmit={handleShopAccess} className={styles.form}>
               <input
                 type="password"
-                placeholder="password"
+                placeholder="Password"
                 value={password}
                 onChange={handlePasswordChange}
                 className={styles.inputField}
