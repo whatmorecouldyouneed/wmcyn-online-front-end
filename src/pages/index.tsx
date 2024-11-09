@@ -10,7 +10,6 @@ import styles from '../styles/Home.module.css';
 import router from 'next/router';
 
 // Define custom elements in the global JSX namespace
-// Replace the `namespace` declaration with this interface augmentation
 declare global {
   namespace JSX {
     interface IntrinsicElements {
@@ -26,7 +25,6 @@ declare global {
     }
   }
 }
-
 
 interface ARCameraProps {
   onClose: () => void;
