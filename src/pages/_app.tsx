@@ -1,10 +1,31 @@
-// _app.js
-
 import "@/styles/globals.css";
 import type { AppProps } from "next/app";
 import Head from "next/head";
+import { useEffect } from "react";
 
 export default function App({ Component, pageProps }: AppProps) {
+  useEffect(() => {
+    // Load A-Frame
+    const aframeScript = document.createElement("script");
+    aframeScript.src = "https://cdnjs.cloudflare.com/ajax/libs/aframe/1.2.0/aframe.min.js";
+    aframeScript.async = true;
+    document.head.appendChild(aframeScript);
+
+    // Load AR.js after A-Frame has loaded
+    aframeScript.onload = () => {
+      const arjsScript = document.createElement("script");
+      arjsScript.src = "https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js";
+      arjsScript.async = true;
+      document.head.appendChild(arjsScript);
+    };
+
+    // Cleanup to avoid multiple script instances
+    return () => {
+      aframeScript.remove();
+      document.querySelectorAll("script[src*='aframe-ar.js']").forEach(script => script.remove());
+    };
+  }, []);
+
   return (
     <>
       <Head>

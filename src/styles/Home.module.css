@@ -208,3 +208,47 @@
     padding: 10px;
   }
 }
+
+.qrCodeSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 40px 0;
+}
+
+.qrCodeImage {
+  max-width: 100%;
+  width: 300px;
+  height: auto;
+  margin-bottom: 70px;
+}
+
+.fullscreenCamera {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1000;
+  background-color: transparent !important;
+}
+
+/* Hide unwanted elements added by A-Frame or AR.js */
+.a-loader, .a-canvas {
+  display: none !important;
+}
+
+.a-loader-title,
+.a-loader-logo,
+.a-progress {
+  display: none !important;
+}
+
+/* Hide the default background color on the camera video */
+#arjs-video {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  opacity: 1 !important;
+}
