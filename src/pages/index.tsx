@@ -122,7 +122,7 @@ export default function Home() {
                 <form onSubmit={handleSubmit} className={styles.form}>
                   <input
                     type="email"
-                    placeholder="Enter your email"
+                    placeholder="enter your email"
                     value={email}
                     onChange={handleEmailChange}
                     className={styles.inputField}
@@ -152,7 +152,7 @@ export default function Home() {
             <form onSubmit={handleShopAccess} className={styles.form}>
               <input
                 type="password"
-                placeholder="Password"
+                placeholder="password"
                 value={password}
                 onChange={handlePasswordChange}
                 className={styles.inputField}
