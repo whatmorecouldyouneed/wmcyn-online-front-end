@@ -127,7 +127,7 @@ const ARCamera: React.FC<ARCameraProps> = ({ onClose }) => {
         <a-marker 
           preset="custom"
           type="pattern"
-          url="wmcyn.online/pattern-wmcyn-qr.patt"
+          url="/pattern-wmcyn-qr.patt"
           emit-events="true"
         >
           <a-entity
