@@ -21,6 +21,14 @@ declare global {
       };
       'a-entity': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
         camera?: boolean;
+        position?: string;
+        'text-geometry'?: string;
+        material?: string;
+      };
+      'a-marker': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
+        preset?: string;
+        type?: string;
+        url?: string;
       };
     }
   }
@@ -30,22 +38,112 @@ interface ARCameraProps {
   onClose: () => void;
 }
 
-const ARCamera: React.FC<ARCameraProps> = ({ onClose }) => (
-  <div className={styles.cameraOverlay}>
-    <a-scene
-      embedded
-      arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
-      renderer="logarithmicDepthBuffer: true; alpha: true;"
-      vr-mode-ui="enabled: false"
-      className={styles.cameraScene}
-    >
-      <a-entity camera></a-entity>
-    </a-scene>
-    <button onClick={onClose} className={styles.cameraCloseButton}>
-      Close Camera
-    </button>
-  </div>
-);
+const ARCamera: React.FC<ARCameraProps> = ({ onClose }) => {
+  useEffect(() => {
+    // initial mount log
+    console.log('AR Camera component mounting...');
+
+    const waitForAFrame = () => {
+      // check if AFRAME is loaded
+      if (typeof window.frames === 'undefined') {
+        console.log('Waiting for A-Frame to load...');
+        setTimeout(waitForAFrame, 100);
+        return;
+      }
+      
+      console.log('A-Frame loaded, setting up AR...');
+      setupAR();
+    };
+
+    const setupAR = () => {
+      const sceneEl = document.querySelector('a-scene');
+      console.log('Found scene element:', sceneEl);
+
+      if (!sceneEl) {
+        console.warn('No scene element found!');
+        return;
+      }
+
+      const setupMarkerEvents = () => {
+        console.log('Setting up marker events...');
+        const marker = document.querySelector('a-marker');
+        
+        if (!marker) {
+          console.warn('No marker element found!');
+          return;
+        }
+
+        console.log('Marker element found, attaching events...');
+        
+        const markerFound = () => {
+          console.log('🎯 QR Code detected!');
+        };
+
+        const markerLost = () => {
+          console.log('❌ QR Code lost...');
+        };
+
+        // attach events
+        marker.addEventListener('markerFound', markerFound);
+        marker.addEventListener('markerLost', markerLost);
+        
+        console.log('Events attached successfully');
+
+        // cleanup function
+        return () => {
+          console.log('Cleaning up marker events...');
+          marker.removeEventListener('markerFound', markerFound);
+          marker.removeEventListener('markerLost', markerLost);
+        };
+      };
+
+      if (sceneEl.getAttribute('loaded')) {
+        console.log('Scene already loaded');
+        setupMarkerEvents();
+      } else {
+        console.log('Waiting for scene to load...');
+        sceneEl.addEventListener('loaded', setupMarkerEvents);
+      }
+    };
+
+    // start the process
+    waitForAFrame();
+
+    // cleanup
+    return () => {
+      console.log('AR Camera component unmounting...');
+    };
+  }, []);
+
+  return (
+    <div className={styles.cameraOverlay}>
+      <a-scene
+        embedded
+        arjs="sourceType: webcam; debugUIEnabled: true; detectionMode: mono; patternRatio: 0.75;"
+        renderer="logarithmicDepthBuffer: true; alpha: true;"
+        vr-mode-ui="enabled: false"
+        className={styles.cameraScene}
+      >
+        <a-marker 
+          preset="custom"
+          type="pattern"
+          url="wmcyn.online/pattern-wmcyn-qr.patt"
+          emit-events="true"
+        >
+          <a-entity
+            position="0 0 0"
+            text-geometry="value: WMCYN; size: 1;"
+            material="color: white;"
+          ></a-entity>
+        </a-marker>
+        <a-entity camera></a-entity>
+      </a-scene>
+      <button onClick={onClose} className={styles.cameraCloseButton}>
+        Close Camera
+      </button>
+    </div>
+  );
+};
 
 function writeUserData(emailID: string) {
   if (!db) return;
@@ -61,7 +159,6 @@ export default function Home() {
   const [hasSubscribed, setHasSubscribed] = useState(false);
   const [error, setError] = useState('');
 
-  // Toggle body class to control body styles
   useEffect(() => {
     if (showCamera) {
       document.body.classList.add(styles.cameraActive);
@@ -69,7 +166,7 @@ export default function Home() {
       document.body.classList.remove(styles.cameraActive);
     }
     return () => {
-      document.body.classList.remove(styles.cameraActive); // Clean up on component unmount
+      document.body.classList.remove(styles.cameraActive);
     };
   }, [showCamera]);
 
@@ -79,7 +176,7 @@ export default function Home() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
-      setError('Email is required.');
+      setError('email is required.');
       return;
     }
     writeUserData(email);
@@ -159,7 +256,6 @@ export default function Home() {
             </form>
             {error && <p className={styles.error}>{error}</p>}
           </div>
-
           {/* QR Code Section with Scanner */}
           <div id="qrCodeSection" className={`${styles.container} ${styles.qrCodeSection}`}>
             <h2 className={styles.sectionHeading}>SCAN QR CODE</h2>
