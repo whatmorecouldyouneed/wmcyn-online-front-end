@@ -1,4 +1,15 @@
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 import React, { useEffect, useRef, useState } from 'react';
+import * as THREE from 'three';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare global {
+  interface Window {
+    THREE: any;
+    THREEx: any;
+  }
+}
+
 import styles from '../styles/Home.module.css';
 
 interface ARCameraProps {
@@ -16,15 +27,24 @@ const ARCamera: React.FC<ARCameraProps> = ({ onClose }) => {
       return;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const THREE = window.THREE;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const THREEx = window.THREEx;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let renderer: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let scene: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let camera: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let arToolkitSource: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let arToolkitContext: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let markerControls: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let markerRoot: any;
     let animationFrameId: number;
 
@@ -69,15 +89,15 @@ const ARCamera: React.FC<ARCameraProps> = ({ onClose }) => {
         changeMatrixMode: 'modelViewMatrix'
       });
 
-      // -- Commented out cube
+      // -- commented out cube
       // const geometry = new THREE.BoxGeometry(1, 1, 1);
       // const material = new THREE.MeshNormalMaterial({ transparent: true, opacity: 0.7, side: THREE.DoubleSide });
       // const mesh = new THREE.Mesh(geometry, material);
       // mesh.position.y = 0.5;
       // markerRoot.add(mesh);
-
       const loader = new THREE.FontLoader();
-      loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', (font) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', (font: any) => {
         const textGeometry = new THREE.TextGeometry(
           'wmcyn og logo tee (sample)\nnumber 1 of 1\nprinted april 17th, 2025\nin atlanta, ga',
           {
@@ -90,13 +110,14 @@ const ARCamera: React.FC<ARCameraProps> = ({ onClose }) => {
 
         const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
         const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-textMesh.name = 'rotatingText';
+        textMesh.name = 'rotatingText';
 
         textGeometry.computeBoundingBox();
-        const centerOffsetX = (textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x) / -2;
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const centerOffsetX = (textGeometry.boundingBox!.max.x - textGeometry.boundingBox!.min.x) / -2;
 
         textMesh.position.set(centerOffsetX - 1.0, 0.01, 0);
-        textMesh.rotation.set(-Math.PI / 2, 0, 0); // Face up, flat on the marker
+        textMesh.rotation.set(-Math.PI / 2, 0, 0); // face up, flat on the marker
 
         markerRoot.add(textMesh);
       });
@@ -134,7 +155,7 @@ textMesh.name = 'rotatingText';
       arToolkitContext.update(arToolkitSource.domElement);
       scene.visible = markerRoot ? markerRoot.visible : false;
       
-renderer.render(scene, camera);
+      renderer.render(scene, camera);
     };
 
     try {
@@ -148,10 +169,12 @@ renderer.render(scene, camera);
     return () => {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', onResize);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       markerRoot?.children.forEach((child: any) => {
         if (child.geometry) child.geometry.dispose();
         if (child.material) {
           if (Array.isArray(child.material)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             child.material.forEach((mat: any) => mat.dispose());
           } else {
             child.material.dispose();
