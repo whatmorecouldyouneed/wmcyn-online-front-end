@@ -1,0 +1,6 @@
+version: 2
+tunnels:
+  nextjs:
+    proto: http
+    addr: 3000
+    inspect: true 

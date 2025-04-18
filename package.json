@@ -8,7 +8,8 @@
     "deploy": "yarn build && gh-pages -d out",
     "verify-build": "rm -rf .next out && next build && ls -la out/ && find out -name '*.css' && find out -name '*.js'",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "tunnel": "ngrok start --config=ngrok.yml nextjs"
   },
   "dependencies": {
     "@ar-js-org/ar.js": "^3.4.5",
@@ -31,6 +32,7 @@
     "eslint": "^8",
     "eslint-config-next": "15.0.2",
     "gh-pages": "^6.2.0",
+    "ngrok": "^5.0.0-beta.2",
     "postcss": "^8.4.47",
     "postcss-preset-env": "^10.0.9",
     "style-loader": "^4.0.0",

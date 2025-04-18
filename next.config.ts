@@ -3,7 +3,7 @@ import type { NextConfig } from 'next';
 const isGithubActions = process.env.GITHUB_ACTIONS === 'true';
 
 const nextConfig: NextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: false,
   // Set basePath and assetPrefix to empty so it works for custom domains without breaking asset paths.
   basePath: '',
   assetPrefix: '',
