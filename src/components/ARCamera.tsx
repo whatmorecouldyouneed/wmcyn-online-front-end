@@ -19,6 +19,7 @@ interface ARCameraProps {
 const ARCamera: React.FC<ARCameraProps> = ({ onClose }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMarkerLarge, setIsMarkerLarge] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !window.THREE || !window.THREEx) {
@@ -47,6 +48,11 @@ const ARCamera: React.FC<ARCameraProps> = ({ onClose }) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let markerRoot: any;
     let animationFrameId: number;
+    // references to our two text meshes so we can quickly toggle visibility
+    let textMeshSmall: any;
+    let textMeshLarge: any;
+    // local flag mirroring react state so we don't update state every frame unnecessarily
+    let markerWasLarge = false;
 
     const init = () => {
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -98,28 +104,51 @@ const ARCamera: React.FC<ARCameraProps> = ({ onClose }) => {
       const loader = new THREE.FontLoader();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', (font: any) => {
-        const textGeometry = new THREE.TextGeometry(
-          'wmcyn og logo tee (sample)\nnumber 1 of 1\nprinted april 17th, 2025\nin atlanta, ga',
-          {
+        const createTextMesh = (
+          label: string,
+          size = 0.15,
+          offsetX = -1.0,
+          offsetY = 0.01
+        ) => {
+          const geometry = new THREE.TextGeometry(label, {
             font: font,
-            size: 0.15,
+            size: size,
             height: 0.01,
             curveSegments: 8,
-          }
+          });
+
+          const material = new THREE.MeshBasicMaterial({ color: 0x000000 });
+          const mesh = new THREE.Mesh(geometry, material);
+
+          geometry.computeBoundingBox();
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          const centerOffsetX = (geometry.boundingBox!.max.x - geometry.boundingBox!.min.x) / -2;
+
+          mesh.position.set(centerOffsetX + offsetX, offsetY, 0);
+          mesh.rotation.set(-Math.PI / 2, 0, 0);
+          return mesh;
+        };
+
+        // small / default message
+        textMeshSmall = createTextMesh(
+          'wmcyn og logo tee (sample)\nnumber 1 of 1\nprinted april 17th, 2025\nin atlanta, ga'
         );
+        textMeshSmall.visible = true;
+        textMeshSmall.name = 'textSmall';
 
-        const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
-        const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-        textMesh.name = 'rotatingText';
+        // large marker message – center above marker
+        textMeshLarge = createTextMesh(
+          'wmcyn charred holographic tote (sample)\nnumber 1 of 1\nprinted april 18th, 2025\nin atlanta, ga',
+          0.09,
+          0.55,
+          -1.1
+        );
+        textMeshLarge.visible = false;
+        textMeshLarge.name = 'textLarge';
 
-        textGeometry.computeBoundingBox();
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const centerOffsetX = (textGeometry.boundingBox!.max.x - textGeometry.boundingBox!.min.x) / -2;
-
-        textMesh.position.set(centerOffsetX - 1.0, 0.01, 0);
-        textMesh.rotation.set(-Math.PI / 2, 0, 0); // face up, flat on the marker
-
-        markerRoot.add(textMesh);
+        // add both to the scene but show only one at a time
+        markerRoot.add(textMeshSmall);
+        markerRoot.add(textMeshLarge);
       });
 
       window.addEventListener('resize', onResize);
@@ -155,6 +184,26 @@ const ARCamera: React.FC<ARCameraProps> = ({ onClose }) => {
       arToolkitContext.update(arToolkitSource.domElement);
       scene.visible = markerRoot ? markerRoot.visible : false;
       
+      // when the marker is visible, check its distance from the camera to decide which text to show
+      if (markerRoot.visible && textMeshSmall && textMeshLarge) {
+        const markerWorldPos = new THREE.Vector3();
+        markerRoot.getWorldPosition(markerWorldPos);
+        const distance = markerWorldPos.length(); // camera is at origin (0,0,0)
+
+        // heuristically, treat the marker as "large" when very close to the camera
+        const threshold = 5; // tune as necessary – smaller values mean closer/larger marker
+        const isNowLarge = distance < threshold;
+
+        if (isNowLarge !== markerWasLarge) {
+          // toggle visibility of meshes
+          textMeshSmall.visible = !isNowLarge;
+          textMeshLarge.visible = isNowLarge;
+
+          markerWasLarge = isNowLarge;
+          setIsMarkerLarge(isNowLarge);
+        }
+      }
+
       renderer.render(scene, camera);
     };
 
