@@ -11,6 +11,7 @@ const firebaseConfig = {
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  databaseURL: `https://${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebaseio.com`
 };
 
 // Initialize Firebase only on the client side
@@ -25,8 +26,17 @@ if (typeof window !== 'undefined') {
     const missingFields = requiredFields.filter(field => !firebaseConfig[field as keyof typeof firebaseConfig]);
     
     if (missingFields.length > 0) {
+      console.error('Missing Firebase config fields:', missingFields);
       throw new Error(`Missing required Firebase config fields: ${missingFields.join(', ')}`);
     }
+
+    // Log the config (without sensitive values) for debugging
+    console.log('Firebase config:', {
+      ...firebaseConfig,
+      apiKey: firebaseConfig.apiKey ? '[REDACTED]' : undefined,
+      projectId: firebaseConfig.projectId || undefined,
+      databaseURL: firebaseConfig.databaseURL || undefined
+    });
 
     app = initializeApp(firebaseConfig);
     db = getDatabase(app);
