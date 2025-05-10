@@ -34,6 +34,15 @@ const ShopifyProductItem: React.FC<ShopifyProductItemProps> = ({ product }) => {
   
   const [isAddingToCart, setIsAddingToCart] = useState(false);
 
+  // validate product id early for the hook
+  const productId = product?.id ? String(product.id) : '';
+
+  // Move the hook to the top, before any conditional returns
+  useShopifyBuyButton(buyButtonRef, productId, {
+    moneyFormat: '%24%7B%7Bamount%7D%7D',
+    options: defaultShopifyButtonStyles, 
+  });
+
   useEffect(() => {
     if (sliderRef1.current) {
       setNav1(sliderRef1.current);
@@ -60,13 +69,6 @@ const ShopifyProductItem: React.FC<ShopifyProductItemProps> = ({ product }) => {
     return null;
   }
 
-  // validate product id
-  const productId = typeof product.id === 'string' ? product.id : String(product.id);
-  if (!productId) {
-    console.error('Product missing valid id:', product);
-    return null;
-  }
-
   // validate product title
   if (!product.title) {
     console.error('Product missing title:', product);
@@ -79,12 +81,6 @@ const ShopifyProductItem: React.FC<ShopifyProductItemProps> = ({ product }) => {
     console.error('Product missing valid price:', product);
     return null;
   }
-
-  // Move the hook before any conditional returns
-  useShopifyBuyButton(buyButtonRef, productId, {
-    moneyFormat: '%24%7B%7Bamount%7D%7D',
-    options: defaultShopifyButtonStyles, 
-  });
 
   // This hook is for Shopify's own embedded button, which we might still want or phase out.
   // For now, we keep it as it might control variant selection UI that our custom buttons don't yet.
