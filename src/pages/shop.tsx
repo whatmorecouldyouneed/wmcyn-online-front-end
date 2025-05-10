@@ -1,13 +1,40 @@
 /* eslint-enable @typescript-eslint/no-explicit-any */
 // import { GetServerSideProps } from 'next';
 import Head from 'next/head';
-import { useShopifyProducts } from '../hooks/useShopifyProducts';
-import ShopifyProductItem from '../components/shop/ShopifyProductItem';
+import { useShopifyProducts } from '@/hooks/useShopifyProducts';
+import ShopifyProductItem from '@/components/shop/ShopifyProductItem';
 import ShopifyBuy from 'shopify-buy'; // Import ShopifyBuy for the Product type
 import Cart from '@/components/cart/Cart'; // Import Cart component
 import { useShopifyCart } from '@/contexts/CartContext'; // Import useShopifyCart hook
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faShoppingBag } from '@fortawesome/free-solid-svg-icons';
+
+// Define SerializableProduct if not already defined or imported from a shared location
+// This should match the definition in useShopifyProducts.ts and ShopifyProductItem.tsx
+interface SerializableProduct {
+  id: string;
+  title: string;
+  handle: string;
+  description: string;
+  descriptionHtml: string;
+  images: Array<{
+    id: string;
+    src: string;
+    altText: string | null;
+  }>;
+  variants: Array<{
+    id: string;
+    title: string;
+    price: {
+      amount: string;
+      currencyCode: string;
+    };
+    image?: {
+      src: string;
+      altText: string | null;
+    };
+  }>;
+}
 
 const Shop: React.FC = () => { 
   const { products, loading, error } = useShopifyProducts();
@@ -59,32 +86,30 @@ const Shop: React.FC = () => {
     return <div>error loading products. please try again later.</div>;
   }
 
-  // Add safety check for products array
-  if (!Array.isArray(products)) {
-    console.error('Products is not an array:', products);
-    return <div>error: invalid product data</div>;
+  if (!products) {
+    return <div>no products found.</div>;
   }
 
-  // Filter out any invalid products before rendering
-  const validProducts = products.filter((product): product is ShopifyBuy.Product => {
-    if (!product || typeof product !== 'object') {
-      console.error('Invalid product in array:', product);
-      return false;
+  // Updated filter to work with SerializableProduct
+  // The main validation of structure should ideally happen during serialization in useShopifyProducts
+  const validProducts = products.filter((product): product is SerializableProduct => {
+    // Basic check: ensure product is an object and has an id.
+    // More specific checks can be added if necessary, based on SerializableProduct structure.
+    if (typeof product === 'object' && product !== null && product.id) {
+      // Example: Check for essential fields from SerializableProduct
+      if (!product.title || !product.variants || product.variants.length === 0) {
+        console.warn('Product missing essential fields after serialization:', product);
+        return false;
+      }
+      return true;
     }
-    if (!product.id) {
-      console.error('Product missing id:', product);
-      return false;
-    }
-    if (!product.title) {
-      console.error('Product missing title:', product);
-      return false;
-    }
-    if (!product.variants || !Array.isArray(product.variants) || product.variants.length === 0) {
-      console.error('Product missing valid variants:', product);
-      return false;
-    }
-    return true;
+    console.warn('Invalid product object in products array:', product);
+    return false;
   });
+
+  if (validProducts.length === 0) {
+    return <div>no valid products available to display.</div>;
+  }
 
   return (
     <>
@@ -111,16 +136,12 @@ const Shop: React.FC = () => {
             scan to see your product come alive
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center' }}>
-            {validProducts.length > 0 ? (
-              validProducts.map((product) => (
-                <ShopifyProductItem 
-                  key={typeof product.id === 'string' ? product.id : String(product.id)} 
-                  product={product} 
-                />
-              ))
-            ) : (
-              <p>no products found.</p>
-            )}
+            {validProducts.map((product) => (
+              <ShopifyProductItem 
+                key={product.id} 
+                product={product} 
+              />
+            ))}
           </div>
         </div>
       </div>

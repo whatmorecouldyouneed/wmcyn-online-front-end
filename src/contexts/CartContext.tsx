@@ -26,7 +26,7 @@ interface SerializableProduct {
   }>;
 }
 
-interface CartItem {
+export interface CartItem {
   variantId: string;
   productId: string;
   handle: string;
