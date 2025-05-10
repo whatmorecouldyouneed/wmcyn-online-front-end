@@ -17,7 +17,9 @@ if (missingVars.length > 0) {
 }
 
 // log the domain being used (without the token for security)
-console.log('Initializing Shopify client with domain:', requiredEnvVars.domain);
+if (typeof window !== 'undefined') {
+  console.log('Initializing Shopify client with domain:', requiredEnvVars.domain);
+}
 
 const client = ShopifyBuy.buildClient({
   domain: requiredEnvVars.domain!,
@@ -28,6 +30,11 @@ const client = ShopifyBuy.buildClient({
 // wrap the client's fetchAll method to add better error handling
 const originalFetchAll = client.product.fetchAll;
 client.product.fetchAll = async () => {
+  // only run on client side
+  if (typeof window === 'undefined') {
+    return [];
+  }
+
   try {
     console.log('Attempting to fetch products from Shopify...');
     const products = await originalFetchAll();

@@ -14,6 +14,9 @@ export const useShopifyProducts = (): UseShopifyProductsReturn => {
   const [error, setError] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
 
   useEffect(() => {
+    // only run on client side
+    if (typeof window === 'undefined') return;
+
     const fetchProducts = async () => {
       try {
         setLoading(true);
