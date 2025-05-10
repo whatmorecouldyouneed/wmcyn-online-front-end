@@ -1,5 +1,5 @@
 import { useEffect, RefObject } from 'react';
-import client from '@/utils/shopifyClient';
+import getClient from '@/utils/shopifyClient';
 
 // type definition for styles, can be deeply nested
 interface ShopifyStyles {
@@ -96,7 +96,7 @@ export function useShopifyBuyButton(
 
     const initialize = () => {
       if (!(window as any).ShopifyBuy || !(window as any).ShopifyBuy.UI) return;
-      (window as any).ShopifyBuy.UI.onReady(client).then((ui: any) => {
+      (window as any).ShopifyBuy.UI.onReady(getClient).then((ui: any) => {
         ui.createComponent('product', {
           id: productId,
           node: containerRef.current,

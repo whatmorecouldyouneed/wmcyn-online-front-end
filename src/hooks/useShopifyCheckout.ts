@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import shopifyClient from '../utils/shopifyClient';
+import getClient from '@/utils/shopifyClient';
 import ShopifyBuy from 'shopify-buy';
 
 // Define the structure for line items to be added to the checkout
@@ -25,36 +25,42 @@ export const useShopifyCheckout = (): UseShopifyCheckoutReturn => {
     setLoading(true);
     setError(null);
     try {
-      // 1. Create an empty checkout
-      const checkout = await shopifyClient.checkout.create();
-      
-      if (!checkout || !checkout.id) {
-        throw new Error('Failed to create checkout.');
+      const client = getClient();
+      if (!client) {
+        throw new Error('Shopify client not initialized');
       }
 
-      // 2. Add line items to the checkout
-      // The line items need to be in the format expected by the SDK
-      const shopifyLineItems = lineItems.map(item => ({
+      // 1. Create an empty checkout
+      const checkout = await client.checkout.create();
+      
+      if (!checkout || !checkout.id) {
+        throw new Error('Failed to create checkout');
+      }
+
+      // 2. Format the items for Shopify
+      const shopifyLineItems = lineItems.map((item) => ({
         variantId: item.variantId,
         quantity: item.quantity,
         ...(item.customAttributes && { customAttributes: item.customAttributes }),
       }));
 
-      const checkoutWithItems = await shopifyClient.checkout.addLineItems(
+      // 3. Add the items to the checkout
+      const checkoutWithItems = await client.checkout.addLineItems(
         checkout.id,
         shopifyLineItems
       );
 
       if (checkoutWithItems && checkoutWithItems.webUrl) {
         setCheckoutUrl(checkoutWithItems.webUrl);
-        // 3. Redirect to Shopify's hosted checkout page
+        // 4. Redirect to Shopify's hosted checkout page
         window.location.href = checkoutWithItems.webUrl;
       } else {
         throw new Error('Failed to add items to checkout or retrieve checkout URL.');
       }
     } catch (e: any) {
       console.error('Shopify Checkout Error:', e);
-      setError(e instanceof Error ? e : new Error('An unknown error occurred during checkout.'));
+      const error = e instanceof Error ? e : new Error('An unknown error occurred during checkout.');
+      setError(error);
       setCheckoutUrl(null); // Reset checkout URL on error
     } finally {
       setLoading(false);
