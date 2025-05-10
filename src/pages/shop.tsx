@@ -53,6 +53,10 @@ const Shop: React.FC = () => {
 
   if (loading) return <p>loading products...</p>;
   if (error) return <p>error fetching products: {error.message || 'unknown error'}</p>;
+  if (!Array.isArray(products)) {
+    console.error('Products is not an array:', products);
+    return <p>error: invalid product data</p>;
+  }
 
   return (
     <>
@@ -80,9 +84,18 @@ const Shop: React.FC = () => {
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center' }}>
             {products.length > 0 ? (
-              products.map((product: ShopifyBuy.Product) => (
-                <ShopifyProductItem key={product.id.toString()} product={product} />
-              ))
+              products.map((product: ShopifyBuy.Product) => {
+                if (!product || typeof product !== 'object') {
+                  console.error('Invalid product in array:', product);
+                  return null;
+                }
+                return (
+                  <ShopifyProductItem 
+                    key={typeof product.id === 'string' ? product.id : String(product.id)} 
+                    product={product} 
+                  />
+                );
+              })
             ) : (
               <p>no products found.</p>
             )}

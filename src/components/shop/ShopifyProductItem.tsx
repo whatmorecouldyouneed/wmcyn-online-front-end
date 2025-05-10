@@ -44,6 +44,12 @@ const ShopifyProductItem: React.FC<ShopifyProductItemProps> = ({ product }) => {
 
   const productId = typeof product.id === 'string' ? product.id : String(product.id);
 
+  // Add safety checks for product data
+  if (!product || typeof product !== 'object') {
+    console.error('Invalid product data:', product);
+    return null;
+  }
+
   // This hook is for Shopify's own embedded button, which we might still want or phase out.
   // For now, we keep it as it might control variant selection UI that our custom buttons don't yet.
   useShopifyBuyButton(buyButtonRef, productId, {
@@ -302,7 +308,7 @@ const ShopifyProductItem: React.FC<ShopifyProductItemProps> = ({ product }) => {
       </div> */}
 
       {/* React Slick Carousel */}
-      {product.images && product.images.length > 0 ? (
+      {product.images && Array.isArray(product.images) && product.images.length > 0 ? (
         <div style={{ width: '100%', marginBottom: '10px' }}>
           <Slider 
             {...mainSliderSettings}
@@ -312,7 +318,7 @@ const ShopifyProductItem: React.FC<ShopifyProductItemProps> = ({ product }) => {
               <div key={image.id || image.src}>
                 <img
                   src={image.src}
-                  alt={image.altText || product.title}
+                  alt={image.altText || product.title || 'Product image'}
                   style={imageStyle}
                 />
               </div>
@@ -327,7 +333,7 @@ const ShopifyProductItem: React.FC<ShopifyProductItemProps> = ({ product }) => {
       )}
 
       {/* Thumbnail Slider */}
-      {product.images && product.images.length > 1 && (
+      {product.images && Array.isArray(product.images) && product.images.length > 1 && (
         <div style={{ width: '90%', margin: '10px auto 20px auto' }}>
           <Slider
             {...thumbSliderSettings}
@@ -340,7 +346,7 @@ const ShopifyProductItem: React.FC<ShopifyProductItemProps> = ({ product }) => {
               >
                 <img
                   src={image.src}
-                  alt={`Thumbnail ${image.altText || product.title}`}
+                  alt={`Thumbnail ${image.altText || product.title || 'Product image'}`}
                   style={index === activeThumbIndex ? activeThumbImageStyle : thumbImageStyle}
                 />
               </div>
@@ -349,13 +355,13 @@ const ShopifyProductItem: React.FC<ShopifyProductItemProps> = ({ product }) => {
         </div>
       )}
 
-      <h2 style={titleStyle}>{product.title}</h2>
-      {product.variants && product.variants.length > 0 && (
+      <h2 style={titleStyle}>{product.title || 'Untitled Product'}</h2>
+      {product.variants && Array.isArray(product.variants) && product.variants.length > 0 && (
         <div style={priceStyle}>
           {Number(product.variants[0].price.amount).toFixed(2)} {product.variants[0].price.currencyCode}
         </div>
       )}
-      {product.descriptionHtml && (
+      {product.descriptionHtml && typeof product.descriptionHtml === 'string' && (
         <div 
           style={descriptionStyle} 
           dangerouslySetInnerHTML={{ __html: product.descriptionHtml }}
