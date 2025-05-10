@@ -43,19 +43,48 @@ const ShopifyProductItem: React.FC<ShopifyProductItemProps> = ({ product }) => {
     }
   }, []);
 
+  // Add safety checks for product data
+  if (!product || typeof product !== 'object') {
+    console.error('Invalid product data:', product);
+    return null;
+  }
+
+  // add more detailed validation
+  if (!product.images || !Array.isArray(product.images)) {
+    console.error('Product missing images array:', product);
+    return null;
+  }
+
+  if (!product.variants || !Array.isArray(product.variants) || product.variants.length === 0) {
+    console.error('Product missing valid variants:', product);
+    return null;
+  }
+
+  // validate product id
   const productId = typeof product.id === 'string' ? product.id : String(product.id);
+  if (!productId) {
+    console.error('Product missing valid id:', product);
+    return null;
+  }
+
+  // validate product title
+  if (!product.title) {
+    console.error('Product missing title:', product);
+    return null;
+  }
+
+  // validate product price
+  const firstVariant = product.variants[0];
+  if (!firstVariant || !firstVariant.price || typeof firstVariant.price.amount !== 'string') {
+    console.error('Product missing valid price:', product);
+    return null;
+  }
 
   // Move the hook before any conditional returns
   useShopifyBuyButton(buyButtonRef, productId, {
     moneyFormat: '%24%7B%7Bamount%7D%7D',
     options: defaultShopifyButtonStyles, 
   });
-
-  // Add safety checks for product data
-  if (!product || typeof product !== 'object') {
-    console.error('Invalid product data:', product);
-    return null;
-  }
 
   // This hook is for Shopify's own embedded button, which we might still want or phase out.
   // For now, we keep it as it might control variant selection UI that our custom buttons don't yet.
@@ -133,14 +162,14 @@ const ShopifyProductItem: React.FC<ShopifyProductItemProps> = ({ product }) => {
   };
 
   const thumbSliderSettings: Settings = {
-    slidesToShow: product.images && product.images.length >= 3 ? 3 : product.images?.length || 1,
+    slidesToShow: product.images?.length >= 3 ? 3 : Math.max(1, product.images?.length || 1),
     slidesToScroll: 1,
     asNavFor: nav1 || undefined,
     dots: false,
-    centerMode: product.images && product.images.length > 1,
+    centerMode: product.images?.length > 1,
     swipeToSlide: true,
     focusOnSelect: true,
-    infinite: product.images && product.images.length > (product.images && product.images.length >= 3 ? 3 : product.images?.length || 1),
+    infinite: product.images?.length > (product.images?.length >= 3 ? 3 : Math.max(1, product.images?.length || 1)),
     arrows: true,
     responsive: [
       {

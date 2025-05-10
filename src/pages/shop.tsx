@@ -50,13 +50,41 @@ const Shop: React.FC = () => {
     marginBottom: '10px', // Add some space below the icon
   };
 
+  if (loading) {
+    return <div>loading...</div>;
+  }
 
-  if (loading) return <p>loading products...</p>;
-  if (error) return <p>error fetching products: {error.message || 'unknown error'}</p>;
+  if (error) {
+    console.error('Shopify products error:', error);
+    return <div>error loading products. please try again later.</div>;
+  }
+
+  // Add safety check for products array
   if (!Array.isArray(products)) {
     console.error('Products is not an array:', products);
-    return <p>error: invalid product data</p>;
+    return <div>error: invalid product data</div>;
   }
+
+  // Filter out any invalid products before rendering
+  const validProducts = products.filter((product): product is ShopifyBuy.Product => {
+    if (!product || typeof product !== 'object') {
+      console.error('Invalid product in array:', product);
+      return false;
+    }
+    if (!product.id) {
+      console.error('Product missing id:', product);
+      return false;
+    }
+    if (!product.title) {
+      console.error('Product missing title:', product);
+      return false;
+    }
+    if (!product.variants || !Array.isArray(product.variants) || product.variants.length === 0) {
+      console.error('Product missing valid variants:', product);
+      return false;
+    }
+    return true;
+  });
 
   return (
     <>
@@ -83,19 +111,13 @@ const Shop: React.FC = () => {
             scan to see your product come alive
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center' }}>
-            {products.length > 0 ? (
-              products.map((product: ShopifyBuy.Product) => {
-                if (!product || typeof product !== 'object') {
-                  console.error('Invalid product in array:', product);
-                  return null;
-                }
-                return (
-                  <ShopifyProductItem 
-                    key={typeof product.id === 'string' ? product.id : String(product.id)} 
-                    product={product} 
-                  />
-                );
-              })
+            {validProducts.length > 0 ? (
+              validProducts.map((product) => (
+                <ShopifyProductItem 
+                  key={typeof product.id === 'string' ? product.id : String(product.id)} 
+                  product={product} 
+                />
+              ))
             ) : (
               <p>no products found.</p>
             )}
