@@ -22,12 +22,12 @@ const getClient = () => {
       .map(([key]) => key);
 
     if (missingVars.length > 0) {
-      console.error('Missing required Shopify environment variables:', missingVars);
-      throw new Error(`Missing required Shopify environment variables: ${missingVars.join(', ')}`);
+      console.error('missing required shopify environment variables:', missingVars);
+      throw new Error(`missing required shopify environment variables: ${missingVars.join(', ')}`);
     }
 
     // log the domain being used (without the token for security)
-    console.log('Initializing Shopify client with domain:', requiredEnvVars.domain);
+    console.log('initializing shopify client with domain:', requiredEnvVars.domain);
 
     try {
       // ensure the domain is properly formatted
@@ -41,40 +41,17 @@ const getClient = () => {
 
       // verify client initialization
       if (!client || !client.product) {
-        throw new Error('Failed to initialize Shopify client');
+        throw new Error('failed to initialize shopify client');
       }
-
-      // wrap the client's fetchAll method to add better error handling
-      const originalFetchAll = client.product.fetchAll;
-      client.product.fetchAll = async () => {
-        try {
-          console.log('Attempting to fetch products from Shopify...');
-          if (!client?.product) {
-            throw new Error('Shopify client not properly initialized');
-          }
-          const products = await originalFetchAll();
-          console.log('Successfully fetched products:', products.length);
-          return products;
-        } catch (error) {
-          console.error('Error fetching products from Shopify:', error);
-          // log additional details about the error
-          if (error instanceof Error) {
-            console.error('Error name:', error.name);
-            console.error('Error message:', error.message);
-            console.error('Error stack:', error.stack);
-          }
-          throw error;
-        }
-      };
     } catch (error) {
-      console.error('Error initializing Shopify client:', error);
+      console.error('error initializing shopify client:', error);
       client = null; // reset client on error
       throw error;
     }
   }
 
   if (!client) {
-    throw new Error('Failed to initialize Shopify client');
+    throw new Error('failed to initialize shopify client');
   }
 
   return client;
