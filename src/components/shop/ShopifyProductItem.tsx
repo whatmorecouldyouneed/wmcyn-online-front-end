@@ -4,7 +4,11 @@ import { useShopifyBuyButton } from '@/hooks/useShopifyBuyButton';
 import { useShopifyCheckout, LineItemToAdd } from '@/hooks/useShopifyCheckout'; // Re-import for Buy Now
 import { useShopifyCart } from '@/contexts/CartContext';
 import { defaultShopifyButtonStyles } from '@/styles/shopifyStyles';
-import Slider from 'react-slick';
+import type { Settings } from 'react-slick';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const Slider: any = require('react-slick');
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
 // import useEmblaCarousel, { UseEmblaCarouselType } from 'embla-carousel-react';
 // import { EmblaOptionsType, EmblaCarouselType } from 'embla-carousel';
 
@@ -14,11 +18,11 @@ interface ShopifyProductItemProps {
 
 const ShopifyProductItem: React.FC<ShopifyProductItemProps> = ({ product }) => {
   const buyButtonRef = useRef<HTMLDivElement>(null);
-  const [nav1, setNav1] = useState<Slider | undefined>(undefined);
-  const [nav2, setNav2] = useState<Slider | undefined>(undefined);
+  const [nav1, setNav1] = useState<any>(null);
+  const [nav2, setNav2] = useState<any>(null);
   const [activeThumbIndex, setActiveThumbIndex] = useState(0);
-  const sliderRef1 = useRef<Slider>(null);
-  const sliderRef2 = useRef<Slider>(null);
+  const sliderRef1 = useRef<any>(null);
+  const sliderRef2 = useRef<any>(null);
 
   const { addToCart } = useShopifyCart();
   const { 
@@ -100,14 +104,14 @@ const ShopifyProductItem: React.FC<ShopifyProductItemProps> = ({ product }) => {
   //   };
   // }, [emblaApi, onSelect]); // emblaApi and onSelect are the key dependencies here
 
-  const mainSliderSettings = {
+  const mainSliderSettings: Settings = {
     dots: true,
     infinite: true,
     speed: 500,
     slidesToShow: 1,
     slidesToScroll: 1,
     adaptiveHeight: true,
-    asNavFor: nav2,
+    asNavFor: nav2 || undefined,
     arrows: true,
     afterChange: (current: number) => setActiveThumbIndex(current),
     responsive: [
@@ -120,10 +124,10 @@ const ShopifyProductItem: React.FC<ShopifyProductItemProps> = ({ product }) => {
     ]
   };
 
-  const thumbSliderSettings = {
+  const thumbSliderSettings: Settings = {
     slidesToShow: product.images && product.images.length >= 3 ? 3 : product.images?.length || 1,
     slidesToScroll: 1,
-    asNavFor: nav1,
+    asNavFor: nav1 || undefined,
     dots: false,
     centerMode: product.images && product.images.length > 1,
     swipeToSlide: true,
