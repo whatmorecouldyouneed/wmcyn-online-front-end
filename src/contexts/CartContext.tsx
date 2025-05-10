@@ -1,40 +1,67 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import ShopifyBuy from 'shopify-buy';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-// 1. Define CartItem Structure
-export interface CartItem {
-  variantId: string; // Shopify GID, e.g., "gid://shopify/ProductVariant/12345"
-  productId: string; // Shopify GID, e.g., "gid://shopify/Product/12345"
-  handle: string; // Product handle for URL generation or linking
+// define the serialized product type
+interface SerializableProduct {
+  id: string;
   title: string;
-  variantTitle?: string; // e.g. "Small / Red"
+  handle: string;
+  description: string;
+  descriptionHtml: string;
+  images: Array<{
+    id: string;
+    src: string;
+    altText: string | null;
+  }>;
+  variants: Array<{
+    id: string;
+    title: string;
+    price: {
+      amount: string;
+      currencyCode: string;
+    };
+    image?: {
+      src: string;
+      altText: string | null;
+    };
+  }>;
+}
+
+interface CartItem {
+  variantId: string;
+  productId: string;
+  handle: string;
+  title: string;
+  variantTitle?: string;
   imageSrc?: string;
   quantity: number;
-  price: string; // Price of a single unit
+  price: string;
   currencyCode: string;
 }
 
-// 2. Define Cart Context State and Actions
-interface CartContextState {
+interface CartContextType {
   cartItems: CartItem[];
   isCartOpen: boolean;
   cartCount: number;
   cartTotal: number;
-  addToCart: (product: ShopifyBuy.Product, variant: ShopifyBuy.ProductVariant, quantity: number) => void;
-  removeFromCart: (variantId: string) => void;
-  updateQuantity: (variantId: string, newQuantity: number) => void;
-  clearCart: () => void;
   openCart: () => void;
   closeCart: () => void;
-  // Note: The actual checkout function will be called from the cart component, using useShopifyCheckout
+  addToCart: (product: SerializableProduct, variant: SerializableProduct['variants'][0], quantity: number) => void;
+  removeFromCart: (variantId: string) => void;
+  updateQuantity: (variantId: string, quantity: number) => void;
 }
 
-// 3. Create Context
-const CartContext = createContext<CartContextState | undefined>(undefined);
+const CartContext = createContext<CartContextType | undefined>(undefined);
 
-// 4. Create Provider Component
+export const useShopifyCart = () => {
+  const context = useContext(CartContext);
+  if (!context) {
+    throw new Error('useShopifyCart must be used within a CartProvider');
+  }
+  return context;
+};
+
 interface CartProviderProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
@@ -64,25 +91,25 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     setCartTotal(total);
   }, [cartItems]);
 
-  const addToCart = (product: ShopifyBuy.Product, variant: ShopifyBuy.ProductVariant, quantity: number) => {
+  const addToCart = (product: SerializableProduct, variant: SerializableProduct['variants'][0], quantity: number) => {
     setCartItems(prevItems => {
-      const existingItem = prevItems.find(item => item.variantId === String(variant.id));
+      const existingItem = prevItems.find(item => item.variantId === variant.id);
       if (existingItem) {
         return prevItems.map(item =>
-          item.variantId === String(variant.id)
+          item.variantId === variant.id
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
       } else {
         const newItem: CartItem = {
-          variantId: String(variant.id),
-          productId: String(product.id),
+          variantId: variant.id,
+          productId: product.id,
           handle: product.handle,
           title: product.title,
           variantTitle: variant.title === 'Default Title' ? undefined : variant.title,
           imageSrc: variant.image?.src || product.images[0]?.src,
           quantity,
-          price: String(variant.price.amount),
+          price: variant.price.amount,
           currencyCode: variant.price.currencyCode,
         };
         return [...prevItems, newItem];
@@ -94,20 +121,18 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     setCartItems(prevItems => prevItems.filter(item => item.variantId !== variantId));
   };
 
-  const updateQuantity = (variantId: string, newQuantity: number) => {
-    if (newQuantity <= 0) {
+  const updateQuantity = (variantId: string, quantity: number) => {
+    if (quantity < 1) {
       removeFromCart(variantId);
-    } else {
-      setCartItems(prevItems =>
-        prevItems.map(item =>
-          item.variantId === variantId ? { ...item, quantity: newQuantity } : item
-        )
-      );
+      return;
     }
-  };
-
-  const clearCart = () => {
-    setCartItems([]);
+    setCartItems(prevItems =>
+      prevItems.map(item =>
+        item.variantId === variantId
+          ? { ...item, quantity }
+          : item
+      )
+    );
   };
 
   const openCart = () => setIsCartOpen(true);
@@ -120,24 +145,14 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         isCartOpen,
         cartCount,
         cartTotal,
+        openCart,
+        closeCart,
         addToCart,
         removeFromCart,
         updateQuantity,
-        clearCart,
-        openCart,
-        closeCart,
       }}
     >
       {children}
     </CartContext.Provider>
   );
-};
-
-// 5. Create Hook to use Cart Context
-export const useShopifyCart = (): CartContextState => {
-  const context = useContext(CartContext);
-  if (context === undefined) {
-    throw new Error('useShopifyCart must be used within a CartProvider');
-  }
-  return context;
 }; 

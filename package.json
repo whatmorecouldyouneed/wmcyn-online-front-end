@@ -26,6 +26,7 @@
     "sass": "^1.87.0",
     "shopify-buy": "^3.0.4",
     "slick-carousel": "^1.8.1",
+    "swiper": "^11.2.6",
     "three": "^0.176.0",
     "typewriter-effect": "^2.21.0"
   },

@@ -2,14 +2,68 @@ import { useEffect, useState } from 'react';
 import ShopifyBuy from 'shopify-buy';
 import getClient from '@/utils/shopifyClient';
 
+// define a serializable product type
+interface SerializableProduct {
+  id: string;
+  title: string;
+  handle: string;
+  description: string;
+  descriptionHtml: string;
+  images: Array<{
+    id: string;
+    src: string;
+    altText: string | null;
+  }>;
+  variants: Array<{
+    id: string;
+    title: string;
+    price: {
+      amount: string;
+      currencyCode: string;
+    };
+    image?: {
+      src: string;
+      altText: string | null;
+    };
+  }>;
+}
+
 interface UseShopifyProductsReturn {
-  products: ShopifyBuy.Product[];
+  products: SerializableProduct[];
   loading: boolean;
   error: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
+// helper function to serialize a Shopify product
+const serializeProduct = (product: ShopifyBuy.Product): SerializableProduct => {
+  return {
+    id: String(product.id),
+    title: product.title,
+    handle: product.handle,
+    description: product.description,
+    descriptionHtml: product.descriptionHtml,
+    images: product.images.map(image => ({
+      id: String(image.id),
+      src: image.src,
+      altText: image.altText || null
+    })),
+    variants: product.variants.map(variant => ({
+      id: String(variant.id),
+      title: variant.title,
+      price: {
+        amount: String(variant.price.amount),
+        currencyCode: variant.price.currencyCode
+      },
+      image: variant.image ? {
+        src: variant.image.src,
+        altText: variant.image.altText || null
+      } : undefined
+    }))
+  };
+};
+
 export const useShopifyProducts = (): UseShopifyProductsReturn => {
-  const [products, setProducts] = useState<ShopifyBuy.Product[]>([]);
+  const [products, setProducts] = useState<SerializableProduct[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -48,8 +102,11 @@ export const useShopifyProducts = (): UseShopifyProductsReturn => {
         // For more than 20 products, pagination needs to be handled.
         const fetchedProducts = await client.product.fetchAll();
         
-        console.log('useShopifyProducts: Successfully fetched products:', fetchedProducts.length);
-        setProducts(fetchedProducts);
+        // serialize the products before setting state
+        const serializedProducts = fetchedProducts.map(serializeProduct);
+        
+        console.log('useShopifyProducts: Successfully fetched products:', serializedProducts.length);
+        setProducts(serializedProducts);
       } catch (e) {
         console.error('useShopifyProducts: Error fetching products:', e);
         // log additional error details
