@@ -22,10 +22,16 @@ export const useShopifyProducts = (): UseShopifyProductsReturn => {
         setLoading(true);
         console.log('useShopifyProducts: Starting product fetch...');
         
+        // log environment variables (without sensitive data)
+        console.log('Shopify domain:', process.env.NEXT_PUBLIC_SHOPIFY_DOMAIN);
+        console.log('Shopify storefront token exists:', !!process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN);
+        
         const client = getClient();
         if (!client) {
           throw new Error('Shopify client not initialized');
         }
+        
+        console.log('useShopifyProducts: Client initialized successfully');
         
         // The SDK returns a paginated list, by default 20 items.
         // For more than 20 products, pagination needs to be handled.
@@ -40,6 +46,13 @@ export const useShopifyProducts = (): UseShopifyProductsReturn => {
           console.error('Error name:', e.name);
           console.error('Error message:', e.message);
           console.error('Error stack:', e.stack);
+          
+          // check if it's an environment variable issue
+          if (e.message.includes('Missing required Shopify environment variables')) {
+            console.error('Environment variables check:');
+            console.error('NEXT_PUBLIC_SHOPIFY_DOMAIN:', process.env.NEXT_PUBLIC_SHOPIFY_DOMAIN);
+            console.error('NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN exists:', !!process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN);
+          }
         }
         setError(e);
       } finally {

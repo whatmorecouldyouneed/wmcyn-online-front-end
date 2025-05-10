@@ -29,31 +29,36 @@ const getClient = () => {
     // log the domain being used (without the token for security)
     console.log('Initializing Shopify client with domain:', requiredEnvVars.domain);
 
-    client = ShopifyBuy.buildClient({
-      domain: requiredEnvVars.domain!,
-      storefrontAccessToken: requiredEnvVars.storefrontAccessToken!,
-      apiVersion: '2024-07',
-    });
+    try {
+      client = ShopifyBuy.buildClient({
+        domain: requiredEnvVars.domain!,
+        storefrontAccessToken: requiredEnvVars.storefrontAccessToken!,
+        apiVersion: '2024-01',
+      });
 
-    // wrap the client's fetchAll method to add better error handling
-    const originalFetchAll = client.product.fetchAll;
-    client.product.fetchAll = async () => {
-      try {
-        console.log('Attempting to fetch products from Shopify...');
-        const products = await originalFetchAll();
-        console.log('Successfully fetched products:', products.length);
-        return products;
-      } catch (error) {
-        console.error('Error fetching products from Shopify:', error);
-        // log additional details about the error
-        if (error instanceof Error) {
-          console.error('Error name:', error.name);
-          console.error('Error message:', error.message);
-          console.error('Error stack:', error.stack);
+      // wrap the client's fetchAll method to add better error handling
+      const originalFetchAll = client.product.fetchAll;
+      client.product.fetchAll = async () => {
+        try {
+          console.log('Attempting to fetch products from Shopify...');
+          const products = await originalFetchAll();
+          console.log('Successfully fetched products:', products.length);
+          return products;
+        } catch (error) {
+          console.error('Error fetching products from Shopify:', error);
+          // log additional details about the error
+          if (error instanceof Error) {
+            console.error('Error name:', error.name);
+            console.error('Error message:', error.message);
+            console.error('Error stack:', error.stack);
+          }
+          throw error;
         }
-        throw error;
-      }
-    };
+      };
+    } catch (error) {
+      console.error('Error initializing Shopify client:', error);
+      throw error;
+    }
   }
 
   return client;
