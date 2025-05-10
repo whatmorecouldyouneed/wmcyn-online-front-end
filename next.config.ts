@@ -4,14 +4,14 @@ const isGithubActions = process.env.GITHUB_ACTIONS === 'true';
 
 const nextConfig: NextConfig = {
   reactStrictMode: false,
-  // Set basePath and assetPrefix to empty so it works for custom domains without breaking asset paths.
   basePath: '',
   assetPrefix: '',
+  // disable image optimization for GitHub Pages/static export because it breaks the asset paths
   images: {
-    unoptimized: true, // Disable image optimization for GitHub Pages/static export
+    unoptimized: true,
   },
-  trailingSlash: true, // Ensures that all routes have trailing slashes for proper directory resolution.
-  output: 'export', // Supports a static HTML build for GitHub Pages.
+  trailingSlash: true,
+  output: 'export',
 };
 
 export default nextConfig;

@@ -1,134 +1,58 @@
 /* eslint-enable @typescript-eslint/no-explicit-any */
-import { useEffect } from 'react';
-import { useRouter } from 'next/router';
+// import { GetServerSideProps } from 'next';
 import Head from 'next/head';
+import { useShopifyProducts } from '../hooks/useShopifyProducts';
+import ShopifyProductItem from '../components/shop/ShopifyProductItem';
+import ShopifyBuy from 'shopify-buy'; // Import ShopifyBuy for the Product type
+import Cart from '@/components/cart/Cart'; // Import Cart component
+import { useShopifyCart } from '@/contexts/CartContext'; // Import useShopifyCart hook
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faShoppingBag } from '@fortawesome/free-solid-svg-icons';
 
-declare global {
-  interface Window {
-    shopifyScriptInitialized?: boolean;
-    ShopifyBuy?: {
-      buildClient: (options: { domain: string; storefrontAccessToken: string }) => unknown;
-      UI: {
-        onReady: (client: unknown) => Promise<{
-          createComponent: (
-            type: string,
-            options: {
-              id: string;
-              node: HTMLElement | null;
-              moneyFormat: string;
-              options: Record<string, unknown>;
-            }
-          ) => void;
-        }>;
-      };
-    };
-    ShopifyBuyInit?: () => void;
-  }
-}
+const Shop: React.FC = () => { 
+  const { products, loading, error } = useShopifyProducts();
+  const { openCart, cartCount } = useShopifyCart(); 
 
-const Shop = () => {
-  const router = useRouter();
+  // Styles for the cart icon button - adjusted for non-sticky and no circle
+  const cartIconButtonStyle: React.CSSProperties = {
+    background: 'transparent', // Transparent background
+    border: 'none',            // No border
+    cursor: 'pointer',
+    padding: '10px',          // Some padding so it's not too tight
+    // position: 'absolute',  // Consider placement within layout flow
+    // top: '20px',
+    // right: '20px',
+    fontSize: '1.5rem',       // Adjust icon size via font-size if needed
+    color: '#333',            // Icon color, change as needed
+    // zIndex: 1001, // May not be needed if not overlapping heavily
+  };
 
-  // Check user access on initial load
-  useEffect(() => {
-    const hasAccess = localStorage.getItem('hasAccessToShop');
-    if (!hasAccess) {
-      router.push('/'); // Redirect to home if access flag is not set
-    }
-  }, [router]);
+  const cartCountBadgeStyle: React.CSSProperties = {
+    position: 'absolute',
+    top: '0px',      // Adjusted for new icon style
+    right: '0px',    // Adjusted for new icon style
+    background: 'red',
+    color: 'white',
+    borderRadius: '50%',
+    padding: '2px 6px',
+    fontSize: '0.75rem',
+    fontWeight: 'bold',
+    minWidth: '20px', 
+    textAlign: 'center',
+  };
 
-  // Initialize Shopify Buy Button script if not already initialized
-  useEffect(() => {
-    if (window.shopifyScriptInitialized) return; // Prevent multiple script loads
+  const cartButtonContainerStyle: React.CSSProperties = {
+    position: 'relative', // For badge positioning
+    display: 'inline-block', // To keep it inline
+    width: '100%', 
+    textAlign: 'right',
+    paddingRight: '20px', 
+    marginBottom: '10px', // Add some space below the icon
+  };
 
-    // Set initialization flag
-    window.shopifyScriptInitialized = true;
 
-    // Define the ShopifyBuyInit function
-    window.ShopifyBuyInit = function () {
-      const client = window.ShopifyBuy?.buildClient({
-        domain: 'wmcyn-online-shop.myshopify.com',
-        storefrontAccessToken: '4c1fff0b93d13d31f5cebbb8ac9f10c0',
-      });
-
-      if (client && window.ShopifyBuy?.UI) {
-        window.ShopifyBuy.UI.onReady(client).then((ui) => {
-          ui.createComponent('product', {
-            id: '8779870208235',
-            node: document.getElementById('product-component-1730653944519'),
-            moneyFormat: '%24%7B%7Bamount%7D%7D',
-            options: {
-              product: {
-                styles: {
-                  product: {
-                    '@media (min-width: 601px)': {
-                      'max-width': '100%',
-                      'margin-left': '0',
-                      'margin-bottom': '50px',
-                    },
-                    'text-align': 'center',
-                  },
-                  title: { 'font-size': '26px' },
-                  button: {
-                    'font-family': 'Montserrat, sans-serif',
-                    'font-weight': 'bold',
-                    'font-size': '14px',
-                    'padding-top': '15px',
-                    'padding-bottom': '15px',
-                    ':hover': { 'background-color': '#000000' },
-                    'background-color': '#000000',
-                    ':focus': { 'background-color': '#000000' },
-                    'border-radius': '4px',
-                    'padding-left': '30px',
-                    'padding-right': '30px',
-                  },
-                  quantityInput: { 'font-size': '14px', 'padding-top': '15px', 'padding-bottom': '15px' },
-                  price: { 'font-size': '18px' },
-                  compareAt: { 'font-size': '15.3px' },
-                  unitPrice: { 'font-size': '15.3px' },
-                },
-                buttonDestination: 'checkout',
-                layout: 'horizontal',
-                contents: { img: false, imgWithCarousel: true, description: true },
-                width: '100%',
-                text: { button: 'Buy now' },
-                googleFonts: ['Montserrat'],
-              },
-              cart: {
-                styles: {
-                  button: {
-                    'font-family': 'Montserrat, sans-serif',
-                    'font-weight': 'bold',
-                    'font-size': '14px',
-                    'padding-top': '15px',
-                    'padding-bottom': '15px',
-                    ':hover': { 'background-color': '#000000' },
-                    'background-color': '#000000',
-                    ':focus': { 'background-color': '#000000' },
-                    'border-radius': '4px',
-                  },
-                },
-                text: { total: 'Subtotal', button: 'Checkout' },
-                googleFonts: ['Montserrat'],
-              },
-            },
-          });
-        });
-      }
-    };
-
-    // Load Shopify Buy Button script
-    const scriptURL = 'https://sdks.shopifycdn.com/buy-button/latest/buy-button-storefront.min.js';
-    const script = document.createElement('script');
-    script.src = scriptURL;
-    script.async = true;
-    script.onload = () => {
-      if (window.ShopifyBuyInit) {
-        window.ShopifyBuyInit();
-      }
-    };
-    document.head.appendChild(script);
-  }, []);
+  if (loading) return <p>loading products...</p>;
+  if (error) return <p>error fetching products: {error.message || 'unknown error'}</p>;
 
   return (
     <>
@@ -136,9 +60,36 @@ const Shop = () => {
         <title>Shop | WMCYN</title>
         <meta name="description" content="Shop WMCYN's exclusive merchandise." />
       </Head>
-      <div>
-        <div id="product-component-1730653944519"></div>
+      
+      <div style={{ paddingTop: '20px' }}> {/* Added a wrapper div for layout control */}
+        <div style={cartButtonContainerStyle}>
+            <button onClick={openCart} style={cartIconButtonStyle} aria-label="open cart">
+                <FontAwesomeIcon icon={faShoppingBag} size="lg" />
+                {cartCount > 0 && (
+                <span style={cartCountBadgeStyle}>{cartCount}</span>
+                )}
+            </button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}> 
+          <h1>friends and family</h1>
+          <p style={{ textAlign: 'center', maxWidth: '600px', margin: '20px 0' }}>
+            welcome fam
+            <br />
+            scan to see your product come alive
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center' }}>
+            {products.length > 0 ? (
+              products.map((product: ShopifyBuy.Product) => (
+                <ShopifyProductItem key={product.id.toString()} product={product} />
+              ))
+            ) : (
+              <p>no products found.</p>
+            )}
+          </div>
+        </div>
       </div>
+      <Cart /> {/* Render the Cart modal component */}
     </>
   );
 };

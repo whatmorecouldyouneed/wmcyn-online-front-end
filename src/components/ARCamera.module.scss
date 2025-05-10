@@ -1,0 +1,43 @@
+.arCameraContainer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.loadingOverlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white; // Or make this a variable if you have a theme
+  font-size: 20px;
+  z-index: 3;
+  // Consider adding a background or other styling for better visibility
+  // background-color: rgba(0, 0, 0, 0.75);
+  // padding: 20px;
+  // border-radius: 8px;
+}
+
+.mountPoint {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.closeButton {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 2;
+  padding: 10px 15px;
+  font-size: 16px;
+  cursor: pointer;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.7);
+  }
+} 
