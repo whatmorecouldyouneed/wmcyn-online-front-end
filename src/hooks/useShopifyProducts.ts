@@ -26,12 +26,23 @@ export const useShopifyProducts = (): UseShopifyProductsReturn => {
         console.log('Shopify domain:', process.env.NEXT_PUBLIC_SHOPIFY_DOMAIN);
         console.log('Shopify storefront token exists:', !!process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN);
         
-        const client = getClient();
-        if (!client) {
-          throw new Error('Shopify client not initialized');
+        let client;
+        try {
+          client = getClient();
+          if (!client) {
+            throw new Error('Shopify client not initialized');
+          }
+        } catch (clientError) {
+          console.error('Error initializing Shopify client:', clientError);
+          throw clientError;
         }
         
         console.log('useShopifyProducts: Client initialized successfully');
+        
+        // verify client has required methods
+        if (!client.product || typeof client.product.fetchAll !== 'function') {
+          throw new Error('Shopify client missing required methods');
+        }
         
         // The SDK returns a paginated list, by default 20 items.
         // For more than 20 products, pagination needs to be handled.

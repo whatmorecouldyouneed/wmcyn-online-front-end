@@ -30,17 +30,28 @@ const getClient = () => {
     console.log('Initializing Shopify client with domain:', requiredEnvVars.domain);
 
     try {
+      // ensure the domain is properly formatted
+      const domain = requiredEnvVars.domain!.replace(/^https?:\/\//, '').replace(/\/$/, '');
+      
       client = ShopifyBuy.buildClient({
-        domain: requiredEnvVars.domain!,
+        domain,
         storefrontAccessToken: requiredEnvVars.storefrontAccessToken!,
         apiVersion: '2024-01',
       });
+
+      // verify client initialization
+      if (!client || !client.product) {
+        throw new Error('Failed to initialize Shopify client');
+      }
 
       // wrap the client's fetchAll method to add better error handling
       const originalFetchAll = client.product.fetchAll;
       client.product.fetchAll = async () => {
         try {
           console.log('Attempting to fetch products from Shopify...');
+          if (!client?.product) {
+            throw new Error('Shopify client not properly initialized');
+          }
           const products = await originalFetchAll();
           console.log('Successfully fetched products:', products.length);
           return products;
@@ -57,8 +68,13 @@ const getClient = () => {
       };
     } catch (error) {
       console.error('Error initializing Shopify client:', error);
+      client = null; // reset client on error
       throw error;
     }
+  }
+
+  if (!client) {
+    throw new Error('Failed to initialize Shopify client');
   }
 
   return client;
