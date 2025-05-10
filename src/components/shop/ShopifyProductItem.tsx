@@ -5,6 +5,7 @@ import { useShopifyCheckout, LineItemToAdd } from '@/hooks/useShopifyCheckout'; 
 import { useShopifyCart } from '@/contexts/CartContext';
 import { defaultShopifyButtonStyles } from '@/styles/shopifyStyles';
 import type { Settings } from 'react-slick';
+import Image from 'next/image';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const Slider: any = require('react-slick');
 import 'slick-carousel/slick/slick.css';
@@ -44,6 +45,12 @@ const ShopifyProductItem: React.FC<ShopifyProductItemProps> = ({ product }) => {
 
   const productId = typeof product.id === 'string' ? product.id : String(product.id);
 
+  // Move the hook before any conditional returns
+  useShopifyBuyButton(buyButtonRef, productId, {
+    moneyFormat: '%24%7B%7Bamount%7D%7D',
+    options: defaultShopifyButtonStyles, 
+  });
+
   // Add safety checks for product data
   if (!product || typeof product !== 'object') {
     console.error('Invalid product data:', product);
@@ -52,11 +59,6 @@ const ShopifyProductItem: React.FC<ShopifyProductItemProps> = ({ product }) => {
 
   // This hook is for Shopify's own embedded button, which we might still want or phase out.
   // For now, we keep it as it might control variant selection UI that our custom buttons don't yet.
-  useShopifyBuyButton(buyButtonRef, productId, {
-    moneyFormat: '%24%7B%7Bamount%7D%7D',
-    options: defaultShopifyButtonStyles, 
-  });
-
   // const options: EmblaOptionsType = { loop: false, align: 'start', containScroll: false, startIndex: 0 };
   // const [emblaRef, emblaApi] = useEmblaCarousel(options);
   // const [emblaThumbsRef, emblaThumbsApi] = useEmblaCarousel({
@@ -289,6 +291,23 @@ const ShopifyProductItem: React.FC<ShopifyProductItemProps> = ({ product }) => {
     opacity: buyNowLoading ? 0.7 : 1,
   };
 
+  // Add a wrapper component for the slider images
+  const SliderImage: React.FC<{
+    src: string;
+    alt: string;
+    style: React.CSSProperties;
+  }> = ({ src, alt, style }) => (
+    <div style={{ position: 'relative', width: '100%', height: '300px' }}>
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        style={{ objectFit: 'contain' }}
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+      />
+    </div>
+  );
+
   return (
     <div style={cardStyle}>
       {/* Embla Carousel JSX commented out */}
@@ -316,7 +335,7 @@ const ShopifyProductItem: React.FC<ShopifyProductItemProps> = ({ product }) => {
           >
             {product.images.map((image) => (
               <div key={image.id || image.src}>
-                <img
+                <SliderImage
                   src={image.src}
                   alt={image.altText || product.title || 'Product image'}
                   style={imageStyle}
@@ -344,11 +363,19 @@ const ShopifyProductItem: React.FC<ShopifyProductItemProps> = ({ product }) => {
                 key={`thumb-wrapper-${image.id || index}`}
                 style={index === activeThumbIndex ? activeThumbWrapperStyle : thumbWrapperStyle}
               >
-                <img
-                  src={image.src}
-                  alt={`Thumbnail ${image.altText || product.title || 'Product image'}`}
-                  style={index === activeThumbIndex ? activeThumbImageStyle : thumbImageStyle}
-                />
+                <div style={{ position: 'relative', width: '100%', height: '60px' }}>
+                  <Image
+                    src={image.src}
+                    alt={`Thumbnail ${image.altText || product.title || 'Product image'}`}
+                    fill
+                    style={{ 
+                      objectFit: 'cover',
+                      borderRadius: '4px',
+                      opacity: index === activeThumbIndex ? 1 : 0.7,
+                    }}
+                    sizes="60px"
+                  />
+                </div>
               </div>
             ))}
           </Slider>

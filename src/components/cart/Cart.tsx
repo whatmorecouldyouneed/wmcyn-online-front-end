@@ -3,6 +3,7 @@ import { useShopifyCart, CartItem } from '@/contexts/CartContext';
 import { useShopifyCheckout, LineItemToAdd } from '@/hooks/useShopifyCheckout';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes, faTrash } from '@fortawesome/free-solid-svg-icons';
+import Image from 'next/image';
 
 const Cart: React.FC = () => {
   const { 
@@ -15,6 +16,18 @@ const Cart: React.FC = () => {
     cartCount 
   } = useShopifyCart();
   const { createShopifyCheckout, loading: checkoutLoading, error: checkoutError } = useShopifyCheckout();
+
+  const removeButtonStyle = {
+    background: 'transparent',
+    border: 'none',
+    color: 'red',
+    cursor: 'pointer',
+    fontSize: '1rem',
+    padding: '5px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  };
 
   if (!isCartOpen) {
     return null;
@@ -131,6 +144,22 @@ const Cart: React.FC = () => {
     textTransform: 'lowercase',
   };
 
+  // Add a wrapper component for cart item images
+  const CartItemImage: React.FC<{
+    src: string;
+    alt: string;
+  }> = ({ src, alt }) => (
+    <div style={{ position: 'relative', width: '60px', height: '60px' }}>
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        style={{ objectFit: 'cover' }}
+        sizes="60px"
+      />
+    </div>
+  );
+
   return (
     <div style={modalOverlayStyle} onClick={closeCart}>
       <div style={modalContentStyle} onClick={(e) => e.stopPropagation()}>
@@ -142,26 +171,32 @@ const Cart: React.FC = () => {
           <p style={textStyle}>your cart is empty.</p>
         ) : (
           <>
-            {cartItems.map((item: CartItem) => (
+            {cartItems.map((item) => (
               <div key={item.variantId} style={itemStyle}>
-                <img src={item.imageSrc} alt={item.title} style={itemImageStyle} />
-                <div style={itemDetailsStyle}>
-                  <strong style={{color: '#000'}}>{item.title}</strong>
-                  {item.variantTitle && <p style={{ fontSize: '0.9em', color: '#555' }}>{item.variantTitle}</p>}
-                  <p style={{...textStyle, textTransform: 'none'}}>{item.price} {item.currencyCode}</p>
-                </div>
-                <div>
-                  <input 
-                    type="number" 
-                    value={item.quantity} 
-                    onChange={(e) => updateQuantity(item.variantId, parseInt(e.target.value))}
-                    min="1"
-                    style={quantityInputStyle}
+                {item.imageSrc && (
+                  <CartItemImage
+                    src={item.imageSrc}
+                    alt={item.title}
                   />
-                  <button onClick={() => removeFromCart(item.variantId)} style={{ background: 'transparent', border: 'none', color: 'red', cursor: 'pointer', fontSize: '1rem', paddingLeft: '10px'}}>
-                    <FontAwesomeIcon icon={faTrash} />
-                  </button>
+                )}
+                <div style={{ marginLeft: '10px', flex: 1 }}>
+                  <h3 style={{ margin: '0 0 5px 0' }}>{item.title}</h3>
+                  {item.variantTitle && (
+                    <p style={{ margin: '0 0 5px 0', fontSize: '0.9em', color: '#666' }}>
+                      {item.variantTitle}
+                    </p>
+                  )}
+                  <p style={{ margin: '0 0 5px 0' }}>
+                    {item.price} {item.currencyCode} x {item.quantity}
+                  </p>
                 </div>
+                <button
+                  onClick={() => removeFromCart(item.variantId)}
+                  style={removeButtonStyle}
+                  aria-label="Remove item"
+                >
+                  <FontAwesomeIcon icon={faTrash} />
+                </button>
               </div>
             ))}
             <div style={{ marginTop: '20px', textAlign: 'right', fontWeight: 'bold' }}>
