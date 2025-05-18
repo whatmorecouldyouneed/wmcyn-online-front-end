@@ -57,7 +57,7 @@ export default function Cart({ isOpen, closeCart }: { isOpen: boolean; closeCart
                     </p>
                   )}
                   <p className={styles.itemPrice}>
-                    {item.price} {item.currencyCode}
+                    {parseFloat(item.price).toFixed(2)} {item.currencyCode}
                   </p>
                   <button
                     onClick={() => removeFromCart(item.variantId)}
