@@ -11,13 +11,14 @@
 }
 
 .modalContent {
-  background: white;
+  background: #333333;
   padding: 20px;
   width: 100%;
   max-width: 400px;
   height: 100%;
   overflow-y: auto;
   position: relative;
+  color: #ffffff;
 }
 
 .closeButton {
@@ -29,18 +30,19 @@
   font-size: 24px;
   cursor: pointer;
   padding: 5px;
-  color: #000;
+  color: #ffffff;
 }
 
 .title {
   font-size: 1.5em;
   margin-bottom: 20px;
   text-transform: lowercase;
+  color: #ffffff;
 }
 
 .text {
   margin: 0;
-  color: #333;
+  color: #ffffff;
 }
 
 .item {
@@ -66,22 +68,24 @@
 
 .itemTitle {
   margin: 0 0 5px 0;
+  color: #ffffff;
 }
 
 .itemVariant {
   margin: 0 0 5px 0;
   font-size: 0.9em;
-  color: #666;
+  color: #cccccc;
 }
 
 .itemPrice {
   margin: 0 0 5px 0;
+  color: #ffffff;
 }
 
 .removeButton {
   background: none;
   border: none;
-  color: #666;
+  color: #cccccc;
   cursor: pointer;
   padding: 5px;
   font-size: 0.9em;

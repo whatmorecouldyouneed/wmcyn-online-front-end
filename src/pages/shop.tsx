@@ -103,7 +103,9 @@ export default function Shop() {
         <div className={styles.content}>
           <div className={styles.intro}>
             <p className={styles.introText}>
-              welcome to our shop. browse our collection of products below.
+              welcome fam. <br /> browse our collection of products below.
+              <br />
+              scan the hiro markers on the products <br /> to see it come to life.
             </p>
           </div>
 

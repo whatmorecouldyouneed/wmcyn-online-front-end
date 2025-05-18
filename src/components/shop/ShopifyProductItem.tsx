@@ -208,6 +208,7 @@ export default function ShopifyProductItem({ product }: ShopifyProductItemProps)
         <div 
           className={styles.description}
           dangerouslySetInnerHTML={{ __html: product.descriptionHtml }}
+          style={{ color: '#ffffff' }}
         />
       )}
       <div ref={buyButtonRef}></div>
