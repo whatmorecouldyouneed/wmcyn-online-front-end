@@ -1,0 +1,83 @@
+.container {
+  padding: 20px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.title {
+  font-size: 2em;
+  font-weight: bold;
+  text-transform: lowercase;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.cartButtonContainer {
+  position: relative;
+  display: inline-block;
+  width: auto;
+  text-align: right;
+  padding-right: 20px;
+  margin-bottom: 10px;
+  margin-left: auto;
+}
+
+.cartIconButton {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 10px;
+  font-size: 1.5rem;
+  color: #333;
+  text-transform: lowercase;
+}
+
+.cartCountBadge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: red;
+  color: white;
+  border-radius: 50%;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  min-width: 20px;
+  text-align: center;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.intro {
+  text-align: center;
+  max-width: 600px;
+  margin: 20px 0;
+}
+
+.introText {
+  text-align: center;
+  max-width: 600px;
+  margin: 20px 0;
+  text-transform: lowercase;
+}
+
+.productGrid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+} 

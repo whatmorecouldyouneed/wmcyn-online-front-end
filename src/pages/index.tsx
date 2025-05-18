@@ -9,7 +9,7 @@ import NextImage from '../components/NextImage';
 import WMCYNLOGO from '../../public/wmcyn_logo_white.png';
 import InstagramLogo from '../../public/instagram-logo.png';
 import WMCYNQRCODE from '../../public/wmcyn-qr.png';
-import styles from '../styles/Home.module.css';
+import styles from '@/styles/Index.module.scss';
 
 // --- dynamically import arcamera ---
 const ARCamera = dynamic(
@@ -148,7 +148,7 @@ export default function Home() {
           {/* AR Scanner -> NFT Marker */}
           <div id="qrCodeSection" className={`${styles.container} ${styles.qrCodeSection}`}>
             <h2 className={styles.sectionHeading}>SCAN WMCYN ID</h2>
-            <div onClick={() => { setError(''); setShowCamera(true); }} style={{ cursor: 'pointer', display: 'inline-block' }}>
+            <div onClick={() => { setError(''); setShowCamera(true); }} className={styles.cameraButton}>
               <NextImage src={WMCYNQRCODE} alt="SCAN WMCYN ID" className={styles.qrCodeImage} width={150} height={150} />
             </div>
           </div>

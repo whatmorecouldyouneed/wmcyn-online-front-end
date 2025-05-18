@@ -3,7 +3,7 @@ import { useShopifyBuyButton } from '@/hooks/useShopifyBuyButton';
 import { useShopifyCheckout, LineItemToAdd } from '@/hooks/useShopifyCheckout';
 import { useShopifyCart } from '@/contexts/CartContext';
 import { defaultShopifyButtonStyles } from '@/styles/shopifyStyles';
-import Image from 'next/image';
+import styles from './ShopifyProductItem.module.scss';
 
 // swiper imports
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -46,9 +46,10 @@ interface ShopifyProductItemProps {
   product: SerializableProduct;
 }
 
-const ShopifyProductItem: React.FC<ShopifyProductItemProps> = ({ product }) => {
+export default function ShopifyProductItem({ product }: ShopifyProductItemProps) {
   const buyButtonRef = useRef<HTMLDivElement>(null);
   const [thumbsSwiper, setThumbsSwiper] = useState<SwiperCore | null>(null);
+  const mainSwiperRef = useRef<SwiperCore | null>(null);
   
   const { addToCart } = useShopifyCart();
   const { 
@@ -66,6 +67,15 @@ const ShopifyProductItem: React.FC<ShopifyProductItemProps> = ({ product }) => {
     moneyFormat: '%24%7B%7Bamount%7D%7D',
     options: defaultShopifyButtonStyles, 
   });
+
+  // Add effect to reset swiper position after mount
+  useEffect(() => {
+    if (mainSwiperRef.current) {
+      setTimeout(() => {
+        mainSwiperRef.current?.slideTo(0);
+      }, 0);
+    }
+  }, [product.id]);
 
   // Add safety checks for product data
   if (!product || typeof product !== 'object') {
@@ -94,64 +104,6 @@ const ShopifyProductItem: React.FC<ShopifyProductItemProps> = ({ product }) => {
     return null;
   }
 
-  const cardStyle: React.CSSProperties = {
-    border: '1px solid #ddd',
-    borderRadius: '8px',
-    padding: '20px',
-    margin: '20px',
-    maxWidth: '350px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    textAlign: 'center',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-  };
-
-  // Style for the main SwiperSlide, defines its height
-  const mainSlideStyle: React.CSSProperties = {
-    height: '300px', 
-    position: 'relative', // Needed for Next/Image with fill
-  };
-
-  // Style for the Next/Image component in the main slider
-  const mainImageStyle: React.CSSProperties = {
-    objectFit: 'contain',
-  };
-  
-  // Base style for thumbnail Next/Image components (when using fill)
-  const baseThumbImageStyle: React.CSSProperties = {
-    objectFit: 'cover',
-    cursor: 'pointer',
-  };
-
-  // Dynamically generates style for thumbnail images based on active state
-  const getThumbImageStyle = (isActive: boolean): React.CSSProperties => ({
-    ...baseThumbImageStyle,
-    opacity: isActive ? 1 : 0.7,
-    border: isActive ? '2px solid #007bff' : 'none',
-  });
-
-  const titleStyle: React.CSSProperties = {
-    fontSize: '1.5em',
-    fontWeight: 'bold',
-    margin: '10px 0',
-  };
-
-  const descriptionStyle: React.CSSProperties = {
-    fontSize: '0.9em',
-    color: '#ffffff',
-    marginBottom: '15px',
-    maxHeight: '100px',
-    overflowY: 'auto',
-  };
-
-  const priceStyle: React.CSSProperties = {
-    fontSize: '1.2em',
-    fontWeight: 'bold',
-    color: '#ffffff',
-    margin: '10px 0',
-  };
-
   const handleAddToCart = () => {
     if (product.variants && product.variants.length > 0) {
       setIsAddingToCart(true);
@@ -177,141 +129,110 @@ const ShopifyProductItem: React.FC<ShopifyProductItemProps> = ({ product }) => {
     }
   };
 
-  const buttonContainerStyle: React.CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
-    width: '100%',
-    marginTop: '15px',
-  };
-
-  const baseButtonStyle: React.CSSProperties = {
-    padding: '12px 20px',
-    border: 'none',
-    borderRadius: '5px',
-    fontSize: '16px',
-    cursor: 'pointer',
-    fontWeight: 'bold',
-    width: '100%',
-    textTransform: 'lowercase',
-  };
-
-  const addToCartButtonStyle: React.CSSProperties = {
-    ...baseButtonStyle,
-    backgroundColor: '#ffffff',
-    color: '#000000',
-    border: '1px solid #000000',
-    opacity: isAddingToCart ? 0.7 : 1,
-  };
-
-  const buyNowButtonStyle: React.CSSProperties = {
-    ...baseButtonStyle,
-    backgroundColor: '#000000',
-    color: '#ffffff',
-    opacity: buyNowLoading ? 0.7 : 1,
-  };
-
   return (
-    <div style={cardStyle}>
+    <div className={styles.card}>
       {product.images && Array.isArray(product.images) && product.images.length > 0 ? (
         <>
-          <Swiper
-            modules={[Navigation, Thumbs, Pagination]}
-            spaceBetween={10}
-            slidesPerView={1}
-            navigation
-            pagination={{ clickable: true }}
-            thumbs={{ swiper: thumbsSwiper && !thumbsSwiper.destroyed ? thumbsSwiper : null }}
-            style={{ width: '100%', marginBottom: '10px' }} // Main Swiper container
-          >
-            {product.images.map((image) => (
-              <SwiperSlide key={`main-${image.id || image.src}`} style={mainSlideStyle}>
-                <Image
-                  src={image.src}
-                  alt={image.altText || product.title || 'Product image'}
-                  fill
-                  style={mainImageStyle} // Only objectFit here
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  priority={true} // Consider adding priority for the first image
-                />
-              </SwiperSlide>
-            ))}
-          </Swiper>
-
-          {product.images.length > 1 && (
+          <div className={styles.mainSwiper}>
             <Swiper
-              modules={[Thumbs, Navigation]} // Navigation can be optional for thumbs
-              onSwiper={setThumbsSwiper}
+              modules={[Navigation, Thumbs, Pagination]}
               spaceBetween={10}
-              slidesPerView={product.images.length >= 4 ? 4 : product.images.length} // Show up to 4 thumbs
-              watchSlidesProgress={true}
-              freeMode={true}
-              style={{ width: '100%', height: '70px', margin: '10px auto 0' }} // Thumb Swiper container
+              slidesPerView={1}
+              navigation
+              pagination={{ clickable: true }}
+              thumbs={{ swiper: thumbsSwiper && !thumbsSwiper.destroyed ? thumbsSwiper : null }}
+              className={styles.swiperWrapper}
+              onSwiper={(swiper) => { mainSwiperRef.current = swiper; }}
+              initialSlide={0}
             >
               {product.images.map((image, index) => (
-                <SwiperSlide 
-                  key={`thumb-${image.id || index}`}
-                  style={{height: '60px'}} // Slide for thumbnail
-                >
-                  {({ isActive }) => (
-                    <div style={{ position: 'relative', width: '100%', height: '100%'}}>
-                       <Image
-                        src={image.src}
-                        alt={`Thumbnail ${image.altText || product.title || 'Product image'}`}
-                        fill
-                        style={getThumbImageStyle(isActive)} // No width/height here, only objectFit, opacity etc.
-                        sizes="60px"
-                      />
-                    </div>
-                  )}
+                <SwiperSlide key={`main-${image.id || image.src || index}`} className={styles.mainSlide}>
+                  <div className={styles.imageContainer}>
+                    <img
+                      src={image.src}
+                      alt={image.altText || product.title || 'Product image'}
+                      className={styles.mainImage}
+                    />
+                  </div>
                 </SwiperSlide>
               ))}
             </Swiper>
+          </div>
+
+          {product.images.length > 1 && (
+            <div className={styles.thumbSwiper}>
+              <Swiper
+                modules={[Thumbs, Navigation]}
+                onSwiper={setThumbsSwiper}
+                spaceBetween={5}
+                slidesPerView="auto"
+                watchSlidesProgress={true}
+                freeMode={true}
+                className={styles.swiperWrapper}
+                initialSlide={0}
+                centeredSlides={false}
+              >
+                {product.images.map((image, index) => (
+                  <SwiperSlide 
+                    key={`thumb-${image.id || index}`}
+                    className={styles.thumbSlide}
+                  >
+                    {({ isActive }) => (
+                      <div className={styles.thumbContainer}>
+                        <img
+                          src={image.src}
+                          alt={`Thumbnail ${image.altText || product.title || 'Product image'}`}
+                          className={`${styles.thumbImage} ${isActive ? styles.thumbImageActive : styles.thumbImageInactive}`}
+                        />
+                      </div>
+                    )}
+                  </SwiperSlide>
+                ))}
+              </Swiper>
+            </div>
           )}
         </>
       ) : (
-        <div style={{ height: '300px', width: '100%', background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#777', marginBottom: '20px' }}>
+        <div className={styles.noImages}>
           No images available
         </div>
       )}
 
-      <h2 style={titleStyle}>{product.title || 'Untitled Product'}</h2>
+      <h2 className={styles.title}>{product.title || 'Untitled Product'}</h2>
       {product.variants && Array.isArray(product.variants) && product.variants.length > 0 && (
-        <div style={priceStyle}>
+        <div className={styles.price}>
           {Number(product.variants[0].price.amount).toFixed(2)} {product.variants[0].price.currencyCode}
         </div>
       )}
       {product.descriptionHtml && typeof product.descriptionHtml === 'string' && (
         <div 
-          style={descriptionStyle} 
+          className={styles.description}
           dangerouslySetInnerHTML={{ __html: product.descriptionHtml }}
         />
       )}
       <div ref={buyButtonRef}></div>
 
-      <div style={buttonContainerStyle}>
+      <div className={styles.buttonContainer}>
         <button 
           onClick={handleAddToCart} 
           disabled={isAddingToCart || !product.variants || product.variants.length === 0} 
-          style={addToCartButtonStyle}
+          className={styles.addToCartButton}
         >
           {isAddingToCart ? 'adding...' : 'add to cart'}
         </button>
         <button 
           onClick={handleBuyNow} 
           disabled={buyNowLoading || !product.variants || product.variants.length === 0} 
-          style={buyNowButtonStyle}
+          className={styles.buyNowButton}
         >
           {buyNowLoading ? 'processing...' : 'buy now'}
         </button>
       </div>
       {buyNowError && (
-        <p style={{ color: 'red', marginTop: '10px' }}>
+        <p className={styles.error}>
           buy now error: {buyNowError.message}
         </p>
       )}
     </div>
   );
-};
-
-export default ShopifyProductItem; 
+} 

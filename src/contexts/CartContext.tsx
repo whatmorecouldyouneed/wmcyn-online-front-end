@@ -28,14 +28,12 @@ interface SerializableProduct {
 
 export interface CartItem {
   variantId: string;
-  productId: string;
-  handle: string;
   title: string;
   variantTitle?: string;
-  imageSrc?: string;
-  quantity: number;
   price: string;
   currencyCode: string;
+  quantity: number;
+  image: string;
 }
 
 interface CartContextType {
@@ -64,7 +62,7 @@ interface CartProviderProps {
   children: React.ReactNode;
 }
 
-export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
+export function CartProvider({ children }: CartProviderProps) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [cartCount, setCartCount] = useState<number>(0);
@@ -103,14 +101,12 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       } else {
         const newItem: CartItem = {
           variantId: variant.id,
-          productId: product.id,
-          handle: product.handle,
           title: product.title,
           variantTitle: variant.title === 'Default Title' ? undefined : variant.title,
-          imageSrc: variant.image?.src || product.images[0]?.src,
-          quantity,
           price: variant.price.amount,
           currencyCode: variant.price.currencyCode,
+          quantity,
+          image: variant.image?.src || product.images[0]?.src || '',
         };
         return [...prevItems, newItem];
       }
@@ -155,4 +151,4 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       {children}
     </CartContext.Provider>
   );
-}; 
+} 

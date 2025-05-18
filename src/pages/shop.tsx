@@ -8,6 +8,8 @@ import Cart from '@/components/cart/Cart'; // Import Cart component
 import { useShopifyCart } from '@/contexts/CartContext'; // Import useShopifyCart hook
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faShoppingBag } from '@fortawesome/free-solid-svg-icons';
+import { useState } from 'react';
+import styles from '@/styles/Shop.module.scss';
 
 // Define SerializableProduct if not already defined or imported from a shared location
 // This should match the definition in useShopifyProducts.ts and ShopifyProductItem.tsx
@@ -36,46 +38,13 @@ interface SerializableProduct {
   }>;
 }
 
-const Shop: React.FC = () => { 
+export default function Shop() {
   const { products, loading, error } = useShopifyProducts();
-  const { openCart, cartCount } = useShopifyCart(); 
+  const { cartCount } = useShopifyCart();
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
-  // Styles for the cart icon button - adjusted for non-sticky and no circle
-  const cartIconButtonStyle: React.CSSProperties = {
-    background: 'transparent', // Transparent background
-    border: 'none',            // No border
-    cursor: 'pointer',
-    padding: '10px',          // Some padding so it's not too tight
-    // position: 'absolute',  // Consider placement within layout flow
-    // top: '20px',
-    // right: '20px',
-    fontSize: '1.5rem',       // Adjust icon size via font-size if needed
-    color: '#333',            // Icon color, change as needed
-    // zIndex: 1001, // May not be needed if not overlapping heavily
-  };
-
-  const cartCountBadgeStyle: React.CSSProperties = {
-    position: 'absolute',
-    top: '0px',      // Adjusted for new icon style
-    right: '0px',    // Adjusted for new icon style
-    background: 'red',
-    color: 'white',
-    borderRadius: '50%',
-    padding: '2px 6px',
-    fontSize: '0.75rem',
-    fontWeight: 'bold',
-    minWidth: '20px', 
-    textAlign: 'center',
-  };
-
-  const cartButtonContainerStyle: React.CSSProperties = {
-    position: 'relative', // For badge positioning
-    display: 'inline-block', // To keep it inline
-    width: '100%', 
-    textAlign: 'right',
-    paddingRight: '20px', 
-    marginBottom: '10px', // Add some space below the icon
-  };
+  const openCart = () => setIsCartOpen(true);
+  const closeCart = () => setIsCartOpen(false);
 
   if (loading) {
     return <div>loading...</div>;
@@ -118,24 +87,27 @@ const Shop: React.FC = () => {
         <meta name="description" content="Shop WMCYN's exclusive merchandise." />
       </Head>
       
-      <div style={{ paddingTop: '20px' }}> {/* Added a wrapper div for layout control */}
-        <div style={cartButtonContainerStyle}>
-            <button onClick={openCart} style={cartIconButtonStyle} aria-label="open cart">
-                <FontAwesomeIcon icon={faShoppingBag} size="lg" />
-                {cartCount > 0 && (
-                <span style={cartCountBadgeStyle}>{cartCount}</span>
-                )}
+      <div className={styles.container}>
+        <div className={styles.header}>
+          <h1 className={styles.title}>shop</h1>
+          <div className={styles.cartButtonContainer}>
+            <button onClick={openCart} className={styles.cartIconButton} aria-label="open cart">
+              cart
+              {cartCount > 0 && (
+                <span className={styles.cartCountBadge}>{cartCount}</span>
+              )}
             </button>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}> 
-          <h1>friends and family</h1>
-          <p style={{ textAlign: 'center', maxWidth: '600px', margin: '20px 0' }}>
-            welcome fam
-            <br />
-            scan to see your product come alive
-          </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center' }}>
+        <div className={styles.content}>
+          <div className={styles.intro}>
+            <p className={styles.introText}>
+              welcome to our shop. browse our collection of products below.
+            </p>
+          </div>
+
+          <div className={styles.productGrid}>
             {validProducts.map((product) => (
               <ShopifyProductItem 
                 key={product.id} 
@@ -145,9 +117,7 @@ const Shop: React.FC = () => {
           </div>
         </div>
       </div>
-      <Cart /> {/* Render the Cart modal component */}
+      <Cart isOpen={isCartOpen} closeCart={closeCart} />
     </>
   );
-};
-
-export default Shop;
+}

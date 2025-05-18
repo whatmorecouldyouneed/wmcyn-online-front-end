@@ -1,0 +1,117 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 1000;
+}
+
+.modalContent {
+  background: white;
+  padding: 20px;
+  width: 100%;
+  max-width: 400px;
+  height: 100%;
+  overflow-y: auto;
+  position: relative;
+}
+
+.closeButton {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 5px;
+  color: #000;
+}
+
+.title {
+  font-size: 1.5em;
+  margin-bottom: 20px;
+  text-transform: lowercase;
+}
+
+.text {
+  margin: 0;
+  color: #333;
+}
+
+.item {
+  display: flex;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.imageContainer {
+  position: relative;
+  width: 60px;
+  height: 60px;
+}
+
+.image {
+  object-fit: cover;
+}
+
+.itemDetails {
+  margin-left: 10px;
+  flex: 1;
+}
+
+.itemTitle {
+  margin: 0 0 5px 0;
+}
+
+.itemVariant {
+  margin: 0 0 5px 0;
+  font-size: 0.9em;
+  color: #666;
+}
+
+.itemPrice {
+  margin: 0 0 5px 0;
+}
+
+.removeButton {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 5px;
+  font-size: 0.9em;
+  text-decoration: underline;
+}
+
+.summary {
+  margin-top: 20px;
+  text-align: right;
+  font-weight: bold;
+}
+
+.checkoutButton {
+  width: 100%;
+  padding: 12px;
+  background-color: #000;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 10px;
+  text-transform: lowercase;
+
+  &:disabled {
+    opacity: 0.7;
+  }
+}
+
+.errorText {
+  color: red;
+  margin-top: 10px;
+} 

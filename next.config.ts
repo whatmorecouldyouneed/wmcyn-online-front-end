@@ -6,9 +6,18 @@ const nextConfig: NextConfig = {
   reactStrictMode: false,
   basePath: '',
   assetPrefix: '',
-  // disable image optimization for GitHub Pages/static export because it breaks the asset paths
   images: {
     unoptimized: true,
+    domains: [
+      'cdn.shopify.com',
+      'shopify.com',
+    ],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
   },
   trailingSlash: true,
   output: 'export',
