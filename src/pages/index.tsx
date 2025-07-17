@@ -10,6 +10,8 @@ import WMCYNLOGO from '../../public/wmcyn_logo_white.png';
 import InstagramLogo from '../../public/instagram-logo.png';
 import WMCYNQRCODE from '../../public/wmcyn-qr.png';
 import styles from '@/styles/Index.module.scss';
+import { useAuth } from '../contexts/AuthContext';
+import { useUserProducts } from '../hooks/useUserProducts';
 
 // --- dynamically import arcamera ---
 const ARCamera = dynamic(
@@ -33,6 +35,14 @@ export default function Home() {
   const [password, setPassword] = useState('');
   const [hasSubscribed, setHasSubscribed] = useState(false);
   const [error, setError] = useState('');
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot' | null>(null);
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [transferProductId, setTransferProductId] = useState<string | null>(null);
+  const [transferEmail, setTransferEmail] = useState('');
+  const [transferError, setTransferError] = useState('');
 
   useEffect(() => {
     if (showCamera) document.body.classList.add(styles.cameraActive);
@@ -65,6 +75,8 @@ export default function Home() {
       setError('Incorrect password');
     }
   };
+  const { currentUser, login, signup, googleSignIn, resetPassword, logout } = useAuth();
+  const { products, transferProduct } = useUserProducts();
 
   return (
     <div>
@@ -143,6 +155,110 @@ export default function Home() {
             </form>
              {/* only show error related to this form */}
             {error && password && <p className={styles.error}>{error}</p>}
+          </div>
+          {/* Account Section */}
+          <div id="accountSection" className={`${styles.container} ${styles.accountSection}`}>
+            <h2 className={styles.sectionHeading}>ACCOUNT</h2>
+            {currentUser ? (
+              <div>
+                <p>welcome, {currentUser.email}</p>
+                <button onClick={logout} className={styles.submitButton}>log out</button>
+                <h3>your collection</h3>
+                {products.length === 0 ? (
+                  <p>no products in collection.</p>
+                ) : (
+                  <ul>
+                    {products.map(product => (
+                      <li key={product.id}>
+                        {product.name || product.id}
+                        <button onClick={() => setTransferProductId(product.id)} className={styles.submitButton}>transfer</button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {transferProductId && (
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    try {
+                      await transferProduct(transferProductId, transferEmail);
+                      setTransferProductId(null);
+                      setTransferEmail('');
+                      setTransferError('');
+                    } catch (err: any) {
+                      setTransferError(err.message || 'An error occurred during transfer');
+                    }
+                  }} className={styles.form}>
+                    <input
+                      type="email"
+                      value={transferEmail}
+                      onChange={e => setTransferEmail(e.target.value)}
+                      placeholder="recipient email"
+                      className={styles.inputField}
+                      required
+                    />
+                    <button type="submit" className={styles.submitButton}>transfer</button>
+                    {transferError && <p className={styles.error}>{transferError}</p>}
+                  </form>
+                )}
+              </div>
+            ) : (
+              <div>
+                <div className={styles.form}>
+                  <button onClick={() => setAuthMode('login')} className={styles.submitButton}>login</button>
+                  <button onClick={() => setAuthMode('signup')} className={styles.submitButton}>sign up</button>
+                  <button onClick={() => setAuthMode('forgot')} className={styles.submitButton}>forgot password</button>
+                  <button onClick={async () => { try { await googleSignIn(); } catch (err: any) { setAuthError(err.message); } }} className={styles.submitButton}>sign in with google</button>
+                </div>
+                {authMode === 'login' && (
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    try {
+                      await login(authEmail, authPassword);
+                    } catch (err: any) {
+                      setAuthError(err.message || 'An error occurred');
+                    }
+                  }} className={styles.form}>
+                    <input type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} placeholder="email" className={styles.inputField} required />
+                    <input type="password" value={authPassword} onChange={e => setAuthPassword(e.target.value)} placeholder="password" className={styles.inputField} required />
+                    <button type="submit" className={styles.submitButton}>login</button>
+                  </form>
+                )}
+                {authMode === 'signup' && (
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (authPassword !== confirmPassword) {
+                      setAuthError('passwords do not match');
+                      return;
+                    }
+                    try {
+                      await signup(authEmail, authPassword);
+                    } catch (err: any) {
+                      setAuthError(err.message || 'An error occurred');
+                    }
+                  }} className={styles.form}>
+                    <input type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} placeholder="email" className={styles.inputField} required />
+                    <input type="password" value={authPassword} onChange={e => setAuthPassword(e.target.value)} placeholder="password" className={styles.inputField} required />
+                    <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="confirm password" className={styles.inputField} required />
+                    <button type="submit" className={styles.submitButton}>sign up</button>
+                  </form>
+                )}
+                {authMode === 'forgot' && (
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    try {
+                      await resetPassword(authEmail);
+                      setAuthError('password reset email sent');
+                    } catch (err: any) {
+                      setAuthError(err.message || 'An error occurred');
+                    }
+                  }} className={styles.form}>
+                    <input type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} placeholder="email" className={styles.inputField} required />
+                    <button type="submit" className={styles.submitButton}>reset password</button>
+                  </form>
+                )}
+                {authError && <p className={styles.error}>{authError}</p>}
+              </div>
+            )}
           </div>
 
           {/* AR Scanner -> NFT Marker */}

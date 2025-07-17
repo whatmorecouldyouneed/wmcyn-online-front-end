@@ -1,6 +1,8 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getAnalytics, Analytics, isSupported as isAnalyticsSupported } from 'firebase/analytics';
 import { getDatabase, Database, ref, push, set } from 'firebase/database';
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -18,6 +20,8 @@ const firebaseConfig = {
 let app: FirebaseApp | undefined;
 let analytics: Analytics | undefined;
 let db: Database | undefined;
+let auth: Auth | undefined;
+let firestore: Firestore | undefined;
 
 if (typeof window !== 'undefined') {
   try {
@@ -40,6 +44,8 @@ if (typeof window !== 'undefined') {
 
     app = initializeApp(firebaseConfig);
     db = getDatabase(app);
+    auth = getAuth(app);
+    firestore = getFirestore(app);
     
     // Only initialize analytics if supported by the current environment
     isAnalyticsSupported().then((supported) => {
@@ -53,4 +59,4 @@ if (typeof window !== 'undefined') {
   }
 }
 
-export { app, analytics, db, ref, push, set };
+export { app, analytics, db, ref, push, set, auth, firestore };

@@ -12,7 +12,9 @@ import { useState } from 'react';
 import styles from '@/styles/Shop.module.scss';
 
 // Define SerializableProduct if not already defined or imported from a shared location
+
 // This should match the definition in useShopifyProducts.ts and ShopifyProductItem.tsx
+
 interface SerializableProduct {
   id: string;
   title: string;

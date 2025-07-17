@@ -132,6 +132,14 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
             if (model) {
               const scale = config.scale || 1.0;
               model.scale.set(scale, scale, scale);
+              // Apply position if configured
+              if (config.position) {
+                model.position.set(
+                  config.position.x,
+                  config.position.y,
+                  config.position.z
+                );
+              }
               markerRoot.add(model);
 
               if (gltf.animations && gltf.animations.length) {
