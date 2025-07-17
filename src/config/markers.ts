@@ -16,8 +16,8 @@ export const markerConfigs: MarkerConfig[] = [
     name: 'hiro',
     patternUrl: DEFAULT_HIRO_PATTERN_URL_PLACEHOLDER,
     modelUrl: '/models/wmcyn_3d_logo.glb',
-    scale: 0.9,
-    position: { x: 0, y: 0.5, z: 0 },
+    scale: 1.0,
+    position: { x: 2, y: 6.5, z: 0 },
     productId: 'hiro_product_1',
   },
 
