@@ -9,8 +9,7 @@
     "verify-build": "rm -rf .next out && next build && ls -la out/ && find out -name '*.css' && find out -name '*.js'",
     "lint": "next lint",
     "start": "next start",
-    "tunnel": "ngrok start --config=ngrok.yml nextjs",
-    "test-firebase": "node scripts/test-firebase-production.js"
+    "tunnel": "ngrok start --config=ngrok.yml nextjs"
   },
   "dependencies": {
     "@ar-js-org/ar.js": "^3.4.5",
