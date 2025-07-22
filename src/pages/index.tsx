@@ -32,14 +32,14 @@ function writeUserData(emailID: string) {
       hasApiKey: !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
       hasProjectId: !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
       hasAuthDomain: !!process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-      databaseURL: `https://${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebaseio.com`
+      databaseURL: `https://${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}-default-rtdb.firebaseio.com/`
     });
     return Promise.reject(new Error('Firebase not initialized'));
   }
   
   console.log('📧 Attempting to save email to Firebase:', emailID);
   console.log('🔥 Firebase database instance:', !!db);
-  console.log('🌐 Database URL:', `https://${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebaseio.com`);
+  console.log('🌐 Database URL:', `https://${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}-default-rtdb.firebaseio.com/`);
   
   const emailListRef = ref(db, 'emailList');
   console.log('📋 Created emailList reference');
