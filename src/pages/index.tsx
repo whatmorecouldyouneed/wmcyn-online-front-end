@@ -15,10 +15,7 @@ import { useUserProducts } from '../hooks/useUserProducts';
 
 // --- dynamically import arcamera ---
 const ARCamera = dynamic(
-  () => import('../components/ARCamera').catch(err => {
-    console.error('Failed to load AR Camera component:', err);
-    return { default: () => <div>AR Camera failed to load</div> };
-  }),
+  () => import('../components/ARCamera'),
   {
     ssr: false, // critical: prevents server-side rendering attempts
     loading: () => <div className={styles.arjsLoader}>Initializing AR Scanner...</div>
@@ -27,69 +24,22 @@ const ARCamera = dynamic(
 
 function writeUserData(emailID: string) {
   if (!db) {
-    console.error('Firebase database not initialized - email submission failed');
-    console.error('Firebase config check:', {
-      hasApiKey: !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-      hasProjectId: !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      hasAuthDomain: !!process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-      databaseURL: `https://${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}-default-rtdb.firebaseio.com/`
-    });
+    console.error('Firebase database not initialized');
     return Promise.reject(new Error('Firebase not initialized'));
   }
   
-  console.log('📧 Attempting to save email to Firebase:', emailID);
-  console.log('🔥 Firebase database instance:', !!db);
-  console.log('🌐 Database URL:', `https://${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}-default-rtdb.firebaseio.com/`);
-  
   const emailListRef = ref(db, 'emailList');
-  console.log('📋 Created emailList reference');
-  
   const newEmailRef = push(emailListRef);
-  console.log('🆕 Created new email reference:', newEmailRef.key);
-  
   const emailData = { 
     email: emailID,
     timestamp: Date.now(),
     userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown'
   };
-  console.log('📦 Email data to save:', emailData);
   
-  // Add timeout to prevent hanging
-  const firebasePromise = set(newEmailRef, emailData).then(() => {
-    console.log('✅ Firebase set() operation completed successfully');
-    console.log('📧 Email successfully saved to Firebase:', emailID);
-    return true;
-  }).catch((error) => {
-    console.error('❌ Firebase set() operation failed:', error);
-    console.error('🔍 Error details:', {
-      code: error.code,
-      message: error.message,
-      name: error.name,
-      stack: error.stack
-    });
-    
-    // Check if it's a permissions issue
-    if (error.code === 'PERMISSION_DENIED') {
-      console.error('🚫 Firebase database rules are blocking writes to emailList');
-      console.error('💡 Solution: Update Firebase database rules to allow writes');
-    }
-    
+  return set(newEmailRef, emailData).catch((error) => {
+    console.error('Firebase write failed:', error);
     throw error;
   });
-  
-  // Add 10 second timeout
-  const timeoutPromise = new Promise((_, reject) => {
-    setTimeout(() => {
-      console.error('⏰ Firebase operation timed out after 10 seconds');
-      console.error('💡 This might be due to:');
-      console.error('   1. Firebase database rules blocking writes');
-      console.error('   2. Network connectivity issues');
-      console.error('   3. Firebase project configuration problems');
-      reject(new Error('Firebase operation timed out'));
-    }, 10000);
-  });
-  
-  return Promise.race([firebasePromise, timeoutPromise]);
 }
 
 export default function Home() {
@@ -114,88 +64,41 @@ export default function Home() {
     return () => document.body.classList.remove(styles.cameraActive);
   }, [showCamera]);
 
-  // Debug function to check saved emails
-  useEffect(() => {
-    // Log saved emails for debugging
-    try {
-      const savedEmails = JSON.parse(localStorage.getItem('wmcyn-emails') || '[]');
-      if (savedEmails.length > 0) {
-        console.log('📬 Emails saved in localStorage:', savedEmails);
-      }
-    } catch (e) {
-      console.log('No emails in localStorage yet');
-    }
-  }, []);
-
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value);
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (isSubmitting) {
-      console.log('⏳ Already submitting, ignoring duplicate submission');
-      return;
-    }
-    
-    console.log('🔥 FORM SUBMITTED! Button click detected');
-    console.log('Form submitted, email:', email);
+    if (isSubmitting) return;
     
     if (!email) {
-      console.log('❌ No email provided');
       setError('email is required.');
       return;
     }
     
     setIsSubmitting(true);
     setError('');
-    console.log('✅ Email validation passed, calling writeUserData...');
-    
-    // Add manual timeout as backup
-    const manualTimeout = setTimeout(() => {
-      console.error('🚨 Manual timeout - resetting submit state');
-      setIsSubmitting(false);
-      setError('Submission timed out. Please try again.');
-    }, 15000);
     
     writeUserData(email)
       .then(() => {
-        clearTimeout(manualTimeout);
-        console.log('✅ writeUserData succeeded - showing success state');
-        
-        // Also save to localStorage as backup
-        try {
-          const existingEmails = JSON.parse(localStorage.getItem('wmcyn-emails') || '[]');
-          existingEmails.push({ email, timestamp: Date.now() });
-          localStorage.setItem('wmcyn-emails', JSON.stringify(existingEmails));
-          console.log('💾 Email also saved to localStorage as backup');
-        } catch (e) {
-          console.warn('Failed to save to localStorage:', e);
-        }
-        
         setHasSubscribed(true);
         setEmail('');
         setError('');
         setIsSubmitting(false);
       })
       .catch((err) => {
-        clearTimeout(manualTimeout);
-        console.error('❌ writeUserData failed:', err);
-        
         // Try localStorage fallback
         try {
           const existingEmails = JSON.parse(localStorage.getItem('wmcyn-emails') || '[]');
           existingEmails.push({ email, timestamp: Date.now(), fallback: true });
           localStorage.setItem('wmcyn-emails', JSON.stringify(existingEmails));
-          console.log('💾 Email saved to localStorage as fallback');
           
-          // Show success since we saved it locally (email still collected)
+          // Show success since we saved it locally
           setHasSubscribed(true);
           setEmail('');
           setError('');
-          console.log('✅ Showing success state (localStorage fallback worked)');
         } catch (localErr) {
-          console.error('❌ Failed localStorage fallback:', localErr);
           setError('Unable to submit. Please try again later.');
         }
         
@@ -259,27 +162,6 @@ export default function Home() {
                     {isSubmitting ? 'submitting...' : 'subscribe'}
                   </button>
                 </form>
-                {/* Debug: Reset button if stuck */}
-                {isSubmitting && (
-                  <button 
-                    onClick={() => {
-                      console.log('🔄 Manual reset triggered');
-                      setIsSubmitting(false);
-                      setError('Reset manually. Please try again.');
-                    }}
-                    style={{ 
-                      marginTop: '10px', 
-                      padding: '5px 10px', 
-                      background: 'red', 
-                      color: 'white', 
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '12px'
-                    }}
-                  >
-                    Reset (Debug)
-                  </button>
-                )}
                 {/* Only show error related to this form */}
                 {error && !password && <p className={styles.error}>{error}</p>}
               </>
