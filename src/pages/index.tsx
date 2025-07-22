@@ -23,10 +23,40 @@ const ARCamera = dynamic(
 );
 
 function writeUserData(emailID: string) {
-  if (!db) return;
-  const emailListRef = ref(db, 'emailList');
-  const newEmailRef = push(emailListRef);
-  set(newEmailRef, { email: emailID });
+  if (!db) {
+    console.error('Firebase database not initialized - email submission failed');
+    console.error('Firebase config check:', {
+      hasApiKey: !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+      hasProjectId: !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      hasAuthDomain: !!process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+      databaseURL: `https://${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebaseio.com`
+    });
+    return Promise.reject(new Error('Firebase not initialized'));
+  }
+  
+  try {
+    console.log('Attempting to save email to Firebase:', emailID);
+    const emailListRef = ref(db, 'emailList');
+    const newEmailRef = push(emailListRef);
+    return set(newEmailRef, { 
+      email: emailID,
+      timestamp: Date.now(),
+      userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown'
+    }).then(() => {
+      console.log('Email successfully saved to Firebase:', emailID);
+    }).catch((error) => {
+      console.error('Firebase set() operation failed:', error);
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        stack: error.stack
+      });
+      throw error;
+    });
+  } catch (error) {
+    console.error('Error in writeUserData:', error);
+    throw error;
+  }
 }
 
 export default function Home() {
@@ -60,10 +90,16 @@ export default function Home() {
       setError('email is required.');
       return;
     }
-    writeUserData(email);
-    setHasSubscribed(true);
-    setEmail('');
-    setError('');
+    writeUserData(email)
+      .then(() => {
+        setHasSubscribed(true);
+        setEmail('');
+        setError('');
+      })
+      .catch((err) => {
+        setError(err.message || 'Failed to subscribe.');
+        console.error('Email submission error:', err);
+      });
   };
 
   const handleShopAccess = (e: React.FormEvent) => {

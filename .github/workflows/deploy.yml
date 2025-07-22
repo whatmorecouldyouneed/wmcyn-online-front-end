@@ -52,6 +52,9 @@ jobs:
           echo "NEXT_PUBLIC_SHOPIFY_DOMAIN in .env.production: $(grep NEXT_PUBLIC_SHOPIFY_DOMAIN .env.production)"
           echo "NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN exists in .env.production: $(grep NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN .env.production | wc -l)"
 
+      - name: Test Firebase Configuration
+        run: yarn test-firebase
+
       - name: Build
         run: yarn build
 
