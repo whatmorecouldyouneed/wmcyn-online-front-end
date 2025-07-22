@@ -29,14 +29,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signup = async (email: string, password: string) => {
     if (!auth) throw new Error('Authentication not initialized');
     if (!firestore) throw new Error('Firestore not initialized');
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    await setDoc(doc(firestore, 'users', userCredential.user.uid), { email });
-    return userCredential;
+    
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      await setDoc(doc(firestore, 'users', userCredential.user.uid), { email });
+      return userCredential;
+    } catch (error: any) {
+      if (error.code === 'auth/configuration-not-found') {
+        throw new Error('Firebase Authentication is not configured. Please enable Authentication in Firebase Console.');
+      }
+      throw error;
+    }
   };
 
   const login = (email: string, password: string) => {
     if (!auth) throw new Error('Authentication not initialized');
-    return signInWithEmailAndPassword(auth, email, password);
+    
+    return signInWithEmailAndPassword(auth, email, password).catch((error: any) => {
+      if (error.code === 'auth/configuration-not-found') {
+        throw new Error('Firebase Authentication is not configured. Please enable Authentication in Firebase Console.');
+      }
+      throw error;
+    });
   };
 
   const logout = () => {
@@ -47,12 +61,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const googleSignIn = () => {
     if (!auth) throw new Error('Authentication not initialized');
     const provider = new GoogleAuthProvider();
-    return signInWithPopup(auth, provider);
+    
+    return signInWithPopup(auth, provider).catch((error: any) => {
+      if (error.code === 'auth/configuration-not-found') {
+        throw new Error('Firebase Authentication is not configured. Please enable Authentication in Firebase Console.');
+      }
+      throw error;
+    });
   };
 
   const resetPassword = (email: string) => {
     if (!auth) throw new Error('Authentication not initialized');
-    return sendPasswordResetEmail(auth, email);
+    
+    return sendPasswordResetEmail(auth, email).catch((error: any) => {
+      if (error.code === 'auth/configuration-not-found') {
+        throw new Error('Firebase Authentication is not configured. Please enable Authentication in Firebase Console.');
+      }
+      throw error;
+    });
   };
 
   useEffect(() => {
