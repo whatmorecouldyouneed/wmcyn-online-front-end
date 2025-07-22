@@ -50,26 +50,16 @@
 
 /* submit button */
 .submitButton {
-  padding: 12px 24px;
+  padding: 0;
   background: none;
   border: none;
-  border-radius: 4px;
   cursor: pointer;
   color: #fff;
   font-size: 16px;
-  transition: all 0.3s ease;
-  min-width: 120px;
-  min-height: 44px; /* Ensure minimum touch target size */
 }
 
 .submitButton:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: #fff;
-}
-
-.submitButton:focus {
-  outline: 2px solid #fff;
-  outline-offset: 2px;
+  color: #ccc;
 }
 
 /* section headings */

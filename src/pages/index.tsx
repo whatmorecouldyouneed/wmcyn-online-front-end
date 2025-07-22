@@ -48,7 +48,6 @@ export default function Home() {
   const [password, setPassword] = useState('');
   const [hasSubscribed, setHasSubscribed] = useState(false);
   const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot' | null>(null);
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
@@ -70,22 +69,16 @@ export default function Home() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (isSubmitting) return;
-    
     if (!email) {
       setError('email is required.');
       return;
     }
-    
-    setIsSubmitting(true);
-    setError('');
     
     writeUserData(email)
       .then(() => {
         setHasSubscribed(true);
         setEmail('');
         setError('');
-        setIsSubmitting(false);
       })
       .catch((err) => {
         // Try localStorage fallback
@@ -101,8 +94,6 @@ export default function Home() {
         } catch (localErr) {
           setError('Unable to submit. Please try again later.');
         }
-        
-        setIsSubmitting(false);
       });
   };
 
@@ -157,9 +148,8 @@ export default function Home() {
                   <button 
                     type="submit" 
                     className={styles.submitButton}
-                    disabled={isSubmitting}
                   >
-                    {isSubmitting ? 'submitting...' : 'subscribe'}
+                    subscribe
                   </button>
                 </form>
                 {/* Only show error related to this form */}
