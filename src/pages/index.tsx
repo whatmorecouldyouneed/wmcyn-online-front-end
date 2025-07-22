@@ -34,29 +34,25 @@ function writeUserData(emailID: string) {
     return Promise.reject(new Error('Firebase not initialized'));
   }
   
-  try {
-    console.log('Attempting to save email to Firebase:', emailID);
-    const emailListRef = ref(db, 'emailList');
-    const newEmailRef = push(emailListRef);
-    return set(newEmailRef, { 
-      email: emailID,
-      timestamp: Date.now(),
-      userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown'
-    }).then(() => {
-      console.log('Email successfully saved to Firebase:', emailID);
-    }).catch((error) => {
-      console.error('Firebase set() operation failed:', error);
-      console.error('Error details:', {
-        code: error.code,
-        message: error.message,
-        stack: error.stack
-      });
-      throw error;
+  console.log('Attempting to save email to Firebase:', emailID);
+  const emailListRef = ref(db, 'emailList');
+  const newEmailRef = push(emailListRef);
+  
+  return set(newEmailRef, { 
+    email: emailID,
+    timestamp: Date.now(),
+    userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown'
+  }).then(() => {
+    console.log('Email successfully saved to Firebase:', emailID);
+  }).catch((error) => {
+    console.error('Firebase set() operation failed:', error);
+    console.error('Error details:', {
+      code: error.code,
+      message: error.message,
+      stack: error.stack
     });
-  } catch (error) {
-    console.error('Error in writeUserData:', error);
     throw error;
-  }
+  });
 }
 
 export default function Home() {
@@ -86,17 +82,23 @@ export default function Home() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted, email:', email);
+    
     if (!email) {
       setError('email is required.');
       return;
     }
+    
+    console.log('Calling writeUserData...');
     writeUserData(email)
       .then(() => {
+        console.log('writeUserData succeeded');
         setHasSubscribed(true);
         setEmail('');
         setError('');
       })
       .catch((err) => {
+        console.error('writeUserData failed:', err);
         setError(err.message || 'Failed to subscribe.');
         console.error('Email submission error:', err);
       });

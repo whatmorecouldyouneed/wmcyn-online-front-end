@@ -50,17 +50,26 @@
 
 /* Submit button */
 .submitButton {
-  padding: 0;
+  padding: 12px 24px;
   background: none;
-  border: none;
+  border: 2px solid #fff;
+  border-radius: 4px;
   cursor: pointer;
   color: #fff;
   font-size: 16px;
-  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 120px;
+  min-height: 44px; /* Ensure minimum touch target size */
 }
 
 .submitButton:hover {
-  color: #ccc;
+  background-color: #fff;
+  color: #000;
+}
+
+.submitButton:focus {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
 }
 
 /* Section headings */
