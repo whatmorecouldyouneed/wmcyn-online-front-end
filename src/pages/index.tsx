@@ -15,7 +15,10 @@ import { useUserProducts } from '../hooks/useUserProducts';
 
 // --- dynamically import arcamera ---
 const ARCamera = dynamic(
-  () => import('../components/ARCamera'),
+  () => import('../components/ARCamera').catch(err => {
+    console.error('Failed to load AR Camera component:', err);
+    return { default: () => <div>AR Camera failed to load</div> };
+  }),
   {
     ssr: false, // critical: prevents server-side rendering attempts
     loading: () => <div className={styles.arjsLoader}>Initializing AR Scanner...</div>
@@ -82,23 +85,26 @@ export default function Home() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🔥 FORM SUBMITTED! Button click detected');
     console.log('Form submitted, email:', email);
+    console.log('Event:', e);
     
     if (!email) {
+      console.log('❌ No email provided');
       setError('email is required.');
       return;
     }
     
-    console.log('Calling writeUserData...');
+    console.log('✅ Email validation passed, calling writeUserData...');
     writeUserData(email)
       .then(() => {
-        console.log('writeUserData succeeded');
+        console.log('✅ writeUserData succeeded');
         setHasSubscribed(true);
         setEmail('');
         setError('');
       })
       .catch((err) => {
-        console.error('writeUserData failed:', err);
+        console.error('❌ writeUserData failed:', err);
         setError(err.message || 'Failed to subscribe.');
         console.error('Email submission error:', err);
       });
@@ -152,7 +158,11 @@ export default function Home() {
                     className={styles.inputField}
                     required
                   />
-                  <button type="submit" className={styles.submitButton}>
+                  <button 
+                    type="submit" 
+                    className={styles.submitButton}
+                    onClick={() => console.log('🖱️ BUTTON CLICKED! Click event detected')}
+                  >
                     subscribe
                   </button>
                 </form>
