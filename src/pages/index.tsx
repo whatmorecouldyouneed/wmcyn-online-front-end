@@ -37,21 +37,32 @@ function writeUserData(emailID: string) {
     return Promise.reject(new Error('Firebase not initialized'));
   }
   
-  console.log('Attempting to save email to Firebase:', emailID);
-  const emailListRef = ref(db, 'emailList');
-  const newEmailRef = push(emailListRef);
+  console.log('📧 Attempting to save email to Firebase:', emailID);
+  console.log('🔥 Firebase database instance:', !!db);
   
-  return set(newEmailRef, { 
+  const emailListRef = ref(db, 'emailList');
+  console.log('📋 Created emailList reference');
+  
+  const newEmailRef = push(emailListRef);
+  console.log('🆕 Created new email reference:', newEmailRef.key);
+  
+  const emailData = { 
     email: emailID,
     timestamp: Date.now(),
     userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown'
-  }).then(() => {
-    console.log('Email successfully saved to Firebase:', emailID);
+  };
+  console.log('📦 Email data to save:', emailData);
+  
+  return set(newEmailRef, emailData).then(() => {
+    console.log('✅ Firebase set() operation completed successfully');
+    console.log('📧 Email successfully saved to Firebase:', emailID);
+    return true; // Explicit return value
   }).catch((error) => {
-    console.error('Firebase set() operation failed:', error);
-    console.error('Error details:', {
+    console.error('❌ Firebase set() operation failed:', error);
+    console.error('🔍 Error details:', {
       code: error.code,
       message: error.message,
+      name: error.name,
       stack: error.stack
     });
     throw error;
@@ -64,6 +75,7 @@ export default function Home() {
   const [password, setPassword] = useState('');
   const [hasSubscribed, setHasSubscribed] = useState(false);
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot' | null>(null);
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
@@ -85,9 +97,14 @@ export default function Home() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (isSubmitting) {
+      console.log('⏳ Already submitting, ignoring duplicate submission');
+      return;
+    }
+    
     console.log('🔥 FORM SUBMITTED! Button click detected');
     console.log('Form submitted, email:', email);
-    console.log('Event:', e);
     
     if (!email) {
       console.log('❌ No email provided');
@@ -95,18 +112,22 @@ export default function Home() {
       return;
     }
     
+    setIsSubmitting(true);
+    setError('');
     console.log('✅ Email validation passed, calling writeUserData...');
+    
     writeUserData(email)
       .then(() => {
-        console.log('✅ writeUserData succeeded');
+        console.log('✅ writeUserData succeeded - showing success state');
         setHasSubscribed(true);
         setEmail('');
         setError('');
+        setIsSubmitting(false);
       })
       .catch((err) => {
         console.error('❌ writeUserData failed:', err);
         setError(err.message || 'Failed to subscribe.');
-        console.error('Email submission error:', err);
+        setIsSubmitting(false);
       });
   };
 
@@ -161,9 +182,9 @@ export default function Home() {
                   <button 
                     type="submit" 
                     className={styles.submitButton}
-                    onClick={() => console.log('🖱️ BUTTON CLICKED! Click event detected')}
+                    disabled={isSubmitting}
                   >
-                    subscribe
+                    {isSubmitting ? 'submitting...' : 'subscribe'}
                   </button>
                 </form>
                 {/* Only show error related to this form */}
