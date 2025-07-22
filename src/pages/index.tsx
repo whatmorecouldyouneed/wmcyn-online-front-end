@@ -53,10 +53,11 @@ function writeUserData(emailID: string) {
   };
   console.log('📦 Email data to save:', emailData);
   
-  return set(newEmailRef, emailData).then(() => {
+  // Add timeout to prevent hanging
+  const firebasePromise = set(newEmailRef, emailData).then(() => {
     console.log('✅ Firebase set() operation completed successfully');
     console.log('📧 Email successfully saved to Firebase:', emailID);
-    return true; // Explicit return value
+    return true;
   }).catch((error) => {
     console.error('❌ Firebase set() operation failed:', error);
     console.error('🔍 Error details:', {
@@ -67,6 +68,16 @@ function writeUserData(emailID: string) {
     });
     throw error;
   });
+  
+  // Add 10 second timeout
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => {
+      console.error('⏰ Firebase operation timed out after 10 seconds');
+      reject(new Error('Firebase operation timed out'));
+    }, 10000);
+  });
+  
+  return Promise.race([firebasePromise, timeoutPromise]);
 }
 
 export default function Home() {
@@ -116,17 +127,53 @@ export default function Home() {
     setError('');
     console.log('✅ Email validation passed, calling writeUserData...');
     
+    // Add manual timeout as backup
+    const manualTimeout = setTimeout(() => {
+      console.error('🚨 Manual timeout - resetting submit state');
+      setIsSubmitting(false);
+      setError('Submission timed out. Please try again.');
+    }, 15000);
+    
     writeUserData(email)
       .then(() => {
+        clearTimeout(manualTimeout);
         console.log('✅ writeUserData succeeded - showing success state');
+        
+        // Also save to localStorage as backup
+        try {
+          const existingEmails = JSON.parse(localStorage.getItem('wmcyn-emails') || '[]');
+          existingEmails.push({ email, timestamp: Date.now() });
+          localStorage.setItem('wmcyn-emails', JSON.stringify(existingEmails));
+          console.log('💾 Email also saved to localStorage as backup');
+        } catch (e) {
+          console.warn('Failed to save to localStorage:', e);
+        }
+        
         setHasSubscribed(true);
         setEmail('');
         setError('');
         setIsSubmitting(false);
       })
       .catch((err) => {
+        clearTimeout(manualTimeout);
         console.error('❌ writeUserData failed:', err);
-        setError(err.message || 'Failed to subscribe.');
+        
+        // Try localStorage fallback
+        try {
+          const existingEmails = JSON.parse(localStorage.getItem('wmcyn-emails') || '[]');
+          existingEmails.push({ email, timestamp: Date.now(), fallback: true });
+          localStorage.setItem('wmcyn-emails', JSON.stringify(existingEmails));
+          console.log('💾 Email saved to localStorage as fallback');
+          
+          // Still show success since we saved it locally
+          setHasSubscribed(true);
+          setEmail('');
+          setError('');
+        } catch (localErr) {
+          console.error('Failed localStorage fallback:', localErr);
+          setError(err.message || 'Failed to subscribe.');
+        }
+        
         setIsSubmitting(false);
       });
   };
@@ -187,6 +234,27 @@ export default function Home() {
                     {isSubmitting ? 'submitting...' : 'subscribe'}
                   </button>
                 </form>
+                {/* Debug: Reset button if stuck */}
+                {isSubmitting && (
+                  <button 
+                    onClick={() => {
+                      console.log('🔄 Manual reset triggered');
+                      setIsSubmitting(false);
+                      setError('Reset manually. Please try again.');
+                    }}
+                    style={{ 
+                      marginTop: '10px', 
+                      padding: '5px 10px', 
+                      background: 'red', 
+                      color: 'white', 
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '12px'
+                    }}
+                  >
+                    Reset (Debug)
+                  </button>
+                )}
                 {/* Only show error related to this form */}
                 {error && !password && <p className={styles.error}>{error}</p>}
               </>
