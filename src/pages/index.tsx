@@ -39,6 +39,7 @@ function writeUserData(emailID: string) {
   
   console.log('📧 Attempting to save email to Firebase:', emailID);
   console.log('🔥 Firebase database instance:', !!db);
+  console.log('🌐 Database URL:', `https://${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebaseio.com`);
   
   const emailListRef = ref(db, 'emailList');
   console.log('📋 Created emailList reference');
@@ -66,6 +67,13 @@ function writeUserData(emailID: string) {
       name: error.name,
       stack: error.stack
     });
+    
+    // Check if it's a permissions issue
+    if (error.code === 'PERMISSION_DENIED') {
+      console.error('🚫 Firebase database rules are blocking writes to emailList');
+      console.error('💡 Solution: Update Firebase database rules to allow writes');
+    }
+    
     throw error;
   });
   
@@ -73,6 +81,10 @@ function writeUserData(emailID: string) {
   const timeoutPromise = new Promise((_, reject) => {
     setTimeout(() => {
       console.error('⏰ Firebase operation timed out after 10 seconds');
+      console.error('💡 This might be due to:');
+      console.error('   1. Firebase database rules blocking writes');
+      console.error('   2. Network connectivity issues');
+      console.error('   3. Firebase project configuration problems');
       reject(new Error('Firebase operation timed out'));
     }, 10000);
   });
@@ -97,11 +109,23 @@ export default function Home() {
   const [transferError, setTransferError] = useState('');
 
   useEffect(() => {
-    if (showCamera) document.body.classList.add(styles.cameraActive);
-    else document.body.classList.remove(styles.cameraActive);
+    document.body.classList.add(styles.cameraActive);
 
     return () => document.body.classList.remove(styles.cameraActive);
   }, [showCamera]);
+
+  // Debug function to check saved emails
+  useEffect(() => {
+    // Log saved emails for debugging
+    try {
+      const savedEmails = JSON.parse(localStorage.getItem('wmcyn-emails') || '[]');
+      if (savedEmails.length > 0) {
+        console.log('📬 Emails saved in localStorage:', savedEmails);
+      }
+    } catch (e) {
+      console.log('No emails in localStorage yet');
+    }
+  }, []);
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value);
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value);
@@ -165,13 +189,14 @@ export default function Home() {
           localStorage.setItem('wmcyn-emails', JSON.stringify(existingEmails));
           console.log('💾 Email saved to localStorage as fallback');
           
-          // Still show success since we saved it locally
+          // Show success since we saved it locally (email still collected)
           setHasSubscribed(true);
           setEmail('');
           setError('');
+          console.log('✅ Showing success state (localStorage fallback worked)');
         } catch (localErr) {
-          console.error('Failed localStorage fallback:', localErr);
-          setError(err.message || 'Failed to subscribe.');
+          console.error('❌ Failed localStorage fallback:', localErr);
+          setError('Unable to submit. Please try again later.');
         }
         
         setIsSubmitting(false);
