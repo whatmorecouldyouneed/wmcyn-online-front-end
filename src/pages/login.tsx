@@ -5,6 +5,8 @@ import Link from 'next/link';
 import styles from '../styles/Index.module.scss';
 
 export default function Login() {
+  const router = useRouter();
+  const { mode } = router.query;
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot'>('login');
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
@@ -13,13 +15,18 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   
   const { currentUser, login, signup, googleSignIn, resetPassword } = useAuth();
-  const router = useRouter();
 
   useEffect(() => {
     if (currentUser) {
       router.push('/shop/friends-and-family');
     }
   }, [currentUser, router]);
+
+  useEffect(() => {
+    if (mode === 'signup') {
+      setAuthMode('signup');
+    }
+  }, [mode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

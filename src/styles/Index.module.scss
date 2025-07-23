@@ -116,6 +116,8 @@
   justify-content: center;
   text-transform: lowercase;
   letter-spacing: 0.5px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .submitButton:hover {

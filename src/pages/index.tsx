@@ -218,13 +218,33 @@ function NewsletterSection() {
       <NextImage src={WMCYNLOGO} alt="WMCYN Logo" className={styles.logo} priority />
       {/* login/signup cta buttons where the email form was */}
       <div style={{ display: 'flex', flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', marginTop: 0, whiteSpace: 'nowrap', minWidth: 200 }}>
-        <LiquidGlassEffect variant="button">
-          <button style={{ background: 'none', border: 'none', color: 'white', fontSize: 14, padding: '0.4rem 0.8rem', borderRadius: '0.8rem', width: 90, minWidth: 0, cursor: 'pointer' }}>
+        <LiquidGlassEffect 
+          variant="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Login button clicked');
+            router.push('/login');
+          }}
+        >
+          <button 
+            style={{ background: 'none', border: 'none', color: 'white', fontSize: 14, padding: '0.4rem 0.8rem', borderRadius: '0.8rem', width: 90, minWidth: 0, cursor: 'pointer', touchAction: 'manipulation', pointerEvents: 'none' }}
+          >
             login
           </button>
         </LiquidGlassEffect>
-        <LiquidGlassEffect variant="button">
-          <button style={{ background: 'none', border: 'none', color: 'white', fontSize: 14, padding: '0.4rem 0.8rem', borderRadius: '0.8rem', width: 90, minWidth: 0, cursor: 'pointer' }}>
+        <LiquidGlassEffect 
+          variant="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Signup button clicked');
+            router.push('/login?mode=signup');
+          }}
+        >
+          <button 
+            style={{ background: 'none', border: 'none', color: 'white', fontSize: 14, padding: '0.4rem 0.8rem', borderRadius: '0.8rem', width: 90, minWidth: 0, cursor: 'pointer', touchAction: 'manipulation', pointerEvents: 'none' }}
+          >
             sign up
           </button>
         </LiquidGlassEffect>
