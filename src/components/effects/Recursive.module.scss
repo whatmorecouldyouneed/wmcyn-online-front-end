@@ -1,0 +1,160 @@
+// shared styles for all recursive components
+// creates infinite depth illusion with proper layering
+
+.sectionWrapper {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  scroll-snap-align: center;
+  background: transparent;
+}
+
+.recursiveLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: center center;
+  transition: all 0.3s ease;
+  pointer-events: none;
+  
+  // only the top level should be interactive
+  &:first-child {
+    pointer-events: all;
+  }
+  
+  // add subtle rotation for depth effect
+  &:nth-child(even) {
+    animation: recursiveFloatEven 12s ease-in-out infinite;
+  }
+  
+  &:nth-child(odd) {
+    animation: recursiveFloatOdd 15s ease-in-out infinite;
+  }
+}
+
+.recursiveContainer {
+  position: absolute;
+  bottom: 5%;
+  right: 5%;
+  width: 40%;
+  height: 50%;
+  
+  // create depth perspective
+  perspective: 1000px;
+  transform-style: preserve-3d;
+  
+  // border frame to show the recursive boundary
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 15px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  
+  // frame styling like a mirror or screen
+  box-shadow: 
+    0 0 0 2px rgba(255, 255, 255, 0.1),
+    0 0 30px rgba(0, 0, 0, 0.5),
+    inset 0 0 30px rgba(255, 255, 255, 0.1),
+    0 0 60px rgba(255, 255, 255, 0.2);
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    pointer-events: none;
+  }
+  
+  // shimmer effect
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.2) 50%,
+      transparent 100%
+    );
+    animation: shimmer 3s ease-in-out infinite;
+    pointer-events: none;
+    border-radius: 15px;
+  }
+}
+
+// animation for even-numbered recursive layers
+@keyframes recursiveFloatEven {
+  0%, 100% {
+    transform: scale(var(--scale, 1)) translateY(0px) rotateZ(0deg);
+    opacity: var(--opacity, 1);
+  }
+  25% {
+    transform: scale(var(--scale, 1)) translateY(-3px) rotateZ(0.3deg);
+    opacity: var(--opacity, 1);
+  }
+  50% {
+    transform: scale(var(--scale, 1)) translateY(0px) rotateZ(0deg);
+    opacity: var(--opacity, 1);
+  }
+  75% {
+    transform: scale(var(--scale, 1)) translateY(2px) rotateZ(-0.2deg);
+    opacity: var(--opacity, 1);
+  }
+}
+
+// animation for odd-numbered recursive layers
+@keyframes recursiveFloatOdd {
+  0%, 100% {
+    transform: scale(var(--scale, 1)) translateY(0px) rotateZ(0deg);
+    opacity: var(--opacity, 1);
+  }
+  33% {
+    transform: scale(var(--scale, 1)) translateY(2px) rotateZ(-0.2deg);
+    opacity: var(--opacity, 1);
+  }
+  66% {
+    transform: scale(var(--scale, 1)) translateY(-2px) rotateZ(0.2deg);
+    opacity: var(--opacity, 1);
+  }
+}
+
+// shimmer animation for frames
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  50% {
+    left: 100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+// responsive adjustments
+@media (max-width: 768px) {
+  .recursiveContainer {
+    width: 45%;
+    height: 45%;
+    bottom: 3%;
+    right: 3%;
+  }
+}
+
+@media (max-width: 480px) {
+  .recursiveContainer {
+    width: 50%;
+    height: 40%;
+    bottom: 2%;
+    right: 2%;
+  }
+} 

@@ -3,11 +3,14 @@
   scroll-snap-type: y mandatory;
   overflow-y: scroll;
   height: 100vh;
+  width: 100vw;
+  position: relative;
+  z-index: 1;
 }
 
 /* ===== MAIN CONTAINER ===== */
 .container {
-  background-color: #000;
+  background-color: transparent;
   color: #fff;
   height: 100vh;
   display: flex;
@@ -18,6 +21,7 @@
   box-sizing: border-box;
   width: 100%;
   scroll-snap-align: center;
+  position: relative;
 }
 
 /* ===== TYPEWRITER ANIMATION ===== */
@@ -262,6 +266,18 @@
   border-radius: 8px;
 }
 
+.subscribedText {
+  color: #51cf66;
+  font-size: 16px;
+  text-align: center;
+  margin: 16px 0;
+  padding: 12px;
+  background: rgba(81, 207, 102, 0.1);
+  border: 1px solid rgba(81, 207, 102, 0.3);
+  border-radius: 8px;
+  font-weight: 500;
+}
+
 .success {
   color: #51cf66;
   font-size: 14px;
@@ -309,7 +325,6 @@
 .sectionText {
   font-size: 1.6rem;
   text-align: center;
-  margin-bottom: 40px;
   max-width: 800px;
   line-height: 1.6;
   color: rgba(255, 255, 255, 0.9);
@@ -320,7 +335,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 30px;
+  margin-top: 12px;
 }
 
 .instagramLogo {
@@ -472,7 +487,6 @@
   .sectionText,
   .friendsAndFamilyText {
     font-size: 1.2rem;
-    margin: 0 16px 30px;
   }
 
   .scrollButton {
@@ -540,14 +554,7 @@
   outline-offset: 2px;
 }
 
-/* ===== ACCESSIBILITY ===== */
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
+
 
 /* ===== HIGH CONTRAST MODE ===== */
 @media (prefers-contrast: high) {
@@ -563,4 +570,13 @@
   .success {
     border-width: 2px;
   }
+}
+
+.mirrorBackground {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
 } 

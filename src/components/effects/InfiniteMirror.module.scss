@@ -1,0 +1,425 @@
+// true droste infinite mirror tunnel effect with seamless depth animation
+
+.infiniteContainer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  z-index: -1;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  
+  // seamless infinite flowing background - never restarts
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 300%;
+    height: 100%;
+    background: 
+      radial-gradient(circle at 20% 50%, rgba(255,255,255,0.02) 0%, transparent 30%),
+      radial-gradient(circle at 60% 30%, rgba(255,255,255,0.015) 0%, transparent 25%),
+      radial-gradient(circle at 80% 70%, rgba(255,255,255,0.01) 0%, transparent 20%);
+    background-size: 800px 600px, 1200px 900px, 600px 450px;
+    animation: seamlessFlow 120s linear infinite;
+    pointer-events: none;
+    z-index: -1;
+  }
+  
+  &.paused {
+    cursor: default;
+    
+    &::after {
+      animation-play-state: paused;
+    }
+  }
+}
+
+.animatedLayer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  // single clean animation from front to back
+  animation: frontToBackFlow var(--duration, 12s) linear infinite;
+  animation-delay: var(--animation-delay, 0s);
+  
+  // hardware acceleration
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transform-origin: center center;
+}
+
+// Clean front-to-back animation
+@keyframes frontToBackFlow {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  95% {
+    transform: scale(0.1);
+    opacity: 0.1;
+  }
+  100% {
+    transform: scale(0.1);
+    opacity: 0;
+  }
+}
+
+// Remove old recursive level styles and replace with simpler approach
+.recursiveLevel {
+  // keep for backwards compatibility but not used in new approach
+}
+
+.levelBorder {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border: 4px solid rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(1px);
+  overflow: hidden;
+  
+  // enhanced border glow for tunnel effect
+  box-shadow: 
+    0 0 25px rgba(255, 255, 255, 0.35),
+    inset 0 0 25px rgba(255, 255, 255, 0.12),
+    0 0 50px rgba(255, 255, 255, 0.25);
+    
+  // inner border for depth
+  &::before {
+    content: '';
+    position: absolute;
+    top: 10%;
+    left: 10%;
+    right: 10%;
+    bottom: 10%;
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    border-radius: 15px;
+    pointer-events: none;
+  }
+}
+
+.levelContent {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2%;
+  box-sizing: border-box;
+}
+
+.mainContent {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  max-width: 400px;
+}
+
+// content styles with enhanced legibility
+.logo {
+  width: auto;
+  height: clamp(45px, 8vw, 85px);
+  margin-bottom: 1rem;
+  filter: brightness(1.3) contrast(1.2);
+  transition: all 0.3s ease;
+}
+
+.typewriter {
+  font-size: clamp(0.9rem, 2.5vw, 1.7rem);
+  font-weight: bold;
+  color: white;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  line-height: 1.3;
+  text-shadow: 
+    0 0 20px rgba(255, 255, 255, 0.6),
+    0 0 40px rgba(255, 255, 255, 0.3);
+  min-height: 2rem;
+}
+
+.formContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 300px;
+  pointer-events: all;
+  cursor: default;
+  
+  // enhanced visibility when paused
+  .infiniteContainer.paused & {
+    background: rgba(0, 0, 0, 0.92);
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(15px);
+    box-shadow: 0 0 50px rgba(255, 255, 255, 0.4);
+  }
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  width: 100%;
+  max-width: 280px;
+}
+
+.inputField {
+  padding: 0.9rem 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.18);
+  color: white;
+  font-size: 0.95rem;
+  backdrop-filter: blur(5px);
+  transition: all 0.3s ease;
+  
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.8);
+  }
+  
+  &:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 1);
+    background: rgba(255, 255, 255, 0.28);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+    transform: scale(1.02);
+  }
+}
+
+.submitButton {
+  padding: 0.9rem 1.5rem;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+  font-size: 0.95rem;
+  font-weight: bold;
+  cursor: pointer;
+  backdrop-filter: blur(5px);
+  transition: all 0.3s ease;
+  text-transform: lowercase;
+  letter-spacing: 0.5px;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.45);
+    border-color: rgba(255, 255, 255, 1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(255, 255, 255, 0.5);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.subscribedText {
+  color: #51cf66;
+  font-size: 1.1rem;
+  margin-top: 1rem;
+  padding: 0.9rem;
+  background: rgba(81, 207, 102, 0.25);
+  border: 2px solid rgba(81, 207, 102, 0.7);
+  border-radius: 8px;
+  font-weight: 600;
+  text-shadow: 0 0 15px rgba(81, 207, 102, 0.7);
+}
+
+.error {
+  color: #ff6b6b;
+  font-size: 0.85rem;
+  margin-top: 0.7rem;
+  padding: 0.7rem;
+  background: rgba(255, 107, 107, 0.25);
+  border: 2px solid rgba(255, 107, 107, 0.7);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.clickHint {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.75rem;
+  text-align: center;
+  pointer-events: none;
+  animation: fadeInOut 4s ease-in-out infinite;
+  text-transform: lowercase;
+  letter-spacing: 0.5px;
+}
+
+// seamless flowing pattern - creates perfect infinite flow illusion
+@keyframes seamlessFlow {
+  0% {
+    background-position: 0px 0px, 0px 0px, 0px 0px;
+  }
+  100% {
+    background-position: 800px 600px, 1200px 900px, 600px 450px;
+  }
+}
+
+// subtle hint animation
+@keyframes fadeInOut {
+  0%, 100% { 
+    opacity: 0.4; 
+  }
+  50% { 
+    opacity: 0.8; 
+  }
+}
+
+// perfect seamless loop using background-position
+@keyframes seamlessBackgroundLoop {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: -100% 100%;
+  }
+}
+
+// atmospheric background
+.infiniteContainer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(ellipse at center, rgba(255,255,255,0.08) 0%, transparent 75%),
+    radial-gradient(ellipse at 30% 70%, rgba(255,255,255,0.04) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+// performance optimizations
+.recursiveLevel {
+  contain: layout style paint;
+}
+
+// responsive adjustments
+@media (max-width: 768px) {
+  .typewriter {
+    font-size: clamp(0.7rem, 3vw, 1.3rem);
+    margin-bottom: 1rem;
+  }
+  
+  .formContainer {
+    max-width: 250px;
+  }
+  
+  .inputField, .submitButton {
+    font-size: 16px; // prevents zoom on iOS
+    padding: 0.8rem;
+  }
+  
+  .logo {
+    height: clamp(35px, 6vw, 65px);
+  }
+  
+  .levelBorder {
+    width: 85%;
+    height: 85%;
+  }
+}
+
+@media (max-width: 480px) {
+  .mainContent {
+    max-width: 220px;
+  }
+  
+  .formContainer {
+    max-width: 200px;
+  }
+  
+  .levelContent {
+    padding: 10%;
+  }
+  
+  .childContainer {
+    width: 75%;
+    height: 75%;
+  }
+} 
+
+// Add section-specific styles
+.sectionHeading {
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  font-weight: bold;
+  color: white;
+  margin-bottom: 1rem;
+  text-align: center;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
+}
+
+.sectionText {
+  font-size: clamp(0.9rem, 2vw, 1.2rem);
+  color: rgba(255, 255, 255, 0.9);
+  text-align: center;
+  line-height: 1.5;
+  max-width: 300px;
+}
+
+.instagramContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1rem;
+  gap: 0.5rem;
+}
+
+.instagramLogo {
+  width: 30px;
+  height: 30px;
+}
+
+.instagramText {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.welcomeMessage {
+  font-size: clamp(1rem, 2.5vw, 1.5rem);
+  color: white;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.scannerPreview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.qrCode {
+  filter: brightness(1.2);
+  border-radius: 8px;
+} 

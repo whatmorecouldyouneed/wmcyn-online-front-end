@@ -1,0 +1,122 @@
+.liquidGlass-wrapper {
+  position: relative;
+  display: flex;
+  font-weight: 300;
+  overflow: hidden;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18), 0 0 12px rgba(0, 0, 0, 0.12);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 2.2);
+}
+.liquidGlass-effect {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  backdrop-filter: blur(16px);
+  filter: url(#glass-distortion);
+  overflow: hidden;
+  isolation: isolate;
+}
+.liquidGlass-tint {
+  z-index: 1;
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgba(30, 40, 60, 0.13) 0%, rgba(255,255,255,0.09) 100%);
+}
+.liquidGlass-shine {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  box-shadow: 0 0 0 1.5px rgba(255,255,255,0.22) inset, 0 1.5px 8px 0 rgba(0,0,0,0.10) inset;
+  pointer-events: none;
+  /* more intense, icy blue/white shine */
+  background: linear-gradient(120deg, rgba(180,220,255,0.32) 0%, rgba(255,255,255,0.18) 40%, rgba(255,255,255,0.08) 60%, rgba(120,180,255,0.18) 100%);
+  mix-blend-mode: lighten;
+  opacity: 0.92;
+}
+.liquidGlass-text {
+  z-index: 3;
+  font-size: 1rem;
+  color: white;
+  font-weight: 300;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.liquidGlass-wrapper input::placeholder {
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 2px rgba(30,40,60,0.18);
+  font-weight: 400;
+}
+.menu,
+.menu > div {
+  padding: 0.6rem 1.2rem;
+  border-radius: 1.2rem;
+}
+.menu:hover {
+  padding: 0.7rem 1.3rem;
+  border-radius: 1.2rem;
+}
+.menu > div > div {
+  font-size: 1.2rem;
+  color: white;
+  padding: 0.3rem 0.7rem;
+  border-radius: 0.7rem;
+  transition: all 0.1s ease-in;
+  font-weight: 300;
+}
+.menu > div > div:hover {
+  background-color: rgba(255, 255, 255, 0.18);
+  box-shadow: inset -2px -2px 2px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(2px);
+}
+.dock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 1.5rem;
+  padding: 0.5rem 1.2rem;
+}
+.dock,
+.dock > div {
+  border-radius: 1.5rem;
+}
+.dock:hover {
+  padding: 0.6rem 1.4rem;
+  border-radius: 1.8rem;
+}
+.dock:hover > div {
+  border-radius: 1.8rem;
+}
+.dock img {
+  width: 48px;
+  padding: 0;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 2.2);
+}
+.dock img:hover {
+  transform: scale(0.95);
+  transform-origin: center center;
+}
+.button {
+  padding: 0.5rem 1.2rem;
+  border-radius: 1.2rem;
+}
+.button,
+.button > div {
+  border-radius: 1.2rem;
+}
+.button:hover {
+  padding: 0.6rem 1.4rem;
+}
+.button:hover > div {
+  border-radius: 1.5rem;
+}
+.button svg {
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 2.2);
+}
+.button:hover svg {
+  transform: scale(0.95);
+} 

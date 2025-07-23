@@ -12,6 +12,9 @@ import WMCYNQRCODE from '../../public/wmcyn-qr.png';
 import styles from '@/styles/Index.module.scss';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProducts } from '../hooks/useUserProducts';
+import InfiniteMirror from '../components/effects/InfiniteMirror';
+import LiquidGlassEffect from '../components/ui/LiquidGlassEffect';
+import React from 'react';
 
 // --- dynamically import arcamera ---
 const ARCamera = dynamic(
@@ -42,29 +45,142 @@ function writeUserData(emailID: string) {
   });
 }
 
-export default function Home() {
-  const [showCamera, setShowCamera] = useState(false);
+type NewsletterModalProps = {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (e: React.FormEvent) => void;
+  email: string;
+  setEmail: (email: string) => void;
+  error: string;
+  hasSubscribed: boolean;
+};
+
+function NewsletterModal({ open, onClose, onSubmit, email, setEmail, error, hasSubscribed }: NewsletterModalProps) {
+  if (!open) return null;
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100vw',
+      height: '100vh',
+      background: 'rgba(20, 20, 30, 0.85)',
+      zIndex: 1000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backdropFilter: 'blur(4px)'
+    }}>
+      <div style={{
+        background: 'rgba(30, 35, 50, 0.85)',
+        border: '1.5px solid rgba(255,255,255,0.22)',
+        borderRadius: 18,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.32)',
+        padding: '20px 24px 24px 24px',
+        margin: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 16,
+        minWidth: 320,
+        maxWidth: 360,
+        backdropFilter: 'blur(12px)',
+        position: 'relative',
+      }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 2, right: 8, background: 'none', border: 'none', color: 'white', fontSize: 24, cursor: 'pointer', padding: 2, borderRadius: 8, zIndex: 2 }}>×</button>
+        <h2 style={{ fontFamily: 'Inter, sans-serif', color: 'white', fontWeight: 500, fontSize: '1.5rem', margin: 0, textAlign: 'center', letterSpacing: '-0.02em' }}>
+          sign up for updates
+        </h2>
+        <p style={{ color: 'white', fontFamily: 'Inter, sans-serif', fontSize: 15, textAlign: 'center', margin: 0, opacity: 0.85, maxWidth: 320 }}>
+          join our newsletter to get early access, news, and exclusive offers. no spam, ever.
+        </p>
+        <form onSubmit={onSubmit} style={{ background: 'none', boxShadow: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'row', gap: 8, width: '100%', maxWidth: 320, alignItems: 'center', justifyContent: 'center' }}>
+          <LiquidGlassEffect variant="button">
+            <input
+              type="email"
+              placeholder="enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              style={{ background: 'transparent', border: 'none', color: 'white', fontSize: 14, padding: '0.4rem 0.8rem', borderRadius: '0.8rem', width: 140, minWidth: 0 }}
+            />
+          </LiquidGlassEffect>
+          <LiquidGlassEffect variant="button">
+            <button type="submit" style={{ background: 'none', border: 'none', color: 'white', fontSize: 14, padding: '0.4rem 0.8rem', borderRadius: '0.8rem', width: 90, minWidth: 0, cursor: 'pointer' }}>
+              subscribe
+            </button>
+          </LiquidGlassEffect>
+        </form>
+        {error && <p style={{ color: '#ff6b6b', fontSize: 14, textAlign: 'center', margin: 8 }}>{error}</p>}
+        {hasSubscribed && <p style={{ color: '#51cf66', fontSize: 16, textAlign: 'center', margin: 8 }}>subscribed.</p>}
+      </div>
+    </div>
+  );
+}
+
+function Countdown() {
+  const target = new Date('2025-10-03T00:00:00');
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+  const diff = target.getTime() - now.getTime();
+  const style: React.CSSProperties = {
+    fontFamily: 'Inter, sans-serif',
+    fontWeight: 700,
+    fontSize: 9,
+    color: '#f8fafc',
+    letterSpacing: '0.02em',
+    textShadow: '0 1px 4px rgba(0,0,0,0.18)',
+    textAlign: 'center',
+    width: '100%',
+    display: 'block',
+    position: 'absolute',
+    top: 8,
+    left: 0,
+    right: 0,
+    margin: '0 auto',
+    zIndex: 100,
+    pointerEvents: 'none',
+  };
+  const boldStyle: React.CSSProperties = {
+    ...style,
+    fontWeight: 700,
+    fontSize: 10,
+    position: 'static',
+    marginTop: 2,
+  };
+  if (diff < 0) return (
+    <span style={style}>
+      launching now
+      <br />
+      <span style={boldStyle}>start collecting!</span>
+    </span>
+  );
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+  const minutes = Math.floor((diff / (1000 * 60)) % 60);
+  const dayLabel = days === 1 ? 'day' : 'days';
+  const hourLabel = hours === 1 ? 'hour' : 'hours';
+  const minuteLabel = minutes === 1 ? 'minute' : 'minutes';
+  return (
+    <span style={style}>
+      {days} {dayLabel} {hours} {hourLabel} and {minutes} {minuteLabel} until f/w season collection
+      <br />
+      <span style={boldStyle}>start collecting!</span>
+    </span>
+  );
+}
+
+// newsletter section component
+function NewsletterSection() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [hasSubscribed, setHasSubscribed] = useState(false);
   const [error, setError] = useState('');
-  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot' | null>(null);
-  const [authEmail, setAuthEmail] = useState('');
-  const [authPassword, setAuthPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [authError, setAuthError] = useState('');
-  const [transferProductId, setTransferProductId] = useState<string | null>(null);
-  const [transferEmail, setTransferEmail] = useState('');
-  const [transferError, setTransferError] = useState('');
-
-  useEffect(() => {
-    document.body.classList.add(styles.cameraActive);
-
-    return () => document.body.classList.remove(styles.cameraActive);
-  }, [showCamera]);
-
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value);
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value);
+  const [modalOpen, setModalOpen] = useState(true);
+  // simulate user signed in state (replace with real auth if available)
+  const [isSignedIn, setIsSignedIn] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,409 +195,205 @@ export default function Home() {
         setHasSubscribed(true);
         setEmail('');
         setError('');
+        setIsSignedIn(true); // simulate sign in after subscribing
       })
       .catch((err) => {
-        // Try localStorage fallback
         try {
           const existingEmails = JSON.parse(localStorage.getItem('wmcyn-emails') || '[]');
           existingEmails.push({ email, timestamp: Date.now(), fallback: true });
           localStorage.setItem('wmcyn-emails', JSON.stringify(existingEmails));
           
-          // Show success since we saved it locally
           setHasSubscribed(true);
           setEmail('');
           setError('');
+          setIsSignedIn(true); // simulate sign in after subscribing
         } catch (localErr) {
           setError('Unable to submit. Please try again later.');
         }
       });
   };
 
-  const handleShopAccess = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password === 'test') {
-      localStorage.setItem('hasAccessToShop', 'true');
-      router.push('/shop');
-    } else {
-      setError('Incorrect password');
-    }
-  };
-  const { currentUser, login, signup, googleSignIn, resetPassword, logout } = useAuth();
-  const { products, transferProduct } = useUserProducts();
-
   return (
-    <div>
-      {showCamera ? (
-        <ARCamera onClose={() => setShowCamera(false)} />
-      ) : (
-        <div className={styles.pageContainer}>
-          {/* HOME / Newsletter Section */}
-          <div className={styles.container} id="homeSection">
-            <NextImage src={WMCYNLOGO} alt="WMCYN Logo" className={styles.logo} priority />
-            {hasSubscribed ? (
-              <>
-                <h1 className={styles.typewriter}>
-                  <Typewriter options={{ strings: ['WMCYN WELCOMES YOU'], autoStart: true, loop: true }} />
-                </h1>
-                <p>subscribed.</p>
-              </>
-            ) : (
-              <>
-                <h1 className={styles.typewriter}>
-                  <Typewriter
-                    options={{
-                      strings: ["YOU'RE EARLY...", 'SIGN UP FOR OUR NEWSLETTER'],
-                      autoStart: true,
-                      loop: true,
-                    }}
-                  />
-                </h1>
-                <form onSubmit={handleSubmit} className={styles.form}>
-                  <input
-                    type="email"
-                    placeholder="enter your email"
-                    value={email}
-                    onChange={handleEmailChange}
-                    className={styles.inputField}
-                    required
-                  />
-                  <button 
-                    type="submit" 
-                    className={styles.submitButton}
-                  >
-                    subscribe
-                  </button>
-                </form>
-                {/* Only show error related to this form */}
-                {error && !password && <p className={styles.error}>{error}</p>}
-              </>
-            )}
-          </div>
+    <div className={styles.container} id="homeSection">
+      <NextImage src={WMCYNLOGO} alt="WMCYN Logo" className={styles.logo} priority />
+      {/* login/signup cta buttons where the email form was */}
+      <div style={{ display: 'flex', flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', marginTop: 0, whiteSpace: 'nowrap', minWidth: 200 }}>
+        <LiquidGlassEffect variant="button">
+          <button style={{ background: 'none', border: 'none', color: 'white', fontSize: 14, padding: '0.4rem 0.8rem', borderRadius: '0.8rem', width: 90, minWidth: 0, cursor: 'pointer' }}>
+            login
+          </button>
+        </LiquidGlassEffect>
+        <LiquidGlassEffect variant="button">
+          <button style={{ background: 'none', border: 'none', color: 'white', fontSize: 14, padding: '0.4rem 0.8rem', borderRadius: '0.8rem', width: 90, minWidth: 0, cursor: 'pointer' }}>
+            sign up
+          </button>
+        </LiquidGlassEffect>
+      </div>
+      <div style={{
+        marginTop: 16,
+        color: '#39ff14',
+        fontFamily: 'Inter, sans-serif',
+        fontWeight: 700,
+        fontSize: 16,
+        textAlign: 'center',
+        opacity: 1,
+        maxWidth: 360,
+        marginLeft: 'auto',
+        marginRight: 'auto',
+        // no text shadow
+        borderRadius: 10,
+        padding: '10px 16px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+      }}>
+        friends & family and custom orders only up until week 1 of the f/w collection.
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 12, gap: 8 }}>
+        <LiquidGlassEffect variant="button">
+          <button
+            style={{ background: 'none', border: 'none', color: 'white', fontSize: 14, padding: '0.4rem 0.8rem', borderRadius: '0.8rem', minWidth: 120, cursor: 'pointer' }}
+            onClick={() => {
+              if (!isSignedIn) setModalOpen(true);
+              // else, redirect to shop or do nothing for now
+            }}
+          >
+            friends and family shop
+          </button>
+        </LiquidGlassEffect>
+        <LiquidGlassEffect variant="button">
+          <button
+            style={{ background: 'none', border: 'none', color: 'white', fontSize: 14, padding: '0.4rem 0.8rem', borderRadius: '0.8rem', minWidth: 120, cursor: 'pointer' }}
+          >
+            custom order
+          </button>
+        </LiquidGlassEffect>
+      </div>
+      <NewsletterModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSubmit={handleSubmit}
+        email={email}
+        setEmail={setEmail}
+        error={error}
+        hasSubscribed={hasSubscribed}
+      />
+    </div>
+  );
+}
 
-          {/* ABOUT Section */}
-          <div className={`${styles.container} ${styles.aboutSection}`} id="aboutSection">
-            <h2 className={styles.sectionHeading}>ABOUT WMCYN</h2>
-            <p className={styles.sectionText}>
-              future-forward start-up built on the advancement of modern technology
-              intertwined with the basics of everyday lifestyle.
-            </p>
-            <div className={styles.instagramContainer}>
-              <a href="https://instagram.com/whatmorecouldyouneed" target="_blank" rel="noopener noreferrer">
-                <NextImage src={InstagramLogo} alt="Instagram Logo" className={styles.instagramLogo} />
-              </a>
-              <span className={styles.instagramText}>follow us @whatmorecouldyouneed</span>
-            </div>
-          </div>
+// about section component
+function AboutSection() {
+  return (
+    <div className={`${styles.container} ${styles.aboutSection}`} id="aboutSection">
+      <h2 style={{
+        fontFamily: 'Inter, sans-serif',
+        fontWeight: 700,
+        letterSpacing: '-0.02em',
+        color: '#f8fafc',
+        fontSize: '2.25rem',
+        lineHeight: 1.1,
+        textAlign: 'center',
+        marginBottom: 20,
+      }}>ABOUT WMCYN</h2>
+      <p style={{
+        fontFamily: 'Inter, sans-serif',
+        fontWeight: 700,
+        color: '#f8fafc',
+        fontSize: 18,
+        textAlign: 'center',
+        maxWidth: 800,
+        marginLeft: 'auto',
+        marginRight: 'auto',
+      }}>
+        what more could you need inc. (wmcyn) pronounced (wim-syn) is a future-forward xr collective built on the advancement of modern technology
+        intertwined with the basics of everyday lifestyle.
+      </p>
+      <div className={styles.instagramContainer} style={{ flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+        <span className={styles.instagramText} style={{ textAlign: 'center', marginBottom: 8, fontFamily: 'Inter, sans-serif', fontWeight: 700, color: '#f8fafc', fontSize: 15 }}>follow us @whatmorecouldyouneed</span>
+        <a href="https://instagram.com/whatmorecouldyouneed" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', justifyContent: 'center' }}>
+          <NextImage src={InstagramLogo} alt="Instagram Logo" className={styles.instagramLogo} />
+        </a>
+      </div>
+    </div>
+  );
+}
 
-          {/* FRIENDS & FAMILY SHOP Section */}
-          <div id="friendsAndFamilySection" className={`${styles.container} ${styles.friendsAndFamilySection}`}>
-            <h2 className={styles.sectionHeading}>FRIENDS AND FAMILY SHOP</h2>
-            <form onSubmit={handleShopAccess} className={styles.form}>
-              <input
-                type="password"
-                placeholder="password"
-                value={password}
-                onChange={handlePasswordChange}
-                className={styles.inputField}
-              />
-              <button type="submit" className={styles.submitButton}>
-                enter store
-              </button>
-            </form>
-             {/* only show error related to this form */}
-            {error && password && <p className={styles.error}>{error}</p>}
-          </div>
-          {/* Account Section */}
-          <div id="accountSection" className={`${styles.container} ${styles.accountSection}`}>
-            <h2 className={styles.sectionHeading}>ACCOUNT</h2>
-            {currentUser ? (
-              <div className={styles.userDashboard}>
-                <div className={styles.welcomeMessage}>welcome back</div>
-                <div className={styles.userEmail}>{currentUser.email}</div>
-                
-                <div className={styles.collectionContainer}>
-                  <h3 className={styles.collectionTitle}>your collection</h3>
-                  {products.length === 0 ? (
-                    <p style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.7)' }}>
-                      no products in collection yet
-                    </p>
-                  ) : (
-                    <ul className={styles.productList}>
-                      {products.map(product => (
-                        <li key={product.id} className={styles.productItem}>
-                          <span className={styles.productName}>
-                            {product.name || product.id}
-                          </span>
-                          <button 
-                            onClick={() => setTransferProductId(product.id)} 
-                            className={`${styles.submitButton} ${styles.transferButton}`}
-                          >
-                            transfer
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  
-                  {transferProductId && (
-                    <form onSubmit={async (e) => {
-                      e.preventDefault();
-                      try {
-                        await transferProduct(transferProductId, transferEmail);
-                        setTransferProductId(null);
-                        setTransferEmail('');
-                        setTransferError('');
-                      } catch (err: any) {
-                        setTransferError(err.message || 'An error occurred during transfer');
-                      }
-                    }} className={styles.authForm} style={{ marginTop: '20px' }}>
-                      <input
-                        type="email"
-                        value={transferEmail}
-                        onChange={e => setTransferEmail(e.target.value)}
-                        placeholder="recipient email"
-                        className={styles.inputField}
-                        required
-                      />
-                      <button 
-                        type="submit" 
-                        className={`${styles.submitButton} ${styles.primaryButton}`}
-                      >
-                        send transfer
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setTransferProductId(null);
-                          setTransferEmail('');
-                          setTransferError('');
-                        }}
-                        className={`${styles.submitButton} ${styles.secondaryButton}`}
-                      >
-                        cancel
-                      </button>
-                      {transferError && <div className={styles.error}>{transferError}</div>}
-                    </form>
-                  )}
-                </div>
-                
-                <button 
-                  onClick={() => logout()} 
-                  className={`${styles.submitButton} ${styles.secondaryButton}`}
-                >
-                  sign out
-                </button>
-              </div>
-            ) : (
-              <div className={styles.authContainer}>
-                <div className={styles.authModeSelector}>
-                  <button 
-                    onClick={() => setAuthMode('login')} 
-                    className={`${styles.submitButton} ${authMode === 'login' ? styles.primaryButton : styles.secondaryButton}`}
-                  >
-                    login
-                  </button>
-                  <button 
-                    onClick={() => setAuthMode('signup')} 
-                    className={`${styles.submitButton} ${authMode === 'signup' ? styles.primaryButton : styles.secondaryButton}`}
-                  >
-                    sign up
-                  </button>
-                </div>
-
-                <button 
-                  onClick={async () => { 
-                    try { 
-                      await googleSignIn(); 
-                    } catch (err: any) { 
-                      setAuthError(err.message); 
-                    } 
-                  }} 
-                  className={`${styles.submitButton} ${styles.googleButton}`}
-                >
-                  continue with google
-                </button>
-
-                {authMode === 'login' && (
-                  <form onSubmit={async (e) => {
-                    e.preventDefault();
-                    setAuthError('');
-                    try {
-                      await login(authEmail, authPassword);
-                    } catch (err: any) {
-                      setAuthError(err.message || 'Login failed');
-                    }
-                  }} className={styles.authForm}>
-                    <input 
-                      type="email" 
-                      value={authEmail} 
-                      onChange={e => setAuthEmail(e.target.value)} 
-                      placeholder="email" 
-                      className={styles.inputField} 
-                      required 
-                    />
-                    <input 
-                      type="password" 
-                      value={authPassword} 
-                      onChange={e => setAuthPassword(e.target.value)} 
-                      placeholder="password" 
-                      className={styles.inputField} 
-                      required 
-                    />
-                    <button 
-                      type="submit" 
-                      className={`${styles.submitButton} ${styles.primaryButton}`}
-                    >
-                      sign in
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAuthMode('forgot')}
-                      className={`${styles.submitButton} ${styles.secondaryButton}`}
-                    >
-                      forgot password?
-                    </button>
-                    {authError && <div className={styles.error}>{authError}</div>}
-                  </form>
-                )}
-
-                {authMode === 'signup' && (
-                  <form onSubmit={async (e) => {
-                    e.preventDefault();
-                    setAuthError('');
-                    if (authPassword !== confirmPassword) {
-                      setAuthError('passwords do not match');
-                      return;
-                    }
-                    try {
-                      await signup(authEmail, authPassword);
-                    } catch (err: any) {
-                      setAuthError(err.message || 'Signup failed');
-                    }
-                  }} className={styles.authForm}>
-                    <input 
-                      type="email" 
-                      value={authEmail} 
-                      onChange={e => setAuthEmail(e.target.value)} 
-                      placeholder="email" 
-                      className={styles.inputField} 
-                      required 
-                    />
-                    <input 
-                      type="password" 
-                      value={authPassword} 
-                      onChange={e => setAuthPassword(e.target.value)} 
-                      placeholder="password" 
-                      className={styles.inputField} 
-                      required 
-                    />
-                    <input 
-                      type="password" 
-                      value={confirmPassword} 
-                      onChange={e => setConfirmPassword(e.target.value)} 
-                      placeholder="confirm password" 
-                      className={styles.inputField} 
-                      required 
-                    />
-                    <button 
-                      type="submit" 
-                      className={`${styles.submitButton} ${styles.primaryButton}`}
-                    >
-                      create account
-                    </button>
-                    {authError && <div className={styles.error}>{authError}</div>}
-                  </form>
-                )}
-
-                {authMode === 'forgot' && (
-                  <form onSubmit={async (e) => {
-                    e.preventDefault();
-                    setAuthError('');
-                    try {
-                      await resetPassword(authEmail);
-                      setAuthError('Password reset email sent! Check your inbox.');
-                    } catch (err: any) {
-                      setAuthError(err.message || 'Password reset failed');
-                    }
-                  }} className={styles.authForm}>
-                    <input 
-                      type="email" 
-                      value={authEmail} 
-                      onChange={e => setAuthEmail(e.target.value)} 
-                      placeholder="email" 
-                      className={styles.inputField} 
-                      required 
-                    />
-                    <button 
-                      type="submit" 
-                      className={`${styles.submitButton} ${styles.primaryButton}`}
-                    >
-                      send reset email
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAuthMode(null)}
-                      className={`${styles.submitButton} ${styles.secondaryButton}`}
-                    >
-                      back
-                    </button>
-                    {authError && (
-                      <div className={authError.includes('sent') ? styles.success : styles.error}>
-                        {authError}
-                      </div>
-                    )}
-                  </form>
-                )}
-
-                {!authMode && authError && <div className={styles.error}>{authError}</div>}
-              </div>
-            )}
-          </div>
-
-          {/* AR Scanner -> NFT Marker */}
-          <div id="scannerSection" className={`${styles.container} ${styles.aboutSection}`}>
-            <h2 className={styles.sectionHeading}>SCAN WMCYN ID</h2>
-            <div className={styles.scannerSection}>
-              <div className={styles.scannerContainer}>
-                <div 
-                  onClick={() => { setError(''); setShowCamera(true); }} 
-                  className={styles.cameraButton}
-                  style={{ 
-                    width: '100%', 
-                    height: '100%', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  <NextImage 
-                    src={WMCYNQRCODE} 
-                    alt="SCAN WMCYN ID" 
-                    width={200} 
-                    height={200}
-                    style={{
-                      maxWidth: '80%',
-                      height: 'auto',
-                      filter: 'brightness(0.9)',
-                      transition: 'all 0.3s ease'
-                    }}
-                  />
-                </div>
-              </div>
-              <p style={{ 
-                textAlign: 'center', 
-                color: 'rgba(255, 255, 255, 0.7)', 
-                marginTop: '16px',
-                fontSize: '1rem'
-              }}>
-                tap to open camera scanner
-              </p>
-            </div>
+// scanner section component
+function ScannerSection({ onCameraOpen }: { onCameraOpen: () => void }) {
+  return (
+    <div id="scannerSection" className={`${styles.container} ${styles.aboutSection}`}> 
+      <h2 style={{
+        fontFamily: 'Inter, sans-serif',
+        fontWeight: 700,
+        letterSpacing: '-0.02em',
+        color: '#f8fafc',
+        fontSize: '2.25rem',
+        lineHeight: 1.1,
+        textAlign: 'center',
+        marginBottom: 20,
+      }}>SCAN WMCYN ID</h2>
+      <div className={styles.scannerSection}>
+        <div className={styles.scannerContainer}>
+          <div 
+            onClick={onCameraOpen}
+            className={styles.cameraButton}
+            style={{ 
+              width: '100%', 
+              height: '100%', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            <NextImage 
+              src={WMCYNQRCODE} 
+              alt="SCAN WMCYN ID" 
+              width={200} 
+              height={200}
+              style={{
+                maxWidth: '80%',
+                height: 'auto',
+                filter: 'brightness(0.9)',
+                transition: 'all 0.3s ease'
+              }}
+            />
           </div>
         </div>
-      )}
+        <p style={{ 
+          textAlign: 'center', 
+          color: '#f8fafc',
+          fontFamily: 'Inter, sans-serif',
+          fontWeight: 700,
+          marginTop: '16px',
+          fontSize: '1rem'
+        }}>
+          tap to open camera scanner
+        </p>
+      </div>
     </div>
+  );
+}
+
+export default function Home() {
+  const [showCamera, setShowCamera] = useState(false);
+  const { currentUser } = useAuth();
+
+  if (showCamera) {
+    return <ARCamera onClose={() => setShowCamera(false)} />;
+  }
+
+  return (
+    <>
+      <Countdown />
+      <div style={{ position: 'relative' }}>
+        <InfiniteMirror depth={6} />
+        <div className={styles.pageContainer}>
+          <NewsletterSection />
+          <AboutSection />
+          <ScannerSection onCameraOpen={() => setShowCamera(true)} />
+        </div>
+      </div>
+    </>
   );
 }
