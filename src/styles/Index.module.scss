@@ -82,17 +82,17 @@
   font-size: 16px;
   transition: all 0.3s ease;
   box-sizing: border-box;
+}
 
-  &::placeholder {
-    color: rgba(255, 255, 255, 0.6);
-  }
+.inputField::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
 
-  &:focus {
-    outline: none;
-    border-color: rgba(255, 255, 255, 0.5);
-    background-color: rgba(255, 255, 255, 0.15);
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
-  }
+.inputField:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.5);
+  background-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
 }
 
 /* ===== BUTTONS ===== */
@@ -112,33 +112,33 @@
   justify-content: center;
   text-transform: lowercase;
   letter-spacing: 0.5px;
+}
 
-  &:hover {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.5);
-    transform: translateY(-1px);
-  }
+.submitButton:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px);
+}
 
-  &:active {
-    transform: translateY(0);
-  }
+.submitButton:active {
+  transform: translateY(0);
+}
 
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-  }
+.submitButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .primaryButton {
   background: #fff;
   color: #000;
   border: 1px solid #fff;
+}
 
-  &:hover {
-    background: rgba(255, 255, 255, 0.9);
-    transform: translateY(-1px);
-  }
+.primaryButton:hover {
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateY(-1px);
 }
 
 .googleButton {
@@ -146,23 +146,23 @@
   border: 1px solid #4285f4;
   color: #fff;
   position: relative;
+}
 
-  &:hover {
-    background: #357ae8;
-    border-color: #357ae8;
-  }
+.googleButton:hover {
+  background: #357ae8;
+  border-color: #357ae8;
 }
 
 .secondaryButton {
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.3);
   color: rgba(255, 255, 255, 0.8);
+}
 
-  &:hover {
-    color: #fff;
-    border-color: rgba(255, 255, 255, 0.6);
-    background: rgba(255, 255, 255, 0.05);
-  }
+.secondaryButton:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 /* ===== USER DASHBOARD ===== */
@@ -225,11 +225,11 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   transition: all 0.3s ease;
+}
 
-  &:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
-  }
+.productItem:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .productName {
@@ -244,10 +244,10 @@
   min-height: 36px;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
+}
 
-  &:hover {
-    background: rgba(255, 255, 255, 0.2);
-  }
+.transferButton:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* ===== ERROR MESSAGES ===== */
@@ -328,10 +328,10 @@
   height: 50px;
   margin-right: 20px;
   transition: transform 0.3s ease;
+}
 
-  &:hover {
-    transform: scale(1.1);
-  }
+.instagramLogo:hover {
+  transform: scale(1.1);
 }
 
 .instagramText {
@@ -384,18 +384,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
 
-  &:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: scale(1.05);
-  }
+.scrollButton:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
 
-  &:active,
-  &:focus {
-    background-color: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
-    outline: none;
-  }
+.scrollButton:active,
+.scrollButton:focus {
+  background-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+  outline: none;
 }
 
 .scrollButtonDown {
@@ -413,15 +413,21 @@
   margin-bottom: 20px;
   filter: brightness(1) contrast(1);
   transition: filter 0.3s ease;
+}
 
-  &:hover {
-    filter: brightness(1.1) contrast(1.1);
-  }
+.logo:hover {
+  filter: brightness(1.1) contrast(1.1);
 }
 
 /* ===== CAMERA ACTIVE STATE ===== */
 .cameraActive {
   overflow: hidden;
+}
+
+/* ===== CAMERA BUTTON ===== */
+.cameraButton {
+  cursor: pointer;
+  display: inline-block;
 }
 
 /* ===== RESPONSIVE DESIGN ===== */
@@ -527,17 +533,11 @@
   }
 }
 
-/* ===== DARK MODE OPTIMIZATIONS ===== */
-@media (prefers-color-scheme: dark) {
-  .inputField {
-    background-color: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.15);
-  }
-
-  .submitButton {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
-  }
+/* ===== FOCUS STATES ===== */
+.submitButton:focus-visible,
+.inputField:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.8);
+  outline-offset: 2px;
 }
 
 /* ===== ACCESSIBILITY ===== */
@@ -547,13 +547,6 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-}
-
-/* ===== FOCUS STATES ===== */
-.submitButton:focus-visible,
-.inputField:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.8);
-  outline-offset: 2px;
 }
 
 /* ===== HIGH CONTRAST MODE ===== */
