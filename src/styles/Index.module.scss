@@ -554,7 +554,23 @@
   outline-offset: 2px;
 }
 
-
+/* ===== ACCESSIBILITY ===== */
+@media (prefers-reduced-motion: reduce) {
+  .container,
+  .container *,
+  .form,
+  .form *,
+  .submitButton,
+  .inputField,
+  .authContainer,
+  .authContainer *,
+  .userDashboard,
+  .userDashboard * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
 
 /* ===== HIGH CONTRAST MODE ===== */
 @media (prefers-contrast: high) {
