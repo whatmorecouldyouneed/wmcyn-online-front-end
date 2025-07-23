@@ -1,271 +1,573 @@
-/* scroll snapping container */
+/* ===== SCROLL SNAPPING CONTAINER ===== */
 .pageContainer {
-  scroll-snap-type: y mandatory; /* enables vertical scroll snapping */
-  overflow-y: scroll; /* enables scrolling */
-  height: 100vh; /* ensures each section takes up the full viewport height */
+  scroll-snap-type: y mandatory;
+  overflow-y: scroll;
+  height: 100vh;
 }
 
-/* container styles */
+/* ===== MAIN CONTAINER ===== */
 .container {
   background-color: #000;
   color: #fff;
-  height: 100vh; /* ensures each section takes up the full viewport height */
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  justify-content: center; /* vertically centers the content */
-  align-items: center; /* horizontally centers the content */
+  justify-content: center;
+  align-items: center;
   padding: 20px;
   box-sizing: border-box;
   width: 100%;
-  scroll-snap-align: center; /* ensures each section centers in the viewport */
+  scroll-snap-align: center;
 }
 
-/* typewriter animation text */
+/* ===== TYPEWRITER ANIMATION ===== */
 .typewriter {
-  margin-bottom: 20px;
-  font-size: 2rem;
+  margin-bottom: 32px;
+  font-size: 2.5rem;
   text-align: center;
+  font-weight: 300;
+  letter-spacing: 1px;
 }
 
-/* form styling */
+/* ===== FORM LAYOUTS ===== */
 .form {
   display: flex;
   flex-direction: column;
   align-items: center;
   max-width: 400px;
   width: 100%;
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
-/* input fields */
-.inputField {
-  margin-bottom: 10px;
-  padding: 10px;
+.authContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 500px;
   width: 100%;
-  border: none;
-  border-radius: 4px;
-  background-color: #fff;
-  color: #000;
-  text-align: center;
+  gap: 24px;
 }
 
-/* submit button */
+.authModeSelector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 20px;
+}
+
+.authForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 400px;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+/* ===== INPUT FIELDS ===== */
+.inputField {
+  padding: 16px 20px;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.5);
+    background-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* ===== BUTTONS ===== */
 .submitButton {
-  padding: 0;
-  background: none;
-  border: none;
+  padding: 16px 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
   cursor: pointer;
   color: #fff;
   font-size: 16px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: lowercase;
+  letter-spacing: 0.5px;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
 }
 
-.submitButton:hover {
-  color: #ccc;
+.primaryButton {
+  background: #fff;
+  color: #000;
+  border: 1px solid #fff;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.9);
+    transform: translateY(-1px);
+  }
 }
 
-/* section headings */
+.googleButton {
+  background: #4285f4;
+  border: 1px solid #4285f4;
+  color: #fff;
+  position: relative;
+
+  &:hover {
+    background: #357ae8;
+    border-color: #357ae8;
+  }
+}
+
+.secondaryButton {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.8);
+
+  &:hover {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.05);
+  }
+}
+
+/* ===== USER DASHBOARD ===== */
+.userDashboard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 600px;
+  width: 100%;
+  gap: 24px;
+}
+
+.welcomeMessage {
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 300;
+  margin-bottom: 8px;
+}
+
+.userEmail {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1rem;
+  margin-bottom: 24px;
+}
+
+.collectionContainer {
+  width: 100%;
+  max-width: 500px;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.collectionTitle {
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin-bottom: 16px;
+  text-align: center;
+  text-transform: lowercase;
+  letter-spacing: 0.5px;
+}
+
+.productList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.productItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+}
+
+.productName {
+  flex: 1;
+  font-weight: 400;
+  color: #fff;
+}
+
+.transferButton {
+  padding: 8px 16px;
+  font-size: 14px;
+  min-height: 36px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* ===== ERROR MESSAGES ===== */
+.error {
+  color: #ff6b6b;
+  font-size: 14px;
+  text-align: center;
+  margin: 8px 0;
+  padding: 12px;
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: 8px;
+}
+
+.success {
+  color: #51cf66;
+  font-size: 14px;
+  text-align: center;
+  margin: 8px 0;
+  padding: 12px;
+  background: rgba(81, 207, 102, 0.1);
+  border: 1px solid rgba(81, 207, 102, 0.3);
+  border-radius: 8px;
+}
+
+/* ===== SECTION HEADINGS ===== */
 .sectionHeading {
   font-size: 3.2rem;
   margin-bottom: 20px;
   text-align: center;
+  font-weight: 300;
+  letter-spacing: 1px;
 }
 
-/* friends and family section */
+/* ===== FRIENDS AND FAMILY SECTION ===== */
 .friendsAndFamilySection {
   padding: 60px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  scroll-snap-align: center; /* centers the section when scrolling */
+  scroll-snap-align: center;
 }
 
-/* about section */
+.friendsAndFamilyText {
+  font-size: 1.4rem;
+  text-align: center;
+  margin-bottom: 30px;
+  max-width: 800px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* ===== ABOUT SECTION ===== */
 .aboutSection {
   padding: 60px 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  scroll-snap-align: center; /* centers the section when scrolling */
+  scroll-snap-align: center;
 }
 
-/* section text */
 .sectionText {
-  font-size: 2.1rem;
-  color: white;
-  line-height: 1.5;
-  margin-bottom: 20px;
+  font-size: 1.6rem;
   text-align: center;
-  margin-left: 20px;
-  margin-right: 20px;
+  margin-bottom: 40px;
+  max-width: 800px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
 }
 
-/* instagram container */
+/* ===== INSTAGRAM CONTAINER ===== */
 .instagramContainer {
   display: flex;
-  justify-content: center;
   align-items: center;
-  background-color: black;
-  padding: 20px;
+  justify-content: center;
+  margin-top: 30px;
 }
 
 .instagramLogo {
-  width: 75px;
-  height: 75px;
-  margin: 0;
-}
-
-.instagramLink {
-  text-decoration: none;
-  color: #fff;
-  font-weight: bold;
-  margin-top: 10px;
-}
-
-/* scroll button styling */
-.scrollButton {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 24px;
-  background: transparent;
-  border: none;
-  color: #fff;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   width: 50px;
   height: 50px;
+  margin-right: 20px;
+  transition: transform 0.3s ease;
+
+  &:hover {
+    transform: scale(1.1);
+  }
 }
 
-.scrollButton:hover {
-  background-color: #555;
+.instagramText {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.8);
 }
 
-.scrollButton:focus {
-  outline: none;
+/* ===== AR SCANNER ===== */
+.scannerSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
 }
 
-.scrollButton:hover,
-.scrollButton:active,
-.scrollButton:focus {
-  background-color: transparent;
-  box-shadow: none;
+.scannerContainer {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  aspect-ratio: 1;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
 }
 
-/* logo styling */
+.arjsLoader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ===== SCROLL BUTTONS ===== */
+.scrollButton {
+  position: fixed;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
+  }
+
+  &:active,
+  &:focus {
+    background-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+    outline: none;
+  }
+}
+
+.scrollButtonDown {
+  bottom: 20px;
+}
+
+.scrollButtonUp {
+  bottom: 80px;
+}
+
+/* ===== LOGO ===== */
 .logo {
   max-width: 350px;
   height: auto;
   margin-bottom: 20px;
+  filter: brightness(1) contrast(1);
+  transition: filter 0.3s ease;
+
+  &:hover {
+    filter: brightness(1.1) contrast(1.1);
+  }
 }
 
-/* responsive styling */
-@media screen and (max-width: 767px) {
+/* ===== CAMERA ACTIVE STATE ===== */
+.cameraActive {
+  overflow: hidden;
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media screen and (max-width: 768px) {
   .container {
-    margin-top: 10px;
+    padding: 16px;
   }
 
   .typewriter {
-    margin-bottom: 10px;
-    font-size: 24px;
-    text-align: center;
+    font-size: 1.8rem;
+    margin-bottom: 24px;
   }
 
-  .form {
-    max-width: 300px;
+  .form,
+  .authContainer,
+  .userDashboard {
+    max-width: 100%;
+    padding: 0 16px;
+  }
+
+  .authForm,
+  .collectionContainer {
+    padding: 20px 16px;
+    margin: 0 16px;
+  }
+
+  .authModeSelector {
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
 
   .inputField,
   .submitButton {
-    font-size: 14px;
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 14px 16px;
+  }
+
+  .sectionHeading {
+    font-size: 2.5rem;
+  }
+
+  .sectionText,
+  .friendsAndFamilyText {
+    font-size: 1.2rem;
+    margin: 0 16px 30px;
+  }
+
+  .scrollButton {
+    width: 44px;
+    height: 44px;
+    font-size: 16px;
+    right: 16px;
+  }
+
+  .scrollButtonUp {
+    bottom: 74px;
+  }
+
+  .logo {
+    max-width: 280px;
+    margin-bottom: 16px;
+  }
+
+  .scannerContainer {
+    max-width: 300px;
+    margin: 0 16px;
+  }
+
+  .productItem {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .transferButton {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .typewriter {
+    font-size: 1.5rem;
   }
 
   .sectionHeading {
     font-size: 2rem;
-    text-align: center;
   }
 
-  .sectionText {
-    font-size: 1.6rem;
-    margin-left: 10px;
-    margin-right: 10px;
+  .authForm,
+  .collectionContainer {
+    margin: 0 8px;
+    padding: 16px 12px;
   }
 
-  .scrollButton {
-    font-size: 16px;
-    width: 40px;
-    height: 40px;
+  .inputField,
+  .submitButton {
+    padding: 12px 14px;
   }
 
-  .scrollButton:hover {
-    transform: scale(1.1);
-    background-color: transparent;
-  }
-
-  .instagramContainer {
-    padding: 10px;
+  .logo {
+    max-width: 240px;
   }
 }
 
-.qrCodeSection {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: 40px 0;
+/* ===== DARK MODE OPTIMIZATIONS ===== */
+@media (prefers-color-scheme: dark) {
+  .inputField {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .submitButton {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
 }
 
-.qrCodeImage {
-  max-width: 100%;
-  width: 300px;
-  height: auto;
-  margin-bottom: 70px;
+/* ===== ACCESSIBILITY ===== */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
-.fullscreenCamera {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 1000;
-  background-color: transparent !important;
+/* ===== FOCUS STATES ===== */
+.submitButton:focus-visible,
+.inputField:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.8);
+  outline-offset: 2px;
 }
 
-/* hide unwanted elements added by a-frame or ar.js */
-.a-loader, .a-canvas {
-  display: none !important;
-}
+/* ===== HIGH CONTRAST MODE ===== */
+@media (prefers-contrast: high) {
+  .inputField,
+  .submitButton {
+    border-width: 2px;
+  }
 
-.a-loader-title,
-.a-loader-logo,
-.a-progress {
-  display: none !important;
-}
+  .error {
+    border-width: 2px;
+  }
 
-/* camera button */
-.cameraButton {
-  cursor: pointer;
-  display: inline-block;
-}
-
-/* ar loader */
-.arjsLoader {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: white;
-  font-size: 18px;
-  background-color: rgba(0, 0, 0, 0.7);
-  padding: 15px;
-  border-radius: 8px;
-  z-index: 1000;
-}
-
-/* error message */
-.error {
-  color: #ff6b6b;
-  margin-top: 10px;
-  text-align: center;
+  .success {
+    border-width: 2px;
+  }
 } 

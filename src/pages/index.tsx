@@ -166,9 +166,10 @@ export default function Home() {
               intertwined with the basics of everyday lifestyle.
             </p>
             <div className={styles.instagramContainer}>
-              <a href="https://instagram.com/whatmorecouldyouneed" target="_blank" rel="noopener noreferrer" className={styles.instagramLink}>
+              <a href="https://instagram.com/whatmorecouldyouneed" target="_blank" rel="noopener noreferrer">
                 <NextImage src={InstagramLogo} alt="Instagram Logo" className={styles.instagramLogo} />
               </a>
+              <span className={styles.instagramText}>follow us @whatmorecouldyouneed</span>
             </div>
           </div>
 
@@ -194,72 +195,160 @@ export default function Home() {
           <div id="accountSection" className={`${styles.container} ${styles.accountSection}`}>
             <h2 className={styles.sectionHeading}>ACCOUNT</h2>
             {currentUser ? (
-              <div>
-                <p>welcome, {currentUser.email}</p>
-                <button onClick={logout} className={styles.submitButton}>log out</button>
-                <h3>your collection</h3>
-                {products.length === 0 ? (
-                  <p>no products in collection.</p>
-                ) : (
-                  <ul>
-                    {products.map(product => (
-                      <li key={product.id}>
-                        {product.name || product.id}
-                        <button onClick={() => setTransferProductId(product.id)} className={styles.submitButton}>transfer</button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {transferProductId && (
-                  <form onSubmit={async (e) => {
-                    e.preventDefault();
-                    try {
-                      await transferProduct(transferProductId, transferEmail);
-                      setTransferProductId(null);
-                      setTransferEmail('');
-                      setTransferError('');
-                    } catch (err: any) {
-                      setTransferError(err.message || 'An error occurred during transfer');
-                    }
-                  }} className={styles.form}>
-                    <input
-                      type="email"
-                      value={transferEmail}
-                      onChange={e => setTransferEmail(e.target.value)}
-                      placeholder="recipient email"
-                      className={styles.inputField}
-                      required
-                    />
-                    <button type="submit" className={styles.submitButton}>transfer</button>
-                    {transferError && <p className={styles.error}>{transferError}</p>}
-                  </form>
-                )}
+              <div className={styles.userDashboard}>
+                <div className={styles.welcomeMessage}>welcome back</div>
+                <div className={styles.userEmail}>{currentUser.email}</div>
+                
+                <div className={styles.collectionContainer}>
+                  <h3 className={styles.collectionTitle}>your collection</h3>
+                  {products.length === 0 ? (
+                    <p style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.7)' }}>
+                      no products in collection yet
+                    </p>
+                  ) : (
+                    <ul className={styles.productList}>
+                      {products.map(product => (
+                        <li key={product.id} className={styles.productItem}>
+                          <span className={styles.productName}>
+                            {product.name || product.id}
+                          </span>
+                          <button 
+                            onClick={() => setTransferProductId(product.id)} 
+                            className={`${styles.submitButton} ${styles.transferButton}`}
+                          >
+                            transfer
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  
+                  {transferProductId && (
+                    <form onSubmit={async (e) => {
+                      e.preventDefault();
+                      try {
+                        await transferProduct(transferProductId, transferEmail);
+                        setTransferProductId(null);
+                        setTransferEmail('');
+                        setTransferError('');
+                      } catch (err: any) {
+                        setTransferError(err.message || 'An error occurred during transfer');
+                      }
+                    }} className={styles.authForm} style={{ marginTop: '20px' }}>
+                      <input
+                        type="email"
+                        value={transferEmail}
+                        onChange={e => setTransferEmail(e.target.value)}
+                        placeholder="recipient email"
+                        className={styles.inputField}
+                        required
+                      />
+                      <button 
+                        type="submit" 
+                        className={`${styles.submitButton} ${styles.primaryButton}`}
+                      >
+                        send transfer
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTransferProductId(null);
+                          setTransferEmail('');
+                          setTransferError('');
+                        }}
+                        className={`${styles.submitButton} ${styles.secondaryButton}`}
+                      >
+                        cancel
+                      </button>
+                      {transferError && <div className={styles.error}>{transferError}</div>}
+                    </form>
+                  )}
+                </div>
+                
+                <button 
+                  onClick={() => logout()} 
+                  className={`${styles.submitButton} ${styles.secondaryButton}`}
+                >
+                  sign out
+                </button>
               </div>
             ) : (
-              <div>
-                <div className={styles.form}>
-                  <button onClick={() => setAuthMode('login')} className={styles.submitButton}>login</button>
-                  <button onClick={() => setAuthMode('signup')} className={styles.submitButton}>sign up</button>
-                  <button onClick={() => setAuthMode('forgot')} className={styles.submitButton}>forgot password</button>
-                  <button onClick={async () => { try { await googleSignIn(); } catch (err: any) { setAuthError(err.message); } }} className={styles.submitButton}>sign in with google</button>
+              <div className={styles.authContainer}>
+                <div className={styles.authModeSelector}>
+                  <button 
+                    onClick={() => setAuthMode('login')} 
+                    className={`${styles.submitButton} ${authMode === 'login' ? styles.primaryButton : styles.secondaryButton}`}
+                  >
+                    login
+                  </button>
+                  <button 
+                    onClick={() => setAuthMode('signup')} 
+                    className={`${styles.submitButton} ${authMode === 'signup' ? styles.primaryButton : styles.secondaryButton}`}
+                  >
+                    sign up
+                  </button>
                 </div>
+
+                <button 
+                  onClick={async () => { 
+                    try { 
+                      await googleSignIn(); 
+                    } catch (err: any) { 
+                      setAuthError(err.message); 
+                    } 
+                  }} 
+                  className={`${styles.submitButton} ${styles.googleButton}`}
+                >
+                  continue with google
+                </button>
+
                 {authMode === 'login' && (
                   <form onSubmit={async (e) => {
                     e.preventDefault();
+                    setAuthError('');
                     try {
                       await login(authEmail, authPassword);
                     } catch (err: any) {
-                      setAuthError(err.message || 'An error occurred');
+                      setAuthError(err.message || 'Login failed');
                     }
-                  }} className={styles.form}>
-                    <input type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} placeholder="email" className={styles.inputField} required />
-                    <input type="password" value={authPassword} onChange={e => setAuthPassword(e.target.value)} placeholder="password" className={styles.inputField} required />
-                    <button type="submit" className={styles.submitButton}>login</button>
+                  }} className={styles.authForm}>
+                    <input 
+                      type="email" 
+                      value={authEmail} 
+                      onChange={e => setAuthEmail(e.target.value)} 
+                      placeholder="email" 
+                      className={styles.inputField} 
+                      required 
+                    />
+                    <input 
+                      type="password" 
+                      value={authPassword} 
+                      onChange={e => setAuthPassword(e.target.value)} 
+                      placeholder="password" 
+                      className={styles.inputField} 
+                      required 
+                    />
+                    <button 
+                      type="submit" 
+                      className={`${styles.submitButton} ${styles.primaryButton}`}
+                    >
+                      sign in
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAuthMode('forgot')}
+                      className={`${styles.submitButton} ${styles.secondaryButton}`}
+                    >
+                      forgot password?
+                    </button>
+                    {authError && <div className={styles.error}>{authError}</div>}
                   </form>
                 )}
+
                 {authMode === 'signup' && (
                   <form onSubmit={async (e) => {
                     e.preventDefault();
+                    setAuthError('');
                     if (authPassword !== confirmPassword) {
                       setAuthError('passwords do not match');
                       return;
@@ -267,39 +356,128 @@ export default function Home() {
                     try {
                       await signup(authEmail, authPassword);
                     } catch (err: any) {
-                      setAuthError(err.message || 'An error occurred');
+                      setAuthError(err.message || 'Signup failed');
                     }
-                  }} className={styles.form}>
-                    <input type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} placeholder="email" className={styles.inputField} required />
-                    <input type="password" value={authPassword} onChange={e => setAuthPassword(e.target.value)} placeholder="password" className={styles.inputField} required />
-                    <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="confirm password" className={styles.inputField} required />
-                    <button type="submit" className={styles.submitButton}>sign up</button>
+                  }} className={styles.authForm}>
+                    <input 
+                      type="email" 
+                      value={authEmail} 
+                      onChange={e => setAuthEmail(e.target.value)} 
+                      placeholder="email" 
+                      className={styles.inputField} 
+                      required 
+                    />
+                    <input 
+                      type="password" 
+                      value={authPassword} 
+                      onChange={e => setAuthPassword(e.target.value)} 
+                      placeholder="password" 
+                      className={styles.inputField} 
+                      required 
+                    />
+                    <input 
+                      type="password" 
+                      value={confirmPassword} 
+                      onChange={e => setConfirmPassword(e.target.value)} 
+                      placeholder="confirm password" 
+                      className={styles.inputField} 
+                      required 
+                    />
+                    <button 
+                      type="submit" 
+                      className={`${styles.submitButton} ${styles.primaryButton}`}
+                    >
+                      create account
+                    </button>
+                    {authError && <div className={styles.error}>{authError}</div>}
                   </form>
                 )}
+
                 {authMode === 'forgot' && (
                   <form onSubmit={async (e) => {
                     e.preventDefault();
+                    setAuthError('');
                     try {
                       await resetPassword(authEmail);
-                      setAuthError('password reset email sent');
+                      setAuthError('Password reset email sent! Check your inbox.');
                     } catch (err: any) {
-                      setAuthError(err.message || 'An error occurred');
+                      setAuthError(err.message || 'Password reset failed');
                     }
-                  }} className={styles.form}>
-                    <input type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} placeholder="email" className={styles.inputField} required />
-                    <button type="submit" className={styles.submitButton}>reset password</button>
+                  }} className={styles.authForm}>
+                    <input 
+                      type="email" 
+                      value={authEmail} 
+                      onChange={e => setAuthEmail(e.target.value)} 
+                      placeholder="email" 
+                      className={styles.inputField} 
+                      required 
+                    />
+                    <button 
+                      type="submit" 
+                      className={`${styles.submitButton} ${styles.primaryButton}`}
+                    >
+                      send reset email
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAuthMode(null)}
+                      className={`${styles.submitButton} ${styles.secondaryButton}`}
+                    >
+                      back
+                    </button>
+                    {authError && (
+                      <div className={authError.includes('sent') ? styles.success : styles.error}>
+                        {authError}
+                      </div>
+                    )}
                   </form>
                 )}
-                {authError && <p className={styles.error}>{authError}</p>}
+
+                {!authMode && authError && <div className={styles.error}>{authError}</div>}
               </div>
             )}
           </div>
 
           {/* AR Scanner -> NFT Marker */}
-          <div id="qrCodeSection" className={`${styles.container} ${styles.qrCodeSection}`}>
+          <div id="scannerSection" className={`${styles.container} ${styles.aboutSection}`}>
             <h2 className={styles.sectionHeading}>SCAN WMCYN ID</h2>
-            <div onClick={() => { setError(''); setShowCamera(true); }} className={styles.cameraButton}>
-              <NextImage src={WMCYNQRCODE} alt="SCAN WMCYN ID" className={styles.qrCodeImage} width={150} height={150} />
+            <div className={styles.scannerSection}>
+              <div className={styles.scannerContainer}>
+                <div 
+                  onClick={() => { setError(''); setShowCamera(true); }} 
+                  className={styles.cameraButton}
+                  style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  <NextImage 
+                    src={WMCYNQRCODE} 
+                    alt="SCAN WMCYN ID" 
+                    width={200} 
+                    height={200}
+                    style={{
+                      maxWidth: '80%',
+                      height: 'auto',
+                      filter: 'brightness(0.9)',
+                      transition: 'all 0.3s ease'
+                    }}
+                  />
+                </div>
+              </div>
+              <p style={{ 
+                textAlign: 'center', 
+                color: 'rgba(255, 255, 255, 0.7)', 
+                marginTop: '16px',
+                fontSize: '1rem'
+              }}>
+                tap to open camera scanner
+              </p>
             </div>
           </div>
         </div>
