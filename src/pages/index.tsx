@@ -219,12 +219,18 @@ function NewsletterSection() {
       {/* login/signup cta buttons where the email form was */}
       <div style={{ display: 'flex', flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', marginTop: 0, whiteSpace: 'nowrap', minWidth: 200 }}>
         <LiquidGlassEffect variant="button">
-          <button style={{ background: 'none', border: 'none', color: 'white', fontSize: 14, padding: '0.4rem 0.8rem', borderRadius: '0.8rem', width: 90, minWidth: 0, cursor: 'pointer' }}>
+          <button 
+            onClick={() => router.push('/login?mode=login')}
+            style={{ background: 'none', border: 'none', color: 'white', fontSize: 14, padding: '0.4rem 0.8rem', borderRadius: '0.8rem', width: 90, minWidth: 0, cursor: 'pointer' }}
+          >
             login
           </button>
         </LiquidGlassEffect>
         <LiquidGlassEffect variant="button">
-          <button style={{ background: 'none', border: 'none', color: 'white', fontSize: 14, padding: '0.4rem 0.8rem', borderRadius: '0.8rem', width: 90, minWidth: 0, cursor: 'pointer' }}>
+          <button 
+            onClick={() => router.push('/login?mode=signup')}
+            style={{ background: 'none', border: 'none', color: 'white', fontSize: 14, padding: '0.4rem 0.8rem', borderRadius: '0.8rem', width: 90, minWidth: 0, cursor: 'pointer' }}
+          >
             sign up
           </button>
         </LiquidGlassEffect>
