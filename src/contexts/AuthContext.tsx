@@ -32,7 +32,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await setDoc(doc(firestore, 'users', userCredential.user.uid), { email });
+      
+      // Try to save user data to Firestore
+      try {
+        await setDoc(doc(firestore, 'users', userCredential.user.uid), { email });
+      } catch (firestoreError: any) {
+        console.error('Failed to save user data to Firestore:', firestoreError);
+        if (firestoreError.code === 'unavailable' || firestoreError.message?.includes('400')) {
+          console.error('Firestore database may not be properly configured. User created but profile not saved.');
+        }
+        // Continue - authentication still succeeded even if Firestore failed
+      }
+      
       return userCredential;
     } catch (error: any) {
       if (error.code === 'auth/configuration-not-found') {
@@ -95,24 +106,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return () => {};
     }
+    
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         if (!firestore) {
-          console.error('Firestore not initialized');
+          console.error('Firestore not initialized - user data cannot be saved');
+          setCurrentUser(user);
+          setLoading(false);
           return;
         }
-        const userDocRef = doc(firestore, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (!userDoc.exists()) {
-          await setDoc(userDocRef, { email: user.email });
-          // add mock products for testing
-          await setDoc(doc(firestore, `users/${user.uid}/products`, 'mock1'), { name: 'WMCYN Hat', acquired: new Date().toISOString() });
-          await setDoc(doc(firestore, `users/${user.uid}/products`, 'mock2'), { name: 'WMCYN Shirt', acquired: new Date().toISOString() });
+        
+        try {
+          const userDocRef = doc(firestore, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          if (!userDoc.exists()) {
+            await setDoc(userDocRef, { email: user.email });
+            // add mock products for testing
+            await setDoc(doc(firestore, `users/${user.uid}/products`, 'mock1'), { name: 'WMCYN Hat', acquired: new Date().toISOString() });
+            await setDoc(doc(firestore, `users/${user.uid}/products`, 'mock2'), { name: 'WMCYN Shirt', acquired: new Date().toISOString() });
+          }
+        } catch (error: any) {
+          console.error('Firestore operation failed:', error);
+          if (error.code === 'unavailable' || error.message?.includes('400')) {
+            console.error('Firestore database may not be properly configured. Please check Firebase Console.');
+          }
         }
       }
       setCurrentUser(user);
       setLoading(false);
     });
+    
     return unsubscribe;
   }, []);
 
