@@ -38,6 +38,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error.code === 'auth/configuration-not-found') {
         throw new Error('Firebase Authentication is not configured. Please enable Authentication in Firebase Console.');
       }
+      if (error.code === 'auth/unauthorized-domain') {
+        throw new Error('This domain is not authorized for Firebase Authentication. Please add your domain to the authorized domains list in Firebase Console.');
+      }
       throw error;
     }
   };
@@ -48,6 +51,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return signInWithEmailAndPassword(auth, email, password).catch((error: any) => {
       if (error.code === 'auth/configuration-not-found') {
         throw new Error('Firebase Authentication is not configured. Please enable Authentication in Firebase Console.');
+      }
+      if (error.code === 'auth/unauthorized-domain') {
+        throw new Error('This domain is not authorized for Firebase Authentication. Please add your domain to the authorized domains list in Firebase Console.');
       }
       throw error;
     });
@@ -65,6 +71,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return signInWithPopup(auth, provider).catch((error: any) => {
       if (error.code === 'auth/configuration-not-found') {
         throw new Error('Firebase Authentication is not configured. Please enable Authentication in Firebase Console.');
+      }
+      if (error.code === 'auth/unauthorized-domain') {
+        throw new Error('This domain is not authorized for Firebase Authentication. Please add your domain to the authorized domains list in Firebase Console.');
       }
       throw error;
     });
