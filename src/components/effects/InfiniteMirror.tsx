@@ -5,9 +5,9 @@ import { db, ref, push, set } from '../../utils/lib/firebase';
 import styles from './InfiniteMirror.module.scss';
 import glassStyles from './LiquidGlassForm.module.scss';
 
-import WMCYNLOGO from '../../../public/wmcyn_logo_white.png';
-import InstagramLogo from '../../../public/instagram-logo.png';
-import WMCYNQRCODE from '../../../public/wmcyn-qr.png';
+const WMCYNLOGO = '/wmcyn_logo_white.png';
+const InstagramLogo = '/instagram-logo.png';
+const WMCYNQRCODE = '/wmcyn-qr.png';
 
 interface InfiniteMirrorProps {
   depth?: number;

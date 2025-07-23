@@ -6,9 +6,9 @@ import { db, ref, push, set } from '../utils/lib/firebase';
 import Typewriter from 'typewriter-effect';
 import NextImage from '../components/NextImage';
 
-import WMCYNLOGO from '../../public/wmcyn_logo_white.png';
-import InstagramLogo from '../../public/instagram-logo.png';
-import WMCYNQRCODE from '../../public/wmcyn-qr.png';
+const WMCYNLOGO = '/wmcyn_logo_white.png';
+const InstagramLogo = '/instagram-logo.png';
+const WMCYNQRCODE = '/wmcyn-qr.png';
 import styles from '@/styles/Index.module.scss';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProducts } from '../hooks/useUserProducts';
