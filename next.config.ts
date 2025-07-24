@@ -9,7 +9,6 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
     loader: 'default',
-    disableStaticImages: true,
     domains: [
       'cdn.shopify.com',
       'shopify.com',
