@@ -2,10 +2,10 @@
 
 .infiniteContainer {
   position: fixed;
-  top: 0;
+  top: 35px; // leave space for countdown bar
   left: 0;
   width: 100%;
-  height: 100vh;
+  height: calc(100vh - 35px);
   overflow: hidden;
   z-index: -1;
   background: #000;
@@ -14,6 +14,11 @@
   justify-content: center;
   cursor: pointer;
   user-select: none;
+  
+  @media (max-width: 768px) {
+    top: 40px; // slightly more space on mobile
+    height: calc(100vh - 40px);
+  }
   
   // seamless infinite flowing background - never restarts
   &::after {

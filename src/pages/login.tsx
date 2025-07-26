@@ -13,6 +13,7 @@ export default function Login() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [authError, setAuthError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   
   const { currentUser, login, signup, googleSignIn, resetPassword } = useAuth();
 
@@ -27,6 +28,16 @@ export default function Login() {
       setAuthMode('signup');
     }
   }, [mode]);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,35 +80,17 @@ export default function Login() {
   return (
     <div className={styles.container}>
       <div className={styles.authContainer}>
-        <h1 style={{ fontSize: '2.5rem', marginBottom: '2rem', textAlign: 'center' }}>
-          {authMode === 'login' ? 'friends and family' : 
-           authMode === 'signup' ? 'signup' : 
+        <h1 style={{ 
+          fontSize: '2.5rem', 
+          marginBottom: '1rem', 
+          textAlign: 'center',
+          marginTop: isMobile ? '-1rem' : '0'
+        }}>
+          {authMode === 'login' ? 'friends & family' : 
+           authMode === 'signup' ? 'sign up' : 
            'reset password'}
         </h1>
-
-        <div className={styles.authModeSelector}>
-          <button 
-            onClick={() => setAuthMode('login')} 
-            className={`${styles.submitButton} ${authMode === 'login' ? styles.primaryButton : styles.secondaryButton}`}
-          >
-            login
-          </button>
-          <button 
-            onClick={() => setAuthMode('signup')} 
-            className={`${styles.submitButton} ${authMode === 'signup' ? styles.primaryButton : styles.secondaryButton}`}
-          >
-            sign up
-          </button>
-        </div>
-
-        <button 
-          onClick={handleGoogleSignIn}
-          disabled={loading}
-          className={`${styles.submitButton} ${styles.googleButton}`}
-        >
-          {loading ? 'connecting...' : 'continue with google'}
-        </button>
-
+        
         <form onSubmit={handleSubmit} className={styles.authForm}>
           <input 
             type="email" 
@@ -168,7 +161,63 @@ export default function Login() {
           )}
         </form>
 
-        <Link href="/" className={`${styles.submitButton} ${styles.secondaryButton}`} style={{ marginTop: '2rem', textAlign: 'center', display: 'block' }}>
+        <div style={{ margin: '1rem 0', textAlign: 'center' }}>
+          <span style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '14px' }}>or</span>
+        </div>
+
+        <button 
+          onClick={handleGoogleSignIn}
+          disabled={loading}
+          className={`${styles.submitButton} ${styles.googleButton}`}
+        >
+          {loading ? 'connecting...' : 'continue with google'}
+        </button>
+
+        {authMode === 'login' && (
+          <p style={{ textAlign: 'center', marginTop: '0.75rem', marginBottom: 0, color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px' }}>
+            don&apos;t have an account?{' '}
+            <button 
+              onClick={() => setAuthMode('signup')}
+              style={{ 
+                background: 'none', 
+                border: 'none', 
+                color: 'white', 
+                textDecoration: 'underline', 
+                cursor: 'pointer', 
+                fontSize: '14px',
+                margin: 0,
+                padding: 0,
+                fontFamily: 'inherit'
+              }}
+            >
+              sign up
+            </button>
+          </p>
+        )}
+
+        {authMode === 'signup' && (
+          <p style={{ textAlign: 'center', marginTop: '0.75rem', marginBottom: 0, color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px' }}>
+            already have an account?{' '}
+            <button 
+              onClick={() => setAuthMode('login')}
+              style={{ 
+                background: 'none', 
+                border: 'none', 
+                color: 'white', 
+                textDecoration: 'underline', 
+                cursor: 'pointer', 
+                fontSize: '14px',
+                margin: 0,
+                padding: 0,
+                fontFamily: 'inherit'
+              }}
+            >
+              login
+            </button>
+          </p>
+        )}
+
+        <Link href="/" className={`${styles.submitButton} ${styles.secondaryButton}`} style={{ marginTop: '1.5rem', textAlign: 'center', display: 'block' }}>
           return to portal
         </Link>
       </div>

@@ -12,15 +12,14 @@ interface NextImageProps {
 }
 
 const NextImage = forwardRef<HTMLImageElement, NextImageProps>((props, ref) => {
-  const src = props.src;
-
-  const { priority, ...imgProps } = props;
+  const { src, alt, priority, ...imgProps } = props;
   
   return (
     <img 
       ref={ref}
       {...imgProps}
       src={src}
+      alt={alt}
       loading={priority ? 'eager' : 'lazy'}
     />
   );

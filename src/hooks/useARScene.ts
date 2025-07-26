@@ -13,6 +13,7 @@ interface UseARSceneProps {
 
 export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps) => {
   useEffect(() => {
+    const mountElement = mountRef.current; // Capture current mount element
     const { THREE: WinThree, THREEx } = window as any;
     if (!WinThree || !THREEx) {
       console.error("three.js or ar.js (THREEx) not found on window object.");
@@ -207,8 +208,8 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
       arToolkitContext?.arController?.dispose?.(); // if ar.js provides a dispose method for controller
 
       renderer?.dispose();
-      if (mountRef.current && renderer?.domElement && mountRef.current.contains(renderer.domElement)) {
-        mountRef.current.removeChild(renderer.domElement);
+      if (mountElement && renderer?.domElement && mountElement.contains(renderer.domElement)) {
+        mountElement.removeChild(renderer.domElement);
       }
       // Scene children are disposed above, scene itself doesn't have a .dispose()
     };

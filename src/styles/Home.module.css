@@ -79,8 +79,10 @@
   text-align: center;
 }
 
-/* Friends and Family Section */
-.friendsAndFamilySection {
+/* Shop Section */
+.section.friendsAndFamily {
+  background-color: #111;
+  color: #fff;
   padding: 60px 20px;
   display: flex;
   flex-direction: column;
