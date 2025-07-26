@@ -1,20 +1,20 @@
 /* eslint-disable @typescript-eslint/no-namespace */
 import { useState, useEffect } from 'react';
-import router from 'next/router';
 import dynamic from 'next/dynamic';
 import { db, ref, push, set } from '../utils/lib/firebase';
 import Typewriter from 'typewriter-effect';
 import NextImage from '../components/NextImage';
+import styles from '@/styles/Index.module.scss';
+import { useAuth } from '../contexts/AuthContext';
+import LiquidGlassEffect from '../components/ui/LiquidGlassEffect';
+import React from 'react';
+import { useRouter } from 'next/router';
 
 const WMCYNLOGO = '/wmcyn_logo_white.png';
 const InstagramLogo = '/instagram-logo.png';
 const WMCYNQRCODE = '/wmcyn-qr.png';
-import styles from '@/styles/Index.module.scss';
-import { useAuth } from '../contexts/AuthContext';
-import { useUserProducts } from '../hooks/useUserProducts';
-import InfiniteMirror from '../components/effects/InfiniteMirror';
-import LiquidGlassEffect from '../components/ui/LiquidGlassEffect';
-import React from 'react';
+
+const InfiniteMirror = dynamic(() => import('../components/effects/InfiniteMirror'), { ssr: false });
 
 // --- dynamically import arcamera ---
 const ARCamera = dynamic(
@@ -118,69 +118,15 @@ function NewsletterModal({ open, onClose, onSubmit, email, setEmail, error, hasS
   );
 }
 
-function Countdown() {
-  const target = new Date('2025-10-03T00:00:00');
-  const [now, setNow] = useState(new Date());
-  useEffect(() => {
-    const interval = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(interval);
-  }, []);
-  const diff = target.getTime() - now.getTime();
-  const style: React.CSSProperties = {
-    fontFamily: 'Inter, sans-serif',
-    fontWeight: 700,
-    fontSize: 9,
-    color: '#f8fafc',
-    letterSpacing: '0.02em',
-    textShadow: '0 1px 4px rgba(0,0,0,0.18)',
-    textAlign: 'center',
-    width: '100%',
-    display: 'block',
-    position: 'absolute',
-    top: 8,
-    left: 0,
-    right: 0,
-    margin: '0 auto',
-    zIndex: 100,
-    pointerEvents: 'none',
-  };
-  const boldStyle: React.CSSProperties = {
-    ...style,
-    fontWeight: 700,
-    fontSize: 10,
-    position: 'static',
-    marginTop: 2,
-  };
-  if (diff < 0) return (
-    <span style={style}>
-      launching now
-      <br />
-      <span style={boldStyle}>start collecting!</span>
-    </span>
-  );
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-  const minutes = Math.floor((diff / (1000 * 60)) % 60);
-  const dayLabel = days === 1 ? 'day' : 'days';
-  const hourLabel = hours === 1 ? 'hour' : 'hours';
-  const minuteLabel = minutes === 1 ? 'minute' : 'minutes';
-  return (
-    <span style={style}>
-      {days} {dayLabel} {hours} {hourLabel} and {minutes} {minuteLabel} until f/w season collection
-      <br />
-      <span style={boldStyle}>start collecting!</span>
-    </span>
-  );
-}
-
 // newsletter section component
 function NewsletterSection() {
+  const { currentUser } = useAuth();
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [hasSubscribed, setHasSubscribed] = useState(false);
   const [error, setError] = useState('');
   const [modalOpen, setModalOpen] = useState(true);
-  // simulate user signed in state (replace with real auth if available)
-  const [isSignedIn, setIsSignedIn] = useState(false);
+  const [isCtaLoading, setIsCtaLoading] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -195,7 +141,6 @@ function NewsletterSection() {
         setHasSubscribed(true);
         setEmail('');
         setError('');
-        setIsSignedIn(true); // simulate sign in after subscribing
       })
       .catch((err) => {
         try {
@@ -206,7 +151,6 @@ function NewsletterSection() {
           setHasSubscribed(true);
           setEmail('');
           setError('');
-          setIsSignedIn(true); // simulate sign in after subscribing
         } catch (localErr) {
           setError('Unable to submit. Please try again later.');
         }
@@ -215,77 +159,65 @@ function NewsletterSection() {
 
   return (
     <div className={styles.container} id="homeSection">
-      <NextImage src={WMCYNLOGO} alt="WMCYN Logo" className={styles.logo} priority />
-      {/* login/signup cta buttons where the email form was */}
-      <div style={{ display: 'flex', flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', marginTop: 0, whiteSpace: 'nowrap', minWidth: 200 }}>
-        <LiquidGlassEffect 
-          variant="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('Login button clicked');
-            router.push('/login');
-          }}
-        >
-          <button 
-            style={{ background: 'none', border: 'none', color: 'white', fontSize: 14, padding: '0.4rem 0.8rem', borderRadius: '0.8rem', width: 90, minWidth: 0, cursor: 'pointer', touchAction: 'manipulation', pointerEvents: 'none' }}
-          >
-            login
-          </button>
-        </LiquidGlassEffect>
-        <LiquidGlassEffect 
-          variant="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('Signup button clicked');
-            router.push('/login?mode=signup');
-          }}
-        >
-          <button 
-            style={{ background: 'none', border: 'none', color: 'white', fontSize: 14, padding: '0.4rem 0.8rem', borderRadius: '0.8rem', width: 90, minWidth: 0, cursor: 'pointer', touchAction: 'manipulation', pointerEvents: 'none' }}
-          >
-            sign up
-          </button>
-        </LiquidGlassEffect>
-      </div>
-      <div style={{
-        marginTop: 16,
-        color: '#39ff14',
-        fontFamily: 'Inter, sans-serif',
-        fontWeight: 700,
-        fontSize: 16,
-        textAlign: 'center',
-        opacity: 1,
-        maxWidth: 360,
-        marginLeft: 'auto',
-        marginRight: 'auto',
-        // no text shadow
-        borderRadius: 10,
-        padding: '10px 16px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-      }}>
-        friends & family and custom orders only up until week 1 of the f/w collection.
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 12, gap: 8 }}>
-        <LiquidGlassEffect variant="button">
-          <button
-            style={{ background: 'none', border: 'none', color: 'white', fontSize: 14, padding: '0.4rem 0.8rem', borderRadius: '0.8rem', minWidth: 120, cursor: 'pointer' }}
-            onClick={() => {
-              if (!isSignedIn) setModalOpen(true);
-              // else, redirect to shop or do nothing for now
+      {/* <InfiniteMirror depth={6} /> */}
+      <div className={`${styles.contentPanel} ${styles.heroPanel}`}>
+        <NextImage src={WMCYNLOGO} alt="WMCYN Logo" className={styles.logo} priority />
+        <div className={styles.ctaContainer}>
+          <LiquidGlassEffect 
+            variant="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Login button clicked');
+              router.push('/login');
             }}
           >
-            friends and family shop
-          </button>
-        </LiquidGlassEffect>
-        <LiquidGlassEffect variant="button">
-          <button
-            style={{ background: 'none', border: 'none', color: 'white', fontSize: 14, padding: '0.4rem 0.8rem', borderRadius: '0.8rem', minWidth: 120, cursor: 'pointer' }}
+            <button className={styles.ctaButton}>
+              login
+            </button>
+          </LiquidGlassEffect>
+          <LiquidGlassEffect 
+            variant="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Signup button clicked');
+              router.push('/login?mode=signup');
+            }}
           >
-            custom order
-          </button>
-        </LiquidGlassEffect>
+            <button className={styles.ctaButton}>
+              sign up
+            </button>
+          </LiquidGlassEffect>
+        </div>
+        <div className={styles.textContainer}>
+          friends & family and custom orders only up until week 1 of the f/w collection.
+        </div>
+        <div className={styles.ctaContainer}>
+          <LiquidGlassEffect variant="button">
+            <button
+              className={styles.ctaButton}
+              onClick={() => {
+                setIsCtaLoading(true);
+                setTimeout(() => {
+                  if (currentUser) {
+                    router.push('/shop/friends-and-family');
+                  } else {
+                    router.push('/login');
+                  }
+                }, 1500);
+              }}
+              disabled={isCtaLoading}
+            >
+              {isCtaLoading ? 'loading...' : 'friends and family shop'}
+            </button>
+          </LiquidGlassEffect>
+          <LiquidGlassEffect variant="button">
+            <button className={styles.ctaButton}>
+              custom order
+            </button>
+          </LiquidGlassEffect>
+        </div>
       </div>
       <NewsletterModal
         open={modalOpen}
@@ -304,34 +236,18 @@ function NewsletterSection() {
 function AboutSection() {
   return (
     <div className={`${styles.container} ${styles.aboutSection}`} id="aboutSection">
-      <h2 style={{
-        fontFamily: 'Inter, sans-serif',
-        fontWeight: 700,
-        letterSpacing: '-0.02em',
-        color: '#f8fafc',
-        fontSize: '2.25rem',
-        lineHeight: 1.1,
-        textAlign: 'center',
-        marginBottom: 20,
-      }}>ABOUT WMCYN</h2>
-      <p style={{
-        fontFamily: 'Inter, sans-serif',
-        fontWeight: 700,
-        color: '#f8fafc',
-        fontSize: 18,
-        textAlign: 'center',
-        maxWidth: 800,
-        marginLeft: 'auto',
-        marginRight: 'auto',
-      }}>
-        what more could you need inc. (wmcyn) pronounced (wim-syn) is a future-forward xr collective built on the advancement of modern technology
-        intertwined with the basics of everyday lifestyle.
-      </p>
-      <div className={styles.instagramContainer} style={{ flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-        <span className={styles.instagramText} style={{ textAlign: 'center', marginBottom: 8, fontFamily: 'Inter, sans-serif', fontWeight: 700, color: '#f8fafc', fontSize: 15 }}>follow us @whatmorecouldyouneed</span>
-        <a href="https://instagram.com/whatmorecouldyouneed" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', justifyContent: 'center' }}>
-          <NextImage src={InstagramLogo} alt="Instagram Logo" className={styles.instagramLogo} />
-        </a>
+      <div className={styles.contentPanel}>
+        <h2 className={styles.sectionHeading}>ABOUT WMCYN</h2>
+        <p className={styles.sectionText}>
+          what more could you need is a future-forward xr collective built on the advancement of modern technology
+          intertwined with the basics of everyday lifestyle
+        </p>
+        <div className={styles.instagramContainer}>
+          <span className={styles.instagramText}>follow us @whatmorecouldyouneed</span>
+          <a href="https://instagram.com/whatmorecouldyouneed" target="_blank" rel="noopener noreferrer">
+            <NextImage src={InstagramLogo} alt="Instagram Logo" className={styles.instagramLogo} />
+          </a>
+        </div>
       </div>
     </div>
   );
@@ -340,54 +256,22 @@ function AboutSection() {
 // scanner section component
 function ScannerSection({ onCameraOpen }: { onCameraOpen: () => void }) {
   return (
-    <div id="scannerSection" className={`${styles.container} ${styles.aboutSection}`}> 
-      <h2 style={{
-        fontFamily: 'Inter, sans-serif',
-        fontWeight: 700,
-        letterSpacing: '-0.02em',
-        color: '#f8fafc',
-        fontSize: '2.25rem',
-        lineHeight: 1.1,
-        textAlign: 'center',
-        marginBottom: 20,
-      }}>SCAN WMCYN ID</h2>
-      <div className={styles.scannerSection}>
-        <div className={styles.scannerContainer}>
-          <div 
-            onClick={onCameraOpen}
-            className={styles.cameraButton}
-            style={{ 
-              width: '100%', 
-              height: '100%', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            <NextImage 
-              src={WMCYNQRCODE} 
-              alt="SCAN WMCYN ID" 
-              width={200} 
-              height={200}
-              style={{
-                maxWidth: '80%',
-                height: 'auto',
-                filter: 'brightness(0.9)',
-                transition: 'all 0.3s ease'
-              }}
-            />
-          </div>
+    <div id="scannerSection" className={`${styles.container} ${styles.aboutSection}`}>
+      <div className={styles.contentPanel}>
+        <h2 className={styles.sectionHeading}>SCAN WMCYN ID</h2>
+        <div 
+          onClick={onCameraOpen}
+          className={styles.cameraButton}
+        >
+          <NextImage 
+            src={WMCYNQRCODE} 
+            alt="SCAN WMCYN ID" 
+            width={200} 
+            height={200}
+            className={styles.scannerImage}
+          />
         </div>
-        <p style={{ 
-          textAlign: 'center', 
-          color: '#f8fafc',
-          fontFamily: 'Inter, sans-serif',
-          fontWeight: 700,
-          marginTop: '16px',
-          fontSize: '1rem'
-        }}>
+        <p className={styles.scannerText}>
           tap to open camera scanner
         </p>
       </div>
@@ -405,14 +289,11 @@ export default function Home() {
 
   return (
     <>
-      <Countdown />
-      <div style={{ position: 'relative' }}>
-        <InfiniteMirror depth={6} />
-        <div className={styles.pageContainer}>
-          <NewsletterSection />
-          <AboutSection />
-          <ScannerSection onCameraOpen={() => setShowCamera(true)} />
-        </div>
+      <div className={styles.pageContainer}>
+        <InfiniteMirror />
+        <NewsletterSection />
+        <AboutSection />
+        <ScannerSection onCameraOpen={() => setShowCamera(true)} />
       </div>
     </>
   );

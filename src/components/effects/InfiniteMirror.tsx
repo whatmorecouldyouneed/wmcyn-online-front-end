@@ -1,4 +1,6 @@
-import React, { useEffect, useState, useCallback, memo, useRef } from 'react';
+'use client';
+
+import React, { useEffect, useState, useCallback, memo, CSSProperties } from 'react';
 import Typewriter from 'typewriter-effect';
 import NextImage from '../NextImage';
 import { db, ref, push, set } from '../../utils/lib/firebase';
@@ -6,13 +8,10 @@ import styles from './InfiniteMirror.module.scss';
 import glassStyles from './LiquidGlassForm.module.scss';
 
 const WMCYNLOGO = '/wmcyn_logo_white.png';
-const InstagramLogo = '/instagram-logo.png';
-const WMCYNQRCODE = '/wmcyn-qr.png';
 
 interface InfiniteMirrorProps {
   depth?: number;
   className?: string;
-  currentSection?: number;
 }
 
 function writeUserData(emailID: string) {
@@ -187,9 +186,7 @@ const RecursiveLayer = memo<{
 
 RecursiveLayer.displayName = 'RecursiveLayer';
 
-const SECTION_IDS = ['homeSection', 'aboutSection', 'accountSection', 'scannerSection'];
-
-const InfiniteMirror: React.FC<InfiniteMirrorProps> = ({ depth = 8, className, currentSection = 0 }) => {
+const InfiniteMirror: React.FC<InfiniteMirrorProps> = ({ depth = 8, className }) => {
   const [mounted, setMounted] = useState(false);
   const [isInteractive, setIsInteractive] = useState(false);
 
@@ -203,14 +200,15 @@ const InfiniteMirror: React.FC<InfiniteMirrorProps> = ({ depth = 8, className, c
 
   if (!mounted) return null;
 
-  // Create multiple instances of the same animation with staggered delays
-  const animationDuration = 48; // seconds for one complete cycle
-  const numberOfLayers = 6; // how many layers to show simultaneously
+  const animationDuration = 48; 
+  const numberOfLayers = 6; 
   
   const levels = [];
   for (let i = 0; i < numberOfLayers; i++) {
-    const delay = (animationDuration / numberOfLayers) * i; // stagger each layer
+    const delay = (animationDuration / numberOfLayers) * i; 
     
+    const layerStyle: CSSProperties = {};
+
     levels.push(
       <div 
         key={`layer-${i}`}
@@ -218,7 +216,8 @@ const InfiniteMirror: React.FC<InfiniteMirrorProps> = ({ depth = 8, className, c
         style={{ 
           '--animation-delay': `-${delay}s`,
           '--duration': `${animationDuration}s`,
-          zIndex: numberOfLayers - i
+          zIndex: numberOfLayers - i,
+          ...layerStyle
         } as React.CSSProperties}
       >
         <div className={styles.levelBorder}>
@@ -230,10 +229,13 @@ const InfiniteMirror: React.FC<InfiniteMirrorProps> = ({ depth = 8, className, c
     );
   }
 
+  const containerStyle: CSSProperties = {};
+
   return (
     <div 
       className={`${styles.infiniteContainer} ${className || ''} ${isInteractive ? styles.paused : ''}`}
       onClick={handleContainerClick}
+      style={containerStyle}
     >
       {levels}
     </div>

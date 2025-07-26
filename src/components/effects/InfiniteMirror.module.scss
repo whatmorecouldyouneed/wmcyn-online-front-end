@@ -423,3 +423,76 @@
   filter: brightness(1.2);
   border-radius: 8px;
 } 
+
+// permission prompt for gyroscope
+.permissionPrompt {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(10px);
+}
+
+.promptContent {
+  background: rgba(25, 25, 25, 0.9);
+  padding: 30px;
+  border-radius: 15px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+
+  h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 24px;
+    color: #fff;
+  }
+
+  p {
+    margin-bottom: 25px;
+    color: #ccc;
+    font-size: 16px;
+    max-width: 300px;
+  }
+}
+
+.promptActions {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+
+  button {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+}
+
+.enableButton {
+  background: #4caf50;
+  color: white;
+
+  &:hover {
+    background: #45a049;
+  }
+}
+
+.declineButton {
+  background: #333;
+  color: #ccc;
+  border: 1px solid #555;
+
+  &:hover {
+    background: #444;
+    border-color: #666;
+  }
+} 

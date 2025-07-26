@@ -70,9 +70,9 @@ export default function Login() {
     <div className={styles.container}>
       <div className={styles.authContainer}>
         <h1 style={{ fontSize: '2.5rem', marginBottom: '2rem', textAlign: 'center' }}>
-          {authMode === 'login' ? 'transmission access' : 
-           authMode === 'signup' ? 'join the frequency' : 
-           'reset transmission'}
+          {authMode === 'login' ? 'friends and family' : 
+           authMode === 'signup' ? 'signup' : 
+           'reset password'}
         </h1>
 
         <div className={styles.authModeSelector}>
@@ -136,8 +136,8 @@ export default function Login() {
             className={`${styles.submitButton} ${styles.primaryButton}`}
           >
             {loading ? 'processing...' : 
-             authMode === 'login' ? 'enter transmission' : 
-             authMode === 'signup' ? 'join frequency' : 
+             authMode === 'login' ? 'login' : 
+             authMode === 'signup' ? 'join' : 
              'send reset signal'}
           </button>
 
@@ -147,7 +147,7 @@ export default function Login() {
               onClick={() => setAuthMode('forgot')}
               className={`${styles.submitButton} ${styles.secondaryButton}`}
             >
-              forgot transmission key?
+              forgot password?
             </button>
           )}
 
