@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import Link from 'next/link';
 import styles from '../styles/Index.module.scss';
+import LiquidGlassEffect from '../components/ui/LiquidGlassEffect';
 
 export default function Login() {
   const router = useRouter();
@@ -168,9 +169,11 @@ export default function Login() {
           )}
         </form>
 
-        <Link href="/" className={`${styles.submitButton} ${styles.secondaryButton}`} style={{ marginTop: '2rem', textAlign: 'center', display: 'block' }}>
-          return to portal
-        </Link>
+        <LiquidGlassEffect>
+          <Link href="/" className={styles.ctaButton} style={{ marginTop: '2rem', textAlign: 'center', display: 'block' }}>
+            return to portal
+          </Link>
+        </LiquidGlassEffect>
       </div>
     </div>
   );
