@@ -412,32 +412,65 @@ function NewsletterSection() {
       <div className={`${styles.contentPanel} ${styles.heroPanel}`}>
         <NextImage src={WMCYNLOGO} alt="WMCYN Logo" className={styles.logo} priority />
         <div className={styles.ctaContainer}>
-          <LiquidGlassEffect 
-            variant="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              console.log('Signup button clicked');
-              router.push('/login?mode=signup');
-            }}
-          >
-            <button className={styles.ctaButton}>
-              sign up
-            </button>
-          </LiquidGlassEffect>
-          <LiquidGlassEffect 
-            variant="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              console.log('Login button clicked');
-              router.push('/login');
-            }}
-          >
-            <button className={styles.ctaButton}>
-              login
-            </button>
-          </LiquidGlassEffect>
+          {currentUser ? (
+            // show dashboard and logout for logged-in users
+            <>
+              <LiquidGlassEffect 
+                variant="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  router.push('/dashboard');
+                }}
+              >
+                <button className={styles.ctaButton}>
+                  dashboard
+                </button>
+              </LiquidGlassEffect>
+              <LiquidGlassEffect 
+                variant="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  router.push('/dashboard');
+                }}
+              >
+                <button className={styles.ctaButton}>
+                  profile
+                </button>
+              </LiquidGlassEffect>
+            </>
+          ) : (
+            // show signup and login for non-logged-in users
+            <>
+              <LiquidGlassEffect 
+                variant="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Signup button clicked');
+                  router.push('/login?mode=signup');
+                }}
+              >
+                <button className={styles.ctaButton}>
+                  sign up
+                </button>
+              </LiquidGlassEffect>
+              <LiquidGlassEffect 
+                variant="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Login button clicked');
+                  router.push('/login');
+                }}
+              >
+                <button className={styles.ctaButton}>
+                  login
+                </button>
+              </LiquidGlassEffect>
+            </>
+          )}
         </div>
         <div className={styles.textContainer}>
           friends & family and custom orders only up until week 1 of the f/w collection

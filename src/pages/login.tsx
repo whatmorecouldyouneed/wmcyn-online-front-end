@@ -20,9 +20,21 @@ export default function Login() {
 
   useEffect(() => {
     if (currentUser) {
-      router.push('/shop/friends-and-family');
+      // ensure we redirect to dashboard without trailing slash
+      router.replace('/dashboard');
     }
   }, [currentUser, router]);
+
+  useEffect(() => {
+    // check for Google sign-in errors from redirect
+    if (typeof window !== 'undefined') {
+      const googleError = sessionStorage.getItem('googleSignInError');
+      if (googleError) {
+        setAuthError(googleError);
+        sessionStorage.removeItem('googleSignInError');
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (mode === 'signup') {
@@ -40,6 +52,8 @@ export default function Login() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -48,12 +62,14 @@ export default function Login() {
     try {
       if (authMode === 'login') {
         await login(authEmail, authPassword);
+        router.replace('/dashboard');
       } else if (authMode === 'signup') {
         if (authPassword !== confirmPassword) {
           setAuthError('passwords do not match');
           return;
         }
         await signup(authEmail, authPassword);
+        router.replace('/dashboard');
       } else if (authMode === 'forgot') {
         await resetPassword(authEmail);
         setAuthError('password reset email sent! check your inbox.');
@@ -70,10 +86,10 @@ export default function Login() {
     setLoading(true);
     setAuthError('');
     try {
+      // googleSignIn tries popup first, falls back to redirect if blocked
       await googleSignIn();
     } catch (err: any) {
       setAuthError(err.message || 'google sign in failed');
-    } finally {
       setLoading(false);
     }
   };
@@ -218,11 +234,17 @@ export default function Login() {
           </p>
         )}
 
-        <LiquidGlassEffect>
-          <Link href="/" className={`${styles.submitButton} ${styles.secondaryButton}`} style={{ marginTop: '1.5rem', textAlign: 'center', display: 'block' }}>
-            return to portal
-          </Link>
-        </LiquidGlassEffect>
+        <div style={{ marginTop: isMobile ? '1rem' : '1.5rem' }}>
+          <LiquidGlassEffect>
+            <Link href="/" style={{ 
+              textDecoration: 'none', 
+              color: 'white', 
+              fontSize: isMobile ? '14px' : '16px'
+            }}>
+              return to portal
+            </Link>
+          </LiquidGlassEffect>
+        </div>
       </div>
     </div>
   );

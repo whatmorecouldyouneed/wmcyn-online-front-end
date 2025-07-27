@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  trailingSlash: true,
+  trailingSlash: false,
   output: 'export',
 };
 

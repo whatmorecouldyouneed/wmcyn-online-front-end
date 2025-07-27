@@ -1,0 +1,16 @@
+{
+  "name": "WMCYN Portal",
+  "short_name": "WMCYN",
+  "description": "WMCYN friends & family portal",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a1a2e",
+  "icons": [
+    {
+      "src": "/wmcyn_logo_white.png",
+      "sizes": "any",
+      "type": "image/png"
+    }
+  ]
+} 

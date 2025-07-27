@@ -41,24 +41,32 @@ export default function FriendsAndFamily() {
   return (
     <>
       <Head>
-        <title>Friends & Family Shop | WMCYN</title>
-        <meta name="description" content="Exclusive Friends & Family merchandise." />
+        <title>Shop | WMCYN</title>
+        <meta name="description" content="Exclusive WMCYN merchandise." />
       </Head>
       
       <div className={styles.container}>
         <div className={styles.header}>
-          <h1 className={styles.title}>friends & family shop</h1>
-          <div className={styles.cartButtonContainer}>
-            <button onClick={openCart} className={styles.cartIconButton} aria-label="open cart">
-              cart
-              {cartCount > 0 && <span className={styles.cartCountBadge}>{cartCount}</span>}
-            </button>
-          </div>
+          {/* dashboard button on left */}
+          <button
+            onClick={() => router.push('/dashboard')}
+            className={styles.dashboardButton}
+          >
+            ← dashboard
+          </button>
+
+          {/* title centered */}
+          <h1 className={styles.title}>shop</h1>
+
+          {/* cart button on right */}
+          <button onClick={openCart} className={styles.cartButton}>
+            cart {cartCount > 0 && `(${cartCount})`}
+          </button>
         </div>
 
         <div className={styles.content}>
-          <div className={styles.intro}>
-            <p className={styles.introText}>
+          <div className={styles.intro} style={{ margin: '0.5rem 0' }}>
+            <p className={styles.introText} style={{ margin: '0.5rem 0' }}>
               welcome to the exclusive drop.
             </p>
           </div>

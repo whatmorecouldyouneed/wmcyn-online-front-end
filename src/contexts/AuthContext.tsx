@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { auth, firestore } from '../utils/lib/firebase';
-import { User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail, onAuthStateChanged } from 'firebase/auth';
+import { User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, sendPasswordResetEmail, onAuthStateChanged } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 type AuthContextType = {
@@ -57,14 +57,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = (email: string, password: string) => {
-    if (!auth) throw new Error('Authentication not initialized');
+    if (!auth) throw new Error('authentication not initialized');
     
     return signInWithEmailAndPassword(auth, email, password).catch((error: any) => {
       if (error.code === 'auth/configuration-not-found') {
-        throw new Error('Firebase Authentication is not configured. Please enable Authentication in Firebase Console.');
+        throw new Error('firebase authentication is not configured. please enable authentication in firebase console.');
       }
       if (error.code === 'auth/unauthorized-domain') {
-        throw new Error('This domain is not authorized for Firebase Authentication. Please add your domain to the authorized domains list in Firebase Console.');
+        throw new Error('this domain is not authorized for firebase authentication. please add your domain to the authorized domains list in firebase console.');
+      }
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        throw new Error('incorrect password, try again');
+      }
+      if (error.code === 'auth/user-not-found') {
+        throw new Error('no account found with this email');
+      }
+      if (error.code === 'auth/invalid-email') {
+        throw new Error('invalid email address');
+      }
+      if (error.code === 'auth/too-many-requests') {
+        throw new Error('too many failed attempts, please try again later');
       }
       throw error;
     });
@@ -75,19 +87,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return signOut(auth);
   };
 
-  const googleSignIn = () => {
-    if (!auth) throw new Error('Authentication not initialized');
+  const googleSignIn = async () => {
+    if (!auth) throw new Error('authentication not initialized');
     const provider = new GoogleAuthProvider();
     
-    return signInWithPopup(auth, provider).catch((error: any) => {
-      if (error.code === 'auth/configuration-not-found') {
-        throw new Error('Firebase Authentication is not configured. Please enable Authentication in Firebase Console.');
+    try {
+      // try popup first - it's more reliable and immediate
+      const result = await signInWithPopup(auth, provider);
+      return result;
+    } catch (popupError: any) {
+      // if popup is blocked, fall back to redirect
+      if (popupError.code === 'auth/popup-blocked' || 
+          popupError.code === 'auth/popup-closed-by-user' ||
+          popupError.code === 'auth/cancelled-popup-request') {
+        try {
+          await signInWithRedirect(auth, provider);
+          // redirect will happen, so this function won't return
+        } catch (redirectError: any) {
+          throw redirectError;
+        }
+      } else {
+        // other types of errors (config, domain, etc.)
+        if (popupError.code === 'auth/configuration-not-found') {
+          throw new Error('firebase authentication is not configured. please enable authentication in firebase console.');
+        }
+        if (popupError.code === 'auth/unauthorized-domain') {
+          throw new Error('this domain is not authorized for firebase authentication. please add your domain to the authorized domains list in firebase console.');
+        }
+        throw new Error('google sign-in failed, please try again');
       }
-      if (error.code === 'auth/unauthorized-domain') {
-        throw new Error('This domain is not authorized for Firebase Authentication. Please add your domain to the authorized domains list in Firebase Console.');
-      }
-      throw error;
-    });
+    }
   };
 
   const resetPassword = (email: string) => {
@@ -106,11 +135,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return () => {};
     }
+
+    // handle Google sign-in redirect result on page load
+    const handleRedirectResult = async () => {
+      if (!auth) return;
+      
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          // onAuthStateChanged will handle the user state and firestore setup
+        }
+      } catch (error: any) {
+        // store the error so it can be retrieved by the login page
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('googleSignInError', error.message || 'google sign-in failed');
+        }
+      }
+    };
+
+    // add a small delay to ensure auth is fully initialized
+    setTimeout(handleRedirectResult, 100);
     
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         if (!firestore) {
-          console.error('Firestore not initialized - user data cannot be saved');
+          console.error('firestore not initialized - user data cannot be saved');
           setCurrentUser(user);
           setLoading(false);
           return;
@@ -126,12 +175,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             await setDoc(doc(firestore, `users/${user.uid}/products`, 'mock2'), { name: 'WMCYN Shirt', acquired: new Date().toISOString() });
           }
         } catch (error: any) {
-          console.error('Firestore operation failed:', error);
+          console.error('firestore operation failed:', error);
           if (error.code === 'unavailable' || error.message?.includes('400')) {
-            console.error('Firestore database may not be properly configured. Please check Firebase Console.');
+            console.error('firestore database may not be properly configured. please check firebase console.');
           }
         }
       }
+      
       setCurrentUser(user);
       setLoading(false);
     });
