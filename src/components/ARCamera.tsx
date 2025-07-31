@@ -19,7 +19,7 @@ const ARCamera = ({ onClose, configs = defaultMarkerConfigs }: ARCameraProps): J
   const [detectedMarkerConfig, setDetectedMarkerConfig] = useState<MarkerConfig | null>(null);
   const [showLogoAnimation, setShowLogoAnimation] = useState(false);
   const [isProcessingClaim, setIsProcessingClaim] = useState(false);
-  const { currentUser, signInWithGoogle } = useAuth();
+  const { currentUser, googleSignIn } = useAuth();
 
   const enhancedConfigs = configs.map(config => ({
     ...config,
@@ -53,7 +53,7 @@ const ARCamera = ({ onClose, configs = defaultMarkerConfigs }: ARCameraProps): J
     if (!currentUser) {
       // Trigger login flow
       try {
-        await signInWithGoogle();
+        await googleSignIn();
         // After successful login, the user can try claiming again
         return;
       } catch (error) {

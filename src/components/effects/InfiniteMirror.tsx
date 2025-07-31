@@ -26,12 +26,13 @@ const WebGLDrosteEffect = memo<{ isPaused: boolean }>(({ isPaused }) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-    if (!gl) {
+    const context = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    if (!context || !(context instanceof WebGLRenderingContext)) {
       console.warn('WebGL not supported, falling back to CSS animation');
       return;
     }
 
+    const gl = context as WebGLRenderingContext;
     glRef.current = gl;
 
     // Vertex shader
@@ -175,7 +176,7 @@ const WebGLDrosteEffect = memo<{ isPaused: boolean }>(({ isPaused }) => {
     }
 
     function render() {
-      if (!gl || !program || isPaused) {
+      if (!gl || !program || !canvas || isPaused) {
         if (!isPaused) {
           animationRef.current = requestAnimationFrame(render);
         }
