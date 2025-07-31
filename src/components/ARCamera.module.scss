@@ -9,13 +9,36 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: white; // Or make this a variable if you have a theme
-  font-size: 20px;
-  z-index: 3;
-  // Consider adding a background or other styling for better visibility
-  // background-color: rgba(0, 0, 0, 0.75);
-  // padding: 20px;
-  // border-radius: 8px;
+  color: white;
+  font-size: 18px;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 2rem;
+  border-radius: 12px;
+  text-align: center;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  
+  p {
+    margin: 1rem 0 0 0;
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.8);
+  }
+}
+
+.loadingSpinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid #51cf66;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .mountPoint {
@@ -24,20 +47,334 @@
   z-index: 1;
 }
 
+// Scanning Instructions Overlay
+.instructionsOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.scanningFrame {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  border: 2px solid rgba(81, 207, 102, 0.8);
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: scanPulse 2s ease-in-out infinite;
+}
+
+.frameCorners {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  border: 4px solid transparent;
+  border-radius: 20px;
+  
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    border: 4px solid #51cf66;
+  }
+  
+  &::before {
+    top: -4px;
+    left: -4px;
+    border-right: none;
+    border-bottom: none;
+    border-top-left-radius: 20px;
+  }
+  
+  &::after {
+    bottom: -4px;
+    right: -4px;
+    border-left: none;
+    border-top: none;
+    border-bottom-right-radius: 20px;
+  }
+}
+
+.instructionText {
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  max-width: 250px;
+  margin: 0;
+}
+
+@keyframes scanPulse {
+  0%, 100% {
+    border-color: rgba(81, 207, 102, 0.8);
+    box-shadow: 0 0 0 0 rgba(81, 207, 102, 0.4);
+  }
+  50% {
+    border-color: rgba(81, 207, 102, 1);
+    box-shadow: 0 0 0 10px rgba(81, 207, 102, 0);
+  }
+}
+
+// 3D Logo Animation Overlay
+.logoAnimationOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 8;
+  backdrop-filter: blur(5px);
+}
+
+.logoAnimationContent {
+  text-align: center;
+  color: white;
+}
+
+.logoContainer {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 2rem;
+}
+
+.animatedLogo {
+  width: 150px;
+  height: 150px;
+  filter: brightness(1.2) drop-shadow(0 0 30px rgba(255, 255, 255, 0.8));
+  animation: logoPopIn 1.5s ease-out, logoFloat 3s ease-in-out infinite 1.5s;
+}
+
+.glowEffect {
+  position: absolute;
+  top: -30px;
+  left: -30px;
+  right: -30px;
+  bottom: -30px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(81, 207, 102, 0.4) 0%, transparent 70%);
+  animation: glowPulse 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes logoPopIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-180deg);
+  }
+  60% {
+    transform: scale(1.15) rotate(0deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes logoFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+.animationTitle {
+  font-size: 2rem;
+  font-weight: bold;
+  margin: 0 0 0.5rem 0;
+  color: #51cf66;
+  text-shadow: 0 0 15px rgba(81, 207, 102, 0.5);
+  animation: titleGlow 2s ease-in-out infinite;
+}
+
+.animationSubtitle {
+  font-size: 1.1rem;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.8);
+  animation: fadeInOut 1.5s ease-in-out infinite;
+}
+
+@keyframes titleGlow {
+  0%, 100% {
+    text-shadow: 0 0 15px rgba(81, 207, 102, 0.5);
+  }
+  50% {
+    text-shadow: 0 0 25px rgba(81, 207, 102, 0.8), 0 0 35px rgba(81, 207, 102, 0.3);
+  }
+}
+
+@keyframes fadeInOut {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+// Close Button
 .closeButton {
   position: absolute;
   top: 20px;
   right: 20px;
-  z-index: 2;
-  padding: 10px 15px;
+  z-index: 15;
+  padding: 12px 20px;
   font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
-  background-color: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.8);
   color: white;
-  border: none;
-  border-radius: 5px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 25px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
   
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.7);
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-2px);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+// User Status Indicator
+.userStatus {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  z-index: 15;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 8px 16px;
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 14px;
+}
+
+.loggedIn {
+  color: #51cf66;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.loggedOut {
+  color: #ffd43b;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .scanningFrame {
+    width: 250px;
+    height: 250px;
+  }
+  
+  .instructionText {
+    font-size: 13px;
+    padding: 0.8rem 1.2rem;
+    max-width: 200px;
+  }
+  
+  .animatedLogo {
+    width: 120px;
+    height: 120px;
+  }
+  
+  .animationTitle {
+    font-size: 1.6rem;
+  }
+  
+  .animationSubtitle {
+    font-size: 1rem;
+  }
+  
+  .loadingOverlay {
+    padding: 1.5rem;
+    font-size: 16px;
+    
+    p {
+      font-size: 14px;
+    }
+  }
+  
+  .userStatus {
+    bottom: 15px;
+    left: 15px;
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  
+  .closeButton {
+    top: 15px;
+    right: 15px;
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .scanningFrame {
+    width: 200px;
+    height: 200px;
+  }
+  
+  .instructionText {
+    font-size: 12px;
+    padding: 0.7rem 1rem;
+    max-width: 180px;
+  }
+  
+  .animatedLogo {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .animationTitle {
+    font-size: 1.4rem;
+  }
+  
+  .logoAnimationContent {
+    padding: 1rem;
   }
 } 
