@@ -2,16 +2,18 @@ import React, { useEffect } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { type MarkerConfig, DEFAULT_HIRO_PATTERN_URL_PLACEHOLDER } from '../config/markers';
+import { detectWMCYNProduct, cleanupDetectionResources } from '../utils/productDetection';
 
 interface UseARSceneProps {
   mountRef: React.RefObject<HTMLDivElement>;
   configs: MarkerConfig[];
   setIsLoading: (loading: boolean) => void;
+  onProductDetected?: (config: MarkerConfig) => void; // Add product detection callback
   // onLoaded?: () => void; // Optional: if more granular control is needed
   // onError?: (message: string) => void; // Optional: for error handling
 }
 
-export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps) => {
+export const useARScene = ({ mountRef, configs, setIsLoading, onProductDetected }: UseARSceneProps) => {
   useEffect(() => {
     const mountElement = mountRef.current; // Capture current mount element
     const { THREE: WinThree, THREEx } = window as any;
@@ -32,6 +34,10 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
     const mixers: THREE.AnimationMixer[] = [];
     let clock: THREE.Clock;
     let animationFrameId: number;
+    
+    // Product detection state
+    let productDetectionInterval: NodeJS.Timeout | null = null;
+    let lastDetectedProduct: string | null = null;
 
     const onResize = () => {
       if (!arToolkitSource || !renderer || !mountRef.current) return;
@@ -42,6 +48,32 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
       }
       if (mountRef.current) { // Check mountRef.current before accessing clientWidth/Height
         renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
+      }
+    };
+
+    // Simplified product detection function
+    const performProductDetection = () => {
+      if (!arToolkitSource?.domElement || !onProductDetected) return;
+      
+      const videoElement = arToolkitSource.domElement as HTMLVideoElement;
+      if (!videoElement.videoWidth || !videoElement.videoHeight) return;
+
+      try {
+        console.log('🔍 Performing simplified color-based product detection...');
+        const detectionResult = detectWMCYNProduct(videoElement);
+        
+        if (detectionResult.confidence > 0.3) {
+          // Find matching config
+          const matchedConfig = configs.find(config => config.name === detectionResult.productId);
+          
+          if (matchedConfig && detectionResult.productId !== lastDetectedProduct) {
+            console.log(`✅ Product detected: ${detectionResult.productName} (confidence: ${detectionResult.confidence.toFixed(2)})`);
+            lastDetectedProduct = detectionResult.productId;
+            onProductDetected(matchedConfig);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Product detection failed:', error);
       }
     };
 
@@ -221,17 +253,28 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
                 action.play();
               }
               
-              if (config.onFound) {
-                // Marker visibility can be checked using markerControls.object3d.visible in animate loop,
-                // or by listening to 'markerFound' / 'markerLost' events if AR.js version supports them reliably.
-                markerControls.addEventListener('markerFound', () => {
-                  // console.log(`Marker found: ${config.name}`);
-                  if(config.onFound) config.onFound();
-                });
-                // markerControls.addEventListener('markerLost', () => {
-                //   console.log(`Marker lost: ${config.name}`);
-                // });
-              }
+              // Add marker found/lost events for product detection
+              markerControls.addEventListener('markerFound', () => {
+                console.log(`🎯 Marker found - starting product detection`);
+                
+                // Start product detection with a slight delay to ensure video is ready
+                setTimeout(() => {
+                  if (onProductDetected) {
+                    performProductDetection();
+                    // Continue detecting every 3 seconds while marker is visible
+                    productDetectionInterval = setInterval(performProductDetection, 3000);
+                  }
+                }, 1000);
+              });
+              
+              markerControls.addEventListener('markerLost', () => {
+                console.log(`🎯 Marker lost - stopping product detection`);
+                if (productDetectionInterval) {
+                  clearInterval(productDetectionInterval);
+                  productDetectionInterval = null;
+                }
+                lastDetectedProduct = null;
+              });
             }
           }, undefined, error => {
             console.error(`error loading model ${config.modelUrl} for marker ${config.name}:`, error);
@@ -274,6 +317,13 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
       markerRoots.length = 0;
       markerControlsArray.length = 0; // Controls are associated with markerRoots, no specific dispose needed beyond this
 
+      // Cleanup product detection
+      if (productDetectionInterval) {
+        clearInterval(productDetectionInterval);
+        productDetectionInterval = null;
+      }
+      cleanupDetectionResources();
+      
       arToolkitSource?.domElement?.remove(); // remove video element
       arToolkitSource?.destroy?.(); // if ar.js provides a destroy method for source
       arToolkitContext?.arController?.dispose?.(); // if ar.js provides a dispose method for controller
