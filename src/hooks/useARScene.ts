@@ -69,9 +69,22 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
         return;
       }
 
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setClearColor(new THREE.Color('lightgrey'), 0);
-      renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
+      renderer = new THREE.WebGLRenderer({ 
+        antialias: true, 
+        alpha: true,
+        preserveDrawingBuffer: false,
+        powerPreference: 'high-performance'
+      });
+      renderer.setClearColor(new THREE.Color(0x000000), 0); // Transparent background
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.domElement.style.position = 'absolute';
+      renderer.domElement.style.top = '0px';
+      renderer.domElement.style.left = '0px';
+      renderer.domElement.style.right = '0px';
+      renderer.domElement.style.bottom = '0px';
+      renderer.domElement.style.width = '100vw';
+      renderer.domElement.style.height = '100vh';
+      renderer.domElement.style.zIndex = '2';
       mountRef.current.appendChild(renderer.domElement);
 
       scene = new THREE.Scene();
@@ -85,19 +98,85 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
 
       clock = new THREE.Clock();
 
-      arToolkitSource = new THREEx.ArToolkitSource({ sourceType: 'webcam', sourceWidth: 640, sourceHeight: 480 });
+      // Enhanced camera configuration for better mobile support
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      arToolkitSource = new THREEx.ArToolkitSource({ 
+        sourceType: 'webcam', 
+        sourceWidth: isMobile ? 480 : 640, 
+        sourceHeight: isMobile ? 320 : 480,
+        // Add camera constraints for mobile devices
+        facingMode: isMobile ? 'environment' : 'user'
+      });
+      
       arToolkitSource.init(() => {
+        console.log('ArToolkitSource initialized successfully');
+        
+        // Ensure video element is properly configured and visible
+        if (arToolkitSource.domElement) {
+          console.log('Video element found:', arToolkitSource.domElement);
+          
+          // Critical styling for video visibility - force viewport dimensions
+          arToolkitSource.domElement.style.position = 'absolute';
+          arToolkitSource.domElement.style.top = '0px';
+          arToolkitSource.domElement.style.left = '0px';
+          arToolkitSource.domElement.style.right = '0px';
+          arToolkitSource.domElement.style.bottom = '0px';
+          arToolkitSource.domElement.style.width = '100vw';
+          arToolkitSource.domElement.style.height = '100vh';
+          arToolkitSource.domElement.style.maxWidth = '100vw';
+          arToolkitSource.domElement.style.maxHeight = '100vh';
+          arToolkitSource.domElement.style.minWidth = '100vw';
+          arToolkitSource.domElement.style.minHeight = '100vh';
+          arToolkitSource.domElement.style.margin = '0';
+          arToolkitSource.domElement.style.padding = '0';
+          arToolkitSource.domElement.style.boxSizing = 'border-box';
+          arToolkitSource.domElement.style.zIndex = '1';
+          arToolkitSource.domElement.style.objectFit = 'cover';
+          arToolkitSource.domElement.style.display = 'block';
+          
+          // Mobile video attributes
+          arToolkitSource.domElement.setAttribute('playsinline', 'true');
+          arToolkitSource.domElement.setAttribute('webkit-playsinline', 'true');
+          arToolkitSource.domElement.setAttribute('autoplay', 'true');
+          arToolkitSource.domElement.setAttribute('muted', 'true');
+          
+          // Ensure video is appended to mount point
+          if (mountRef.current && !mountRef.current.contains(arToolkitSource.domElement)) {
+            mountRef.current.appendChild(arToolkitSource.domElement);
+          }
+        } else {
+          console.error('No video element created by ArToolkitSource');
+        }
+        
         // Delay resize and setIsLoading(false) until AR source is truly ready
         setTimeout(() => {
-          onResize();
-          setIsLoading(false);
-          // onLoaded?.();
-        }, 1000); // Keep existing delay, or refine
+          if (arToolkitSource && arToolkitSource.ready) {
+            onResize();
+            setIsLoading(false);
+            console.log('AR Scene ready with video dimensions:', {
+              videoWidth: arToolkitSource.domElement?.videoWidth,
+              videoHeight: arToolkitSource.domElement?.videoHeight,
+              ready: arToolkitSource.ready
+            });
+          } else {
+            console.warn('ArToolkitSource not ready after timeout');
+            setIsLoading(false);
+          }
+        }, 2000); // Increased delay for mobile compatibility
+      }, (error: any) => {
+        console.error('ArToolkitSource initialization failed:', error);
+        setIsLoading(false);
       });
 
       arToolkitContext = new THREEx.ArToolkitContext({
         cameraParametersUrl: THREEx.ArToolkitContext.baseURL + '../data/data/camera_para.dat',
         detectionMode: 'mono',
+        matrixCodeType: '3x3',
+        // Improved detection settings for better responsiveness
+        canvasWidth: 640,
+        canvasHeight: 480,
+        imageSmoothingEnabled: false,
       });
 
       arToolkitContext.init(() => {
