@@ -18,7 +18,7 @@
   align-items: center;
   justify-content: center;
   height: 100vh;
-  padding: 55px 16px 16px 16px; // top padding to account for countdown
+  padding: 16px; // removed extra top padding after removing countdown
   background: transparent;
   scroll-snap-align: center;
   position: relative;
@@ -27,7 +27,7 @@
 
 @media (max-width: 768px) {
   .container {
-    padding: 60px 16px 20px 16px; // top padding to account for countdown
+    padding: 20px 16px; // normalize padding on mobile
     height: 100vh;
   }
 }

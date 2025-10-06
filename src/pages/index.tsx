@@ -586,52 +586,9 @@ function ScannerSection({ onCameraOpen }: { onCameraOpen: () => void }) {
   );
 }
 
-// countdown to october 4th at 7pm 2025
-const COUNTDOWN_TARGET_DATE = new Date('2025-10-04T19:00:00');
-
 export default function Home() {
   const [showCamera, setShowCamera] = useState(false);
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-  const [mounted, setMounted] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const { currentUser } = useAuth();
-
-  useEffect(() => {
-    setMounted(true);
-    setIsMobile(window.innerWidth <= 768);
-    
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  useEffect(() => {
-    const calculateTimeLeft = () => {
-      const difference = COUNTDOWN_TARGET_DATE.getTime() - new Date().getTime();
-      
-      if (difference > 0) {
-        return {
-          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-          minutes: Math.floor((difference / 1000 / 60) % 60),
-          seconds: Math.floor((difference / 1000) % 60),
-        };
-      }
-      
-      return { days: 0, hours: 0, minutes: 0, seconds: 0 };
-    };
-
-    const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft());
-    }, 1000);
-
-    setTimeLeft(calculateTimeLeft());
-
-    return () => clearInterval(timer);
-  }, []); // no dependencies needed since COUNTDOWN_TARGET_DATE is constant
 
   if (showCamera) {
     return <ARCamera onClose={() => setShowCamera(false)} />;
@@ -639,94 +596,6 @@ export default function Home() {
 
   return (
     <div className={styles.pageContainer}>
-      {/* compact countdown bar */}
-      {mounted && (
-        <div style={{
-          width: '100%',
-          background: 'rgba(20, 20, 30, 0.95)',
-          backdropFilter: 'blur(8px)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-          padding: isMobile ? '6px 16px' : '8px 20px',
-          fontFamily: 'var(--font-outfit), sans-serif',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 100
-        }}>
-          <div style={{
-            maxWidth: '1200px',
-            margin: '0 auto',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: isMobile ? '8px' : '12px',
-            flexDirection: isMobile ? 'column' : 'row'
-          }}>
-            <span style={{
-              color: 'white',
-              fontSize: isMobile ? '10px' : '11px',
-              fontWeight: 500,
-              margin: 0,
-              letterSpacing: '0.5px',
-              textTransform: 'uppercase',
-              opacity: 0.9,
-              fontFamily: 'var(--font-outfit), sans-serif'
-            }}>
-              october collection countdown
-            </span>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: isMobile ? '4px' : '6px'
-            }}>
-              {['days', 'hours', 'minutes', 'seconds'].map((unit, index) => {
-                const value = Object.values(timeLeft)[index];
-                return (
-                  <React.Fragment key={unit}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'baseline',
-                      gap: '2px'
-                    }}>
-                      <span style={{
-                        color: 'white',
-                        fontSize: isMobile ? '12px' : '14px',
-                        fontWeight: 600,
-                        lineHeight: 1,
-                        fontFamily: 'ui-monospace, "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace'
-                      }}>
-                        {value.toString().padStart(2, '0')}
-                      </span>
-                      <span style={{
-                        color: 'rgba(255, 255, 255, 0.7)',
-                        fontSize: isMobile ? '8px' : '9px',
-                        fontWeight: 400,
-                        textTransform: 'lowercase',
-                        letterSpacing: '0.3px',
-                        fontFamily: 'var(--font-outfit), sans-serif'
-                      }}>
-                        {unit === 'minutes' ? 'min' : unit === 'seconds' ? 'sec' : unit.slice(0, 1)}
-                      </span>
-                    </div>
-                    {index < 3 && (
-                      <span style={{
-                        color: 'rgba(255, 255, 255, 0.5)',
-                        fontSize: isMobile ? '10px' : '12px',
-                        fontWeight: 300,
-                        margin: '0 2px',
-                        fontFamily: 'ui-monospace, "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace'
-                      }}>
-                        :
-                      </span>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
       
       {/* main content with droste effect starts here */}
       <div style={{ 
