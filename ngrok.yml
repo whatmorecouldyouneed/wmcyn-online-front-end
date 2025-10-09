@@ -1,4 +1,5 @@
 version: 2
+authtoken: 2sKCMEWKZWweZxfIk9GUFFknFka_3rwUQeK2T94cdmNHKU3Wx
 tunnels:
   nextjs:
     proto: http

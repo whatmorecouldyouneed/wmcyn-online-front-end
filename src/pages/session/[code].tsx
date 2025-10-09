@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import Loader3DLogo from '@/components/Loader3DLogo';
 import ModelViewer from '@/components/ModelViewer';
 import ShopifyProductItem from '@/components/shop/ShopifyProductItem';
@@ -70,8 +71,8 @@ export default function SessionPage() {
       }}>
         <div style={{ color: 'white', fontSize: 22, letterSpacing: '-0.01em' }}>this code is no longer valid</div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <a href="/shop" style={{ color: 'white', textDecoration: 'underline', opacity: 0.9 }}>shop</a>
-          <a href="/" style={{ color: 'white', textDecoration: 'underline', opacity: 0.9 }}>home</a>
+          <Link href="/shop" style={{ color: 'white', textDecoration: 'underline', opacity: 0.9 }}>shop</Link>
+          <Link href="/" style={{ color: 'white', textDecoration: 'underline', opacity: 0.9 }}>home</Link>
         </div>
       </div>
     );
