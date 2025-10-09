@@ -51,5 +51,3 @@ export async function fetchQRCode(code: string): Promise<QRResponse> {
 
 
 
-
-

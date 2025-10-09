@@ -176,5 +176,3 @@ function normalizeProductFromMetadata(meta: any): SerializableProduct | null {
 
 
 
-
-

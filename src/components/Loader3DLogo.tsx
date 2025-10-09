@@ -98,5 +98,3 @@ export default function Loader3DLogo({ size = 220, backgroundColor = 'transparen
 
 
 
-
-

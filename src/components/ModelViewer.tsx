@@ -105,5 +105,3 @@ export default function ModelViewer({ src, width = 480, height = 360, background
 
 
 
-
-
