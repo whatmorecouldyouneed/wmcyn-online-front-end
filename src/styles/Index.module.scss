@@ -138,7 +138,7 @@
 .submitButton:hover {
   background: rgba(255, 255, 255, 0.2);
   border-color: rgba(255, 255, 255, 0.5);
-  transform: translateY(-1px);
+  /* removed transform to prevent layout shift */
 }
 
 .submitButton:active {
@@ -159,7 +159,7 @@
 
 .primaryButton:hover {
   background: rgba(255, 255, 255, 0.9);
-  transform: translateY(-1px);
+  /* removed transform to prevent layout shift */
 }
 
 .googleButton {
@@ -420,7 +420,7 @@
 
 .scrollButton:hover {
   background: rgba(255, 255, 255, 0.2);
-  transform: scale(1.05);
+  /* removed transform to prevent layout shift */
 }
 
 .scrollButton:active,
@@ -503,7 +503,7 @@
 /* Apply hover effects only on devices that can hover */
 @media (hover: hover) {
   .contentPanel:hover {
-    transform: translateY(-5px) scale(1.02);
+    /* removed transform to prevent layout shift */
     box-shadow: 0 0 30px rgba(168, 210, 255, 0.2), 0 15px 50px rgba(0, 0, 0, 0.5);
   }
 }

@@ -58,7 +58,7 @@
   border-radius: 1.2rem;
 }
 .menu:hover {
-  padding: 0.7rem 1.3rem;
+  /* removed padding change to prevent layout shift */
   border-radius: 1.2rem;
 }
 .menu > div > div {
@@ -87,7 +87,7 @@
   border-radius: 1.5rem;
 }
 .dock:hover {
-  padding: 0.6rem 1.4rem;
+  /* removed padding change to prevent layout shift */
   border-radius: 1.8rem;
 }
 .dock:hover > div {
@@ -111,10 +111,10 @@
   border-radius: 1.2rem;
 }
 .button:hover {
-  padding: 0.6rem 1.4rem;
+  /* removed padding change to prevent layout shift */
 }
 .button:hover > div {
-  border-radius: 1.5rem;
+  /* removed border-radius change to prevent layout shift */
 }
 .button svg {
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 2.2);
