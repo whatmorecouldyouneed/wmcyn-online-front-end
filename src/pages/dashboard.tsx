@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
-import { useUserProducts } from '../hooks/useUserProducts';
+import { useProfile } from '../hooks/useProfile';
+import { useInventory } from '../hooks/useInventory';
 import NextImage from '../components/NextImage';
 import LiquidGlassEffect from '../components/ui/LiquidGlassEffect';
 import styles from '../styles/Index.module.scss';
@@ -10,7 +11,8 @@ const WMCYNLOGO = '/wmcyn_logo_white.png';
 
 export default function Dashboard() {
   const { currentUser, logout } = useAuth();
-  const { products, transferProduct } = useUserProducts();
+  const { data: profile, loading: loadingProfile, error: profileError } = useProfile();
+  const { items: inventory, loading: loadingInventory, error: inventoryError } = useInventory(true);
   const router = useRouter();
   const [transferEmail, setTransferEmail] = useState('');
   const [transferProductId, setTransferProductId] = useState('');
@@ -58,7 +60,8 @@ export default function Dashboard() {
     try {
       setTransferLoading(true);
       setTransferError('');
-      await transferProduct(transferProductId, transferEmail);
+      // TODO: implement transfer via API endpoint
+      // await transferProduct(transferProductId, transferEmail);
       setShowTransferModal(false);
       setTransferEmail('');
       setTransferProductId('');
@@ -187,8 +190,18 @@ export default function Dashboard() {
               margin: 0,
               textAlign: 'center'
             }}>
-              welcome back, {currentUser.email}
+              welcome back, {profile?.username ?? currentUser.email}
             </p>
+            {profileError && (
+              <p style={{ 
+                fontSize: '12px', 
+                color: '#ff6b6b',
+                margin: '0.5rem 0 0 0',
+                textAlign: 'center'
+              }}>
+                profile error: {profileError}
+              </p>
+            )}
           </div>
 
           {/* products grid */}
@@ -203,10 +216,28 @@ export default function Dashboard() {
               color: 'white',
               textAlign: 'center'
             }}>
-              your wmcyn collection ({products.length})
+              your wmcyn collection ({inventory?.length ?? 0})
             </h2>
             
-            {products.length === 0 ? (
+            {loadingInventory ? (
+              <div style={{ 
+                textAlign: 'center', 
+                padding: '3rem 1rem',
+                color: 'rgba(255, 255, 255, 0.6)',
+                fontSize: '16px'
+              }}>
+                loading inventory...
+              </div>
+            ) : inventoryError ? (
+              <div style={{ 
+                textAlign: 'center', 
+                padding: '3rem 1rem',
+                color: '#ff6b6b',
+                fontSize: '16px'
+              }}>
+                inventory error: {inventoryError}
+              </div>
+            ) : (inventory?.length ?? 0) === 0 ? (
               <div style={{ 
                 textAlign: 'center', 
                 padding: '3rem 1rem',
@@ -230,8 +261,8 @@ export default function Dashboard() {
                 width: '100%',
                 justifyItems: 'center'
               }}>
-                {products.map((product) => (
-                  <LiquidGlassEffect key={product.id} variant="button">
+                {(inventory ?? []).map((item) => (
+                  <LiquidGlassEffect key={item.entitlementId} variant="button">
                     <div style={{ 
                       padding: !mounted ? '1.5rem' : (isMobile ? '1rem' : '1.5rem'),
                       textAlign: 'center',
@@ -244,22 +275,22 @@ export default function Dashboard() {
                         marginBottom: '0.5rem',
                         color: 'white'
                       }}>
-                        {product.name}
+                        {item.product?.title ?? item.productId}
                       </h3>
                       
-                      {product.acquired && (
+                      {item.acquiredAt && (
                         <p style={{ 
                           fontSize: '12px', 
                           color: 'rgba(255, 255, 255, 0.5)',
                           marginBottom: '1rem'
                         }}>
-                          acquired: {new Date(product.acquired).toLocaleDateString()}
+                          acquired: {new Date(item.acquiredAt).toLocaleDateString()}
                         </p>
                       )}
                       
                       <LiquidGlassEffect variant="button">
                         <button
-                          onClick={() => openTransferModal(product.id)}
+                          onClick={() => openTransferModal(item.entitlementId)}
                           style={{
                             background: 'none',
                             border: 'none',
@@ -308,6 +339,16 @@ export default function Dashboard() {
                 className={styles.ctaButton}
               >
                 scan wmcyn id
+              </button>
+            </LiquidGlassEffect>
+            
+            <LiquidGlassEffect variant="button">
+              <button 
+                onClick={() => router.push('/debug/profile')}
+                className={styles.ctaButton}
+                style={{ fontSize: '14px', padding: '0.5rem 1rem' }}
+              >
+                debug
               </button>
             </LiquidGlassEffect>
           </div>

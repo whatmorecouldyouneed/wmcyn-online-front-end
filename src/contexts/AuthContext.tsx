@@ -1,10 +1,11 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { auth, firestore } from '../utils/lib/firebase';
-import { User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, sendPasswordResetEmail, onAuthStateChanged } from 'firebase/auth';
+import { User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, sendPasswordResetEmail, onAuthStateChanged, onIdTokenChanged, getIdToken } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 type AuthContextType = {
   currentUser: User | null;
+  getIdToken: (force?: boolean) => Promise<string | null>;
   signup: (email: string, password: string) => Promise<any>;
   login: (email: string, password: string) => Promise<any>;
   logout: () => Promise<void>;
@@ -156,7 +157,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // add a small delay to ensure auth is fully initialized
     setTimeout(handleRedirectResult, 100);
     
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    // keep user object in sync
+    const unsubAuth = onAuthStateChanged(auth, async (user) => {
       if (user) {
         if (!firestore) {
           console.error('firestore not initialized - user data cannot be saved');
@@ -185,11 +187,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setCurrentUser(user);
       setLoading(false);
     });
+
+    // keep token fresh (auto refresh)
+    const unsubToken = onIdTokenChanged(auth, () => {
+      // no-op; getIdToken() will always fetch the latest when called
+    });
     
-    return unsubscribe;
+    return () => { 
+      unsubAuth(); 
+      unsubToken(); 
+    };
   }, []);
 
-  const value = { currentUser, signup, login, logout, googleSignIn, resetPassword };
+  const getId = async (force?: boolean) => {
+    if (!auth?.currentUser) return null;
+    return await getIdToken(auth.currentUser, !!force);
+  };
+
+  const value = { currentUser, getIdToken: getId, signup, login, logout, googleSignIn, resetPassword };
 
   return (
     <AuthContext.Provider value={value}>
