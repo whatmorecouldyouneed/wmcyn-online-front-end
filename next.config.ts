@@ -21,7 +21,7 @@ const nextConfig: NextConfig = {
     ],
   },
   trailingSlash: false,
-  // output: 'export', // Disabled for development to enable API routes
+  output: 'export', // Enable static export for GitHub Pages deployment
   // dev-only headers for serving 3d model assets with correct mime and cors
   // note: with static export these only apply when running next dev/start
   headers: async () => [
