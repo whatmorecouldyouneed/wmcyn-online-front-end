@@ -107,7 +107,7 @@ export default function Pair() {
         </form>
 
         <small style={styles.small}>
-          Don't have a code? Start pairing on your VR headset first.
+          Don&apos;t have a code? Start pairing on your VR headset first.
         </small>
       </div>
     </main>

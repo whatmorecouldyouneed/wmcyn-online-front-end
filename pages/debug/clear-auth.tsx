@@ -50,7 +50,7 @@ export default function ClearAuth() {
       
       <p style={{ textAlign: 'center', maxWidth: 500 }}>
         This will sign you out and clear all cached authentication data.
-        Use this if you're getting "invalid token" errors after switching Firebase projects.
+        Use this if you&apos;re getting &quot;invalid token&quot; errors after switching Firebase projects.
       </p>
 
       <button 

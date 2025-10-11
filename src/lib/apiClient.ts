@@ -17,7 +17,7 @@ async function apiFetch<T = any>(path: string, init: RequestInit = {}): Promise<
   headers.set('content-type', 'application/json');
 
   // attach auth
-  let token = await getIdToken();
+  const token = await getIdToken();
   if (token) {
     headers.set('authorization', `Bearer ${token}`);
   } else if (DEV_X_UID) {

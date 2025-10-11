@@ -24,7 +24,7 @@ export default function DebugProfile() {
 
   useEffect(() => {
     debugToken();
-  }, []);
+  }, [debugToken]);
 
   useEffect(() => {
     if (!currentUser) {
