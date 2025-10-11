@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { useApi } from "@/utils/api";
+import { getMyProfile } from "@/lib/apiClient";
 
 export function useProfile() {
-  const api = useApi();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -12,10 +11,8 @@ export function useProfile() {
     (async () => {
       try {
         setLoading(true);
-        const res = await api.get("/profile");
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        if (active) setData(json);
+        const profile = await getMyProfile();
+        if (active) setData(profile);
       } catch (e: any) {
         if (active) setError(e?.message ?? "Failed to load profile");
       } finally {

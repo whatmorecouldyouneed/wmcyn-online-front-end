@@ -1,9 +1,10 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import { getMyProfile, getInventory } from "@/lib/apiClient";
 
 export default function ApiTest() {
-  const { currentUser, getIdToken } = useAuth();
+  const { currentUser } = useAuth();
   const router = useRouter();
   const [testResults, setTestResults] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -19,43 +20,22 @@ export default function ApiTest() {
     setTestResults(null);
     
     try {
-      // Test 1: Get token
-      const token = await getIdToken();
-      console.log('[API TEST] Token:', token ? `${token.substring(0, 20)}...` : 'null');
+      console.log('[API TEST] Testing profile endpoint...');
+      const profile = await getMyProfile();
+      console.log('[API TEST] Profile:', profile);
       
-      // Test 2: Test API base URL
-      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
-      console.log('[API TEST] API Base URL:', apiBase);
-      
-      // Test 3: Make direct fetch call (using proxy in development)
-      const testUrl = process.env.NODE_ENV === 'development' 
-        ? '/api/profile'
-        : `${apiBase}/v1/profile/me`;
-        
-      const response = await fetch(testUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      console.log('[API TEST] Response status:', response.status);
-      console.log('[API TEST] Response headers:', Object.fromEntries(response.headers.entries()));
-      
-      const responseText = await response.text();
-      console.log('[API TEST] Response body:', responseText);
+      console.log('[API TEST] Testing inventory endpoint...');
+      const inventory = await getInventory(true);
+      console.log('[API TEST] Inventory:', inventory);
       
       setTestResults({
-        token: token ? `${token.substring(0, 20)}...` : 'null',
-        apiBase,
-        status: response.status,
-        headers: Object.fromEntries(response.headers.entries()),
-        body: responseText,
-        success: response.ok
+        profile,
+        inventory,
+        success: true,
+        apiBase: process.env.NEXT_PUBLIC_API_BASE_URL
       });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('[API TEST] Error:', error);
       setTestResults({
         error: error.message,
