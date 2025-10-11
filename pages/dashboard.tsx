@@ -125,52 +125,109 @@ export default function Dashboard() {
             width: '100%',
             padding: '0 1rem'
           }}>
-            <NextImage 
-              src={WMCYNLOGO} 
-              alt="WMCYN Logo" 
-              className={styles.logo}
-              style={{ 
-                maxWidth: isMobile ? '200px' : '250px',
-                height: 'auto'
-              }}
-            />
-            
-            <div style={{ 
-              display: 'flex', 
-              gap: !mounted ? '1rem' : (isMobile ? '0.75rem' : '1rem'), 
-              alignItems: 'center',
-              marginTop: isMobile ? '1rem' : '0'
-            }}>
-              <LiquidGlassEffect variant="button">
-                <button 
-                  onClick={() => router.push('/')}
-                  className={styles.ctaButton}
+            {isMobile ? (
+              // Mobile: centered layout
+              <>
+                <NextImage 
+                  src={WMCYNLOGO} 
+                  alt="WMCYN Logo" 
+                  className={styles.logo}
                   style={{ 
-                    fontSize: !mounted ? '14px' : (isMobile ? '12px' : '14px'), 
-                    padding: !mounted ? '0.5rem 1rem' : (isMobile ? '0.4rem 0.8rem' : '0.5rem 1rem'),
-                    minWidth: !mounted ? '80px' : (isMobile ? '70px' : '80px')
+                    maxWidth: '200px',
+                    height: 'auto',
+                    width: '100%',
+                    textAlign: 'center'
                   }}
-                >
-                  portal
-                </button>
-              </LiquidGlassEffect>
-              
-              <LiquidGlassEffect variant="button">
-                <button 
-                  onClick={handleLogout}
-                  className={styles.ctaButton}
-                  disabled={logoutLoading}
+                />
+                <div style={{ 
+                  display: 'flex', 
+                  gap: '0.75rem', 
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '100%'
+                }}>
+                  <LiquidGlassEffect variant="button">
+                    <button 
+                      onClick={() => router.push('/')}
+                      className={styles.ctaButton}
+                      style={{ 
+                        fontSize: '12px', 
+                        padding: '0.4rem 0.8rem',
+                        minWidth: '70px'
+                      }}
+                    >
+                      portal
+                    </button>
+                  </LiquidGlassEffect>
+                  
+                  <LiquidGlassEffect variant="button">
+                    <button 
+                      onClick={handleLogout}
+                      className={styles.ctaButton}
+                      disabled={logoutLoading}
+                      style={{ 
+                        fontSize: '12px', 
+                        padding: '0.4rem 0.8rem',
+                        minWidth: '70px',
+                        backgroundColor: logoutLoading ? 'rgba(255, 255, 255, 0.1)' : 'transparent'
+                      }}
+                    >
+                      {logoutLoading ? 'logging out...' : 'logout'}
+                    </button>
+                  </LiquidGlassEffect>
+                </div>
+              </>
+            ) : (
+              // Desktop: space-between layout
+              <>
+                <NextImage 
+                  src={WMCYNLOGO} 
+                  alt="WMCYN Logo" 
+                  className={styles.logo}
                   style={{ 
-                    fontSize: !mounted ? '14px' : (isMobile ? '12px' : '14px'), 
-                    padding: !mounted ? '0.5rem 1rem' : (isMobile ? '0.4rem 0.8rem' : '0.5rem 1rem'),
-                    minWidth: !mounted ? '80px' : (isMobile ? '70px' : '80px'),
-                    backgroundColor: logoutLoading ? 'rgba(255, 255, 255, 0.1)' : 'transparent'
+                    maxWidth: '250px',
+                    height: 'auto',
+                    flexShrink: 0
                   }}
-                >
-                  {logoutLoading ? 'logging out...' : 'logout'}
-                </button>
-              </LiquidGlassEffect>
-            </div>
+                />
+                
+                <div style={{ 
+                  display: 'flex', 
+                  gap: '1rem', 
+                  alignItems: 'center'
+                }}>
+                  <LiquidGlassEffect variant="button">
+                    <button 
+                      onClick={() => router.push('/')}
+                      className={styles.ctaButton}
+                      style={{ 
+                        fontSize: '14px', 
+                        padding: '0.5rem 1rem',
+                        minWidth: '80px'
+                      }}
+                    >
+                      portal
+                    </button>
+                  </LiquidGlassEffect>
+                  
+                  <LiquidGlassEffect variant="button">
+                    <button 
+                      onClick={handleLogout}
+                      className={styles.ctaButton}
+                      disabled={logoutLoading}
+                      style={{ 
+                        fontSize: '14px', 
+                        padding: '0.5rem 1rem',
+                        minWidth: '80px',
+                        backgroundColor: logoutLoading ? 'rgba(255, 255, 255, 0.1)' : 'transparent'
+                      }}
+                    >
+                      {logoutLoading ? 'logging out...' : 'logout'}
+                    </button>
+                  </LiquidGlassEffect>
+                </div>
+              </>
+            )}
           </div>
 
           {/* user info */}
