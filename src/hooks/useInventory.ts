@@ -12,7 +12,7 @@ export function useInventory(includeProduct = true) {
     (async () => {
       try {
         setLoading(true);
-        const res = await api.get(`/v1/profile/inventory?includeProduct=${includeProduct}`);
+        const res = await api.get("/inventory");
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         if (active) setItems(json);

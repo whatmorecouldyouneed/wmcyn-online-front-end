@@ -12,7 +12,7 @@ export function useProfile() {
     (async () => {
       try {
         setLoading(true);
-        const res = await api.get("/v1/profile/me");
+        const res = await api.get("/profile");
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         if (active) setData(json);

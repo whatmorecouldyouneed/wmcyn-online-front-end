@@ -29,7 +29,7 @@ export default function ApiTest() {
       
       // Test 3: Make direct fetch call (using proxy in development)
       const testUrl = process.env.NODE_ENV === 'development' 
-        ? '/api/proxy/v1/profile/me'
+        ? '/api/profile'
         : `${apiBase}/v1/profile/me`;
         
       const response = await fetch(testUrl, {
