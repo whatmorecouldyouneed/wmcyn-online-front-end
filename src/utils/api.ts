@@ -26,7 +26,7 @@ const BASE = process.env.NODE_ENV === 'development'
 // Non-hook helper for places where hooks aren't allowed:
 export async function authFetch(getIdToken: () => Promise<string | null>, path: string, init: RequestInit = {}) {
   const attempt = async (force?: boolean) => {
-    const token = (await getIdToken(!!force)) ?? "";
+    const token = (await getIdToken()) ?? "";
     console.log(`[API] Making request to: ${BASE}${path}`);
     console.log(`[API] Token length: ${token.length}, Force refresh: ${force}`);
     console.log(`[API] Token preview: ${token.substring(0, 20)}...`);

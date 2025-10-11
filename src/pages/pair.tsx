@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthAPI } from "@/utils/auth-api";
 
-// Disable SSR for QR component
-const QRCode = dynamic(() => import("qrcode.react"), { ssr: false });
+// Disable SSR for QR component - temporarily disabled due to TypeScript issues
+// const QRCode = dynamic(() => import("qrcode.react").then(mod => mod.default), { ssr: false });
 
 type PairingMode = 'qr' | 'code';
 
@@ -176,7 +176,19 @@ export default function Pair() {
               <div style={{ color: "crimson", marginBottom: 12 }}>{error}</div>
             ) : deepLink ? (
               <div style={{ display: "grid", placeItems: "center", gap: 12 }}>
-                <QRCode value={deepLink} size={256} />
+                <div style={{ 
+                  width: 256, 
+                  height: 256, 
+                  background: "#1b1b1b", 
+                  border: "2px solid #2a2a2a", 
+                  borderRadius: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#666"
+                }}>
+                  QR Code (temporarily disabled)
+                </div>
                 <code style={styles.code}>{deepLink}</code>
               </div>
             ) : null}

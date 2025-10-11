@@ -55,10 +55,10 @@ export default function ApiTest() {
         success: response.ok
       });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('[API TEST] Error:', error);
       setTestResults({
-        error: error.message,
+        error: error?.message || 'Unknown error',
         success: false
       });
     } finally {
