@@ -5,8 +5,15 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE!;
 const DEV_X_UID = process.env.NEXT_PUBLIC_DEV_X_UID;
 
 async function getIdToken(): Promise<string | null> {
-  if (!auth?.currentUser) return null;
-  return await auth.currentUser.getIdToken();
+  console.log('[apiClient] auth:', !!auth);
+  console.log('[apiClient] currentUser:', !!auth?.currentUser);
+  if (!auth?.currentUser) {
+    console.warn('[apiClient] No currentUser - user not signed in');
+    return null;
+  }
+  const token = await auth.currentUser.getIdToken();
+  console.log('[apiClient] Token retrieved:', token ? `${token.substring(0, 20)}...` : 'null');
+  return token;
 }
 
 async function apiFetch<T = any>(path: string, init: RequestInit = {}): Promise<T> {
@@ -15,17 +22,28 @@ async function apiFetch<T = any>(path: string, init: RequestInit = {}): Promise<
 
   // attach auth
   const token = await getIdToken();
-  if (token) headers.set('authorization', `Bearer ${token}`);
-  else if (DEV_X_UID) headers.set('x-uid', DEV_X_UID);
+  if (token) {
+    headers.set('authorization', `Bearer ${token}`);
+    console.log('[apiClient] Added Bearer token to request');
+  } else if (DEV_X_UID) {
+    headers.set('x-uid', DEV_X_UID);
+    console.log('[apiClient] Added x-uid to request:', DEV_X_UID);
+  } else {
+    console.warn('[apiClient] No token or x-uid available - request will fail');
+  }
 
+  console.log('[apiClient] Fetching:', `${API_BASE}${path}`);
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers,
     cache: 'no-store',
   });
+  
+  console.log('[apiClient] Response status:', res.status);
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
+    console.error('[apiClient] Request failed:', text);
     throw new Error(text || `request_failed_${res.status}`);
   }
 
