@@ -128,7 +128,14 @@ export default function Pair() {
 
         {mode === 'code' ? (
           <>
-            <p>Enter the 6-digit code shown on your VR headset</p>
+            <p style={{ 
+              margin: "0 0 24px 0", 
+              fontSize: "16px", 
+              color: "#bbb", 
+              lineHeight: "1.5" 
+            }}>
+              Enter the 6-digit code shown on your VR headset
+            </p>
             
             <form onSubmit={handleCodeSubmit} style={styles.form}>
               <div style={styles.inputGroup}>
@@ -169,7 +176,14 @@ export default function Pair() {
           </>
         ) : (
           <>
-            <p>Open the Wimson Online app on your Quest, then scan this QR.</p>
+            <p style={{ 
+              margin: "0 0 24px 0", 
+              fontSize: "16px", 
+              color: "#bbb", 
+              lineHeight: "1.5" 
+            }}>
+              Open the Wimson Online app on your Quest, then scan this QR.
+            </p>
             {loading ? (
               <div style={{ padding: 24 }}>Generating token…</div>
             ) : error ? (
@@ -209,17 +223,52 @@ export default function Pair() {
 }
 
 const styles: Record<string, any> = {
-  main: { minHeight: "100svh", display: "grid", placeItems: "center", padding: 24, background: "#0b0b0b" },
-  card: { width: "100%", maxWidth: 560, background: "#121212", color: "#ddd", borderRadius: 16, padding: 24, boxShadow: "0 8px 24px rgba(0,0,0,0.35)" },
-  h1: { margin: "0 0 8px 0", fontSize: 24 },
+  main: { 
+    minHeight: "100vh", 
+    display: "flex", 
+    alignItems: "center", 
+    justifyContent: "center", 
+    padding: "16px", 
+    background: "#0b0b0b",
+    fontFamily: "system-ui, -apple-system, sans-serif"
+  },
+  card: { 
+    width: "100%", 
+    maxWidth: "400px", 
+    background: "#121212", 
+    color: "#ddd", 
+    borderRadius: 16, 
+    padding: "24px", 
+    boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+    textAlign: "center"
+  },
+  h1: { 
+    margin: "0 0 16px 0", 
+    fontSize: "28px", 
+    fontWeight: "600",
+    color: "#fff"
+  },
   code: { display: "block", wordBreak: "break-all", background: "#1b1b1b", padding: 12, borderRadius: 8 },
   row: { display: "flex", gap: 12, marginTop: 12 },
   btn: { background: "#1e1e1e", color: "#fff", padding: "10px 14px", borderRadius: 10, border: "1px solid #2a2a2a", cursor: "pointer" },
   btnPrimary: { display: "inline-block", background: "#2a5fff", color: "#fff", padding: "10px 14px", borderRadius: 10, textDecoration: "none" },
-  small: { display: "block", marginTop: 12, color: "#9a9a9a" },
+  small: { 
+    display: "block", 
+    marginTop: 16, 
+    color: "#9a9a9a", 
+    fontSize: "14px",
+    lineHeight: "1.4"
+  },
   
   // New styles for 6-digit code mode
-  modeToggle: { display: "flex", gap: 8, marginBottom: 20, background: "#1e1e1e", borderRadius: 10, padding: 4 },
+  modeToggle: { 
+    display: "flex", 
+    gap: 6, 
+    marginBottom: 24, 
+    background: "#1e1e1e", 
+    borderRadius: 12, 
+    padding: 4 
+  },
   modeBtn: { 
     flex: 1, 
     background: "transparent", 
@@ -239,29 +288,32 @@ const styles: Record<string, any> = {
   inputGroup: { display: "flex", flexDirection: "column", gap: 8 },
   codeInput: {
     width: "100%",
-    padding: "16px",
-    fontSize: "24px",
+    padding: "20px 16px",
+    fontSize: "28px",
     fontFamily: "monospace",
     textAlign: "center",
-    letterSpacing: "4px",
+    letterSpacing: "6px",
     background: "#1b1b1b",
     border: "2px solid #2a2a2a",
-    borderRadius: 12,
+    borderRadius: 16,
     color: "#fff",
     outline: "none",
-    transition: "border-color 0.2s ease"
+    transition: "border-color 0.2s ease",
+    boxSizing: "border-box",
+    marginBottom: "8px"
   },
   submitBtn: {
     width: "100%",
     background: "#2a5fff",
     color: "#fff",
-    padding: "16px",
-    borderRadius: 12,
+    padding: "18px 24px",
+    borderRadius: 16,
     border: "none",
-    fontSize: 16,
-    fontWeight: 500,
+    fontSize: "18px",
+    fontWeight: "600",
     cursor: "pointer",
-    transition: "background-color 0.2s ease"
+    transition: "all 0.2s ease",
+    marginTop: "8px"
   },
   submitBtnDisabled: {
     background: "#1a1a1a",
