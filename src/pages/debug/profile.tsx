@@ -5,10 +5,26 @@ import { useRouter } from "next/router";
 import { useEffect } from "react";
 
 export default function DebugProfile() {
-  const { currentUser } = useAuth();
+  const { currentUser, getIdToken } = useAuth();
   const router = useRouter();
   const p = useProfile();
   const inv = useInventory(true);
+
+  // Debug token retrieval
+  const debugToken = async () => {
+    try {
+      const token = await getIdToken();
+      console.log('[DEBUG] Token retrieved:', token ? `${token.substring(0, 20)}...` : 'null');
+      return token;
+    } catch (error) {
+      console.error('[DEBUG] Token error:', error);
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    debugToken();
+  }, []);
 
   useEffect(() => {
     if (!currentUser) {

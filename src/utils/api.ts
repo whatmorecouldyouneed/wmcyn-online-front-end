@@ -24,13 +24,23 @@ const BASE = process.env.NEXT_PUBLIC_API_BASE_URL!; // e.g., https://us-central1
 export async function authFetch(getIdToken: () => Promise<string | null>, path: string, init: RequestInit = {}) {
   const attempt = async (force?: boolean) => {
     const token = (await getIdToken(!!force)) ?? "";
-    return fetch(`${BASE}${path}`, { 
+    console.log(`[API] Making request to: ${BASE}${path}`);
+    console.log(`[API] Token length: ${token.length}, Force refresh: ${force}`);
+    console.log(`[API] Token preview: ${token.substring(0, 20)}...`);
+    
+    const response = await fetch(`${BASE}${path}`, { 
       ...init, 
       headers: { ...(init.headers || {}), Authorization: `Bearer ${token}` } 
     });
+    
+    console.log(`[API] Response status: ${response.status}`);
+    return response;
   };
   let res = await attempt(false);
-  if (res.status === 401) res = await attempt(true);
+  if (res.status === 401) {
+    console.log(`[API] Got 401, retrying with force refresh...`);
+    res = await attempt(true);
+  }
   return res; // Let caller handle UI (redirect/CTA) if still 401
 }
 
