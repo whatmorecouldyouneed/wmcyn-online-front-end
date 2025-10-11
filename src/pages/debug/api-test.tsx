@@ -27,8 +27,12 @@ export default function ApiTest() {
       const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
       console.log('[API TEST] API Base URL:', apiBase);
       
-      // Test 3: Make direct fetch call
-      const response = await fetch(`${apiBase}/v1/profile/me`, {
+      // Test 3: Make direct fetch call (using proxy in development)
+      const testUrl = process.env.NODE_ENV === 'development' 
+        ? '/api/proxy/v1/profile/me'
+        : `${apiBase}/v1/profile/me`;
+        
+      const response = await fetch(testUrl, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
