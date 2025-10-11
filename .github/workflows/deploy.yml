@@ -30,6 +30,8 @@ jobs:
           echo "Checking Shopify config variables..."
           echo "NEXT_PUBLIC_SHOPIFY_DOMAIN exists: ${{ secrets.NEXT_PUBLIC_SHOPIFY_DOMAIN != '' }}"
           echo "NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN exists: ${{ secrets.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN != '' }}"
+          echo "Checking API config variables..."
+          echo "NEXT_PUBLIC_API_BASE exists: ${{ secrets.NEXT_PUBLIC_API_BASE != '' }}"
 
       - name: Create .env.production
         run: |
@@ -43,12 +45,14 @@ jobs:
           NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }}
           NEXT_PUBLIC_SHOPIFY_DOMAIN=${{ secrets.NEXT_PUBLIC_SHOPIFY_DOMAIN }}
           NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN=${{ secrets.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN }}
+          NEXT_PUBLIC_API_BASE=${{ secrets.NEXT_PUBLIC_API_BASE }}
           EOF
           
           # verify the .env.production file was created with the correct values
           echo "Verifying .env.production file..."
           echo "NEXT_PUBLIC_SHOPIFY_DOMAIN in .env.production: $(grep NEXT_PUBLIC_SHOPIFY_DOMAIN .env.production)"
           echo "NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN exists in .env.production: $(grep NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN .env.production | wc -l)"
+          echo "NEXT_PUBLIC_API_BASE in .env.production: $(grep NEXT_PUBLIC_API_BASE .env.production)"
 
       - name: Build
         run: yarn build
