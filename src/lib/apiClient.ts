@@ -45,12 +45,22 @@ async function apiFetch<T = any>(path: string, init: RequestInit = {}): Promise<
       const fresh = await auth.currentUser.getIdToken(true);
       if (fresh) {
         headers.set('authorization', `Bearer ${fresh}`);
+        headers.delete('x-uid');
         res = await doFetch();
         console.log('[apiClient] Retry response status:', res.status);
       }
     } catch (e) {
       console.warn('[apiClient] token refresh failed');
     }
+  }
+
+  // dev-only fallback: if still 401 and x-uid is configured
+  if (res.status === 401 && DEV_X_UID) {
+    console.log('[apiClient] 401 persists; retrying with x-uid dev fallback');
+    headers.delete('authorization');
+    headers.set('x-uid', DEV_X_UID);
+    res = await doFetch();
+    console.log('[apiClient] x-uid retry status:', res.status);
   }
 
   if (!res.ok) {
