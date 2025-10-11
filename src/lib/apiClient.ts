@@ -1,7 +1,7 @@
 // simple fetch wrapper that attaches firebase id token
 import { auth } from '@/utils/lib/firebase';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL!;
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE!;
 const DEV_X_UID = process.env.NEXT_PUBLIC_DEV_X_UID;
 
 async function getIdToken(): Promise<string | null> {

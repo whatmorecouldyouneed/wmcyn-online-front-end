@@ -32,7 +32,7 @@ export default function ApiTest() {
         profile,
         inventory,
         success: true,
-        apiBase: process.env.NEXT_PUBLIC_API_BASE_URL
+        apiBase: process.env.NEXT_PUBLIC_API_BASE
       });
       
     } catch (error: any) {
