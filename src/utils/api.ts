@@ -18,7 +18,10 @@ export interface QRResponse {
   assetUrl?: string;
 }
 
-const BASE = process.env.NEXT_PUBLIC_API_BASE_URL!; // e.g., https://us-central1-.../api
+// Use proxy in development to bypass CORS, direct API in production
+const BASE = process.env.NODE_ENV === 'development' 
+  ? '/api/proxy' 
+  : process.env.NEXT_PUBLIC_API_BASE_URL!;
 
 // Non-hook helper for places where hooks aren't allowed:
 export async function authFetch(getIdToken: () => Promise<string | null>, path: string, init: RequestInit = {}) {
