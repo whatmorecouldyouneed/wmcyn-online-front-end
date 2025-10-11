@@ -282,13 +282,13 @@ export default function Dashboard() {
           <div style={{ 
             display: 'flex', 
             justifyContent: 'center', 
-            gap: !mounted ? '1.5rem' : (isMobile ? '1rem' : '1.5rem'),
+            gap: !mounted ? '1rem' : (isMobile ? '0.75rem' : '1rem'),
             flexWrap: 'wrap',
             padding: !mounted ? '0' : (isMobile ? '0 1rem' : '0'),
             marginTop: !mounted ? '2rem' : (isMobile ? '1.5rem' : '2rem'),
             marginBottom: !mounted ? '1rem' : (isMobile ? '2rem' : '1rem'),
             width: '100%',
-            maxWidth: !mounted ? '500px' : (isMobile ? '400px' : '500px')
+            maxWidth: !mounted ? '600px' : (isMobile ? '400px' : '600px')
           }}>
             <LiquidGlassEffect variant="button">
               <button 
@@ -315,6 +315,20 @@ export default function Dashboard() {
                 }}
               >
                 scan wmcyn id
+              </button>
+            </LiquidGlassEffect>
+            
+            <LiquidGlassEffect variant="button">
+              <button 
+                onClick={() => router.push('/pair')}
+                className={styles.ctaButton}
+                style={{ 
+                  fontSize: !mounted ? '16px' : (isMobile ? '14px' : '16px'),
+                  padding: !mounted ? '0.75rem 1.5rem' : (isMobile ? '0.6rem 1.2rem' : '0.75rem 1.5rem'),
+                  minWidth: !mounted ? '140px' : (isMobile ? '120px' : '140px')
+                }}
+              >
+                pair headset
               </button>
             </LiquidGlassEffect>
           </div>
