@@ -92,7 +92,14 @@ export default function Pair() {
       <main style={styles.main}>
         <div style={styles.card}>
           <h1 style={styles.h1}>Pair Your Headset</h1>
-          <p>Please sign in to generate a pairing code.</p>
+          <p style={{ 
+            margin: "0 0 32px 0", 
+            fontSize: "16px", 
+            color: "#bbb", 
+            lineHeight: "1.5" 
+          }}>
+            Please sign in to generate a pairing code.
+          </p>
           <Link href="/login" style={styles.btnPrimary}>Go to Login</Link>
         </div>
       </main>
@@ -251,7 +258,17 @@ const styles: Record<string, any> = {
   code: { display: "block", wordBreak: "break-all", background: "#1b1b1b", padding: 12, borderRadius: 8 },
   row: { display: "flex", gap: 12, marginTop: 12 },
   btn: { background: "#1e1e1e", color: "#fff", padding: "10px 14px", borderRadius: 10, border: "1px solid #2a2a2a", cursor: "pointer" },
-  btnPrimary: { display: "inline-block", background: "#2a5fff", color: "#fff", padding: "10px 14px", borderRadius: 10, textDecoration: "none" },
+  btnPrimary: { 
+    display: "inline-block", 
+    background: "#2a5fff", 
+    color: "#fff", 
+    padding: "16px 24px", 
+    borderRadius: 16, 
+    textDecoration: "none",
+    fontSize: "16px",
+    fontWeight: "600",
+    transition: "all 0.2s ease"
+  },
   small: { 
     display: "block", 
     marginTop: 16, 
