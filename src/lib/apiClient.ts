@@ -21,7 +21,7 @@ async function apiFetch<T = any>(path: string, init: RequestInit = {}): Promise<
   headers.set('content-type', 'application/json');
 
   // attach auth
-  const token = await getIdToken();
+  let token = await getIdToken();
   if (token) {
     headers.set('authorization', `Bearer ${token}`);
     console.log('[apiClient] Added Bearer token to request');
@@ -32,14 +32,26 @@ async function apiFetch<T = any>(path: string, init: RequestInit = {}): Promise<
     console.warn('[apiClient] No token or x-uid available - request will fail');
   }
 
+  const doFetch = async () => fetch(`${API_BASE}${path}`, { ...init, headers, cache: 'no-store' });
+
   console.log('[apiClient] Fetching:', `${API_BASE}${path}`);
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers,
-    cache: 'no-store',
-  });
-  
+  let res = await doFetch();
   console.log('[apiClient] Response status:', res.status);
+
+  // retry once on 401 with forced refresh
+  if (res.status === 401 && auth?.currentUser) {
+    try {
+      console.log('[apiClient] 401 received, forcing token refresh...');
+      const fresh = await auth.currentUser.getIdToken(true);
+      if (fresh) {
+        headers.set('authorization', `Bearer ${fresh}`);
+        res = await doFetch();
+        console.log('[apiClient] Retry response status:', res.status);
+      }
+    } catch (e) {
+      console.warn('[apiClient] token refresh failed');
+    }
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
