@@ -318,19 +318,6 @@ export default function Dashboard() {
               </button>
             </LiquidGlassEffect>
             
-            <LiquidGlassEffect variant="button">
-              <button 
-                onClick={() => router.push('/pair')}
-                className={styles.ctaButton}
-                style={{ 
-                  fontSize: !mounted ? '16px' : (isMobile ? '14px' : '16px'),
-                  padding: !mounted ? '0.75rem 1.5rem' : (isMobile ? '0.6rem 1.2rem' : '0.75rem 1.5rem'),
-                  minWidth: !mounted ? '140px' : (isMobile ? '120px' : '140px')
-                }}
-              >
-                pair headset
-              </button>
-            </LiquidGlassEffect>
           </div>
 
           {/* secondary navigation */}
