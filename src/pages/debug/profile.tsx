@@ -94,6 +94,23 @@ export default function DebugProfile() {
       </div>
 
       <button 
+        onClick={() => router.push('/debug/api-test')}
+        style={{
+          background: 'rgba(255, 255, 255, 0.1)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          color: 'white',
+          padding: '0.75rem 1.5rem',
+          borderRadius: '8px',
+          cursor: 'pointer',
+          fontSize: '14px',
+          fontFamily: 'inherit',
+          marginRight: '1rem'
+        }}
+      >
+        test API endpoint
+      </button>
+      
+      <button 
         onClick={() => router.push('/dashboard')}
         style={{
           background: 'rgba(255, 255, 255, 0.1)',
