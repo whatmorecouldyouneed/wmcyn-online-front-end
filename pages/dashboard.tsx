@@ -137,7 +137,7 @@ export default function Dashboard() {
             
             <div style={{ 
               display: 'flex', 
-              gap: '1rem', 
+              gap: !mounted ? '1rem' : (isMobile ? '0.75rem' : '1rem'), 
               alignItems: 'center',
               marginTop: isMobile ? '1rem' : '0'
             }}>
@@ -145,7 +145,11 @@ export default function Dashboard() {
                 <button 
                   onClick={() => router.push('/')}
                   className={styles.ctaButton}
-                  style={{ fontSize: '14px', padding: '0.5rem 1rem' }}
+                  style={{ 
+                    fontSize: !mounted ? '14px' : (isMobile ? '12px' : '14px'), 
+                    padding: !mounted ? '0.5rem 1rem' : (isMobile ? '0.4rem 0.8rem' : '0.5rem 1rem'),
+                    minWidth: !mounted ? '80px' : (isMobile ? '70px' : '80px')
+                  }}
                 >
                   portal
                 </button>
@@ -157,8 +161,9 @@ export default function Dashboard() {
                   className={styles.ctaButton}
                   disabled={logoutLoading}
                   style={{ 
-                    fontSize: '14px', 
-                    padding: '0.5rem 1rem',
+                    fontSize: !mounted ? '14px' : (isMobile ? '12px' : '14px'), 
+                    padding: !mounted ? '0.5rem 1rem' : (isMobile ? '0.4rem 0.8rem' : '0.5rem 1rem'),
+                    minWidth: !mounted ? '80px' : (isMobile ? '70px' : '80px'),
                     backgroundColor: logoutLoading ? 'rgba(255, 255, 255, 0.1)' : 'transparent'
                   }}
                 >
@@ -316,18 +321,23 @@ export default function Dashboard() {
           <div style={{ 
             display: 'flex', 
             justifyContent: 'center', 
-            gap: !mounted ? '1rem' : (isMobile ? '0.75rem' : '1rem'),
+            gap: !mounted ? '1.5rem' : (isMobile ? '1rem' : '1.5rem'),
             flexWrap: 'wrap',
             padding: !mounted ? '0' : (isMobile ? '0 1rem' : '0'),
             marginTop: !mounted ? '2rem' : (isMobile ? '1.5rem' : '2rem'),
             marginBottom: !mounted ? '1rem' : (isMobile ? '2rem' : '1rem'),
             width: '100%',
-            maxWidth: '400px'
+            maxWidth: !mounted ? '500px' : (isMobile ? '400px' : '500px')
           }}>
             <LiquidGlassEffect variant="button">
               <button 
                 onClick={() => router.push('/shop/friends-and-family')}
                 className={styles.ctaButton}
+                style={{ 
+                  fontSize: !mounted ? '16px' : (isMobile ? '14px' : '16px'),
+                  padding: !mounted ? '0.75rem 1.5rem' : (isMobile ? '0.6rem 1.2rem' : '0.75rem 1.5rem'),
+                  minWidth: !mounted ? '140px' : (isMobile ? '120px' : '140px')
+                }}
               >
                 shop
               </button>
@@ -337,18 +347,13 @@ export default function Dashboard() {
               <button 
                 onClick={() => router.push('/#scannerSection')}
                 className={styles.ctaButton}
+                style={{ 
+                  fontSize: !mounted ? '16px' : (isMobile ? '14px' : '16px'),
+                  padding: !mounted ? '0.75rem 1.5rem' : (isMobile ? '0.6rem 1.2rem' : '0.75rem 1.5rem'),
+                  minWidth: !mounted ? '140px' : (isMobile ? '120px' : '140px')
+                }}
               >
                 scan wmcyn id
-              </button>
-            </LiquidGlassEffect>
-            
-            <LiquidGlassEffect variant="button">
-              <button 
-                onClick={() => router.push('/debug/profile')}
-                className={styles.ctaButton}
-                style={{ fontSize: '14px', padding: '0.5rem 1rem' }}
-              >
-                debug
               </button>
             </LiquidGlassEffect>
           </div>
