@@ -14,13 +14,15 @@ export interface ProductMetadata {
   claimedAt?: string;
 }
 
+import { ARSessionMetadata } from '../types/arSessions';
+
 export interface MarkerConfig {
   name: string;
   patternUrl: string; // can be a local path or a special identifier
   modelUrl: string;
   scale?: number;
   label?: string;
-  metadata?: ProductMetadata;
+  metadata?: ProductMetadata | ARSessionMetadata;
   onFound?: () => void;
 }
 

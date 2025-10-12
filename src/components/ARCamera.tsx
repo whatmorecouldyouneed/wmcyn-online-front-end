@@ -166,21 +166,24 @@ const ARCamera = ({ onClose, configs = defaultMarkerConfigs }: ARCameraProps): J
   // handlers for metadata actions
   const handleClaim = () => {
     if (detectedMarker?.metadata) {
-      console.log('Claiming product:', detectedMarker.metadata.id);
+      const metadata = detectedMarker.metadata as any;
+      console.log('Claiming product:', metadata.id || metadata.title);
       // todo: implement claim logic
     }
   };
 
   const handlePurchase = () => {
     if (detectedMarker?.metadata) {
-      console.log('Purchasing product:', detectedMarker.metadata.id);
+      const metadata = detectedMarker.metadata as any;
+      console.log('Purchasing product:', metadata.id || metadata.title);
       // todo: implement purchase logic
     }
   };
 
   const handleShare = async () => {
     if (detectedMarker?.metadata) {
-      console.log('Sharing product:', detectedMarker.metadata.id);
+      const metadata = detectedMarker.metadata as any;
+      console.log('Sharing product:', metadata.id || metadata.title);
       
       try {
         // find video and canvas elements for capture
@@ -189,11 +192,11 @@ const ARCamera = ({ onClose, configs = defaultMarkerConfigs }: ARCameraProps): J
         
         await shareARSceneToInstagram({
           metadata: {
-            id: detectedMarker.metadata.id,
-            title: detectedMarker.metadata.title,
-            price: detectedMarker.metadata.price,
-            printLocation: detectedMarker.metadata.printLocation,
-            quantity: detectedMarker.metadata.quantity
+            id: metadata.id || metadata.title,
+            title: metadata.title,
+            price: metadata.price,
+            printLocation: metadata.printLocation,
+            quantity: metadata.quantity
           },
           videoElement,
           canvasElement

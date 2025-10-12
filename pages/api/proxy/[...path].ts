@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 
-const API_BASE = 'https://us-central1-wmcyn-online-web.cloudfunctions.net/api';
+const API_BASE = 'https://api-rrm3u3yaba-uc.a.run.app';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { path } = req.query;
@@ -8,6 +8,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   
   // Get the Authorization header from the request
   const authHeader = req.headers.authorization;
+  const adminToken = req.headers['x-admin-token'];
+  
+  console.log(`[Proxy] ${req.method} ${pathString} -> ${API_BASE}/${pathString}`);
   
   try {
     const response = await fetch(`${API_BASE}/${pathString}`, {
@@ -15,6 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       headers: {
         'Content-Type': 'application/json',
         ...(authHeader && { 'Authorization': authHeader }),
+        ...(adminToken && { 'x-admin-token': adminToken as string }),
       },
       body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined,
     });
