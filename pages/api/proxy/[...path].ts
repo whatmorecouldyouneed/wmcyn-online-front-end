@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 
-const API_BASE = 'https://api-rrm3u3yaba-uc.a.run.app';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://us-central1-wmcyn-online-mobile.cloudfunctions.net/api';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { path } = req.query;

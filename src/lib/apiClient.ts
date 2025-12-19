@@ -19,11 +19,12 @@ import {
   MarkerPatternListResponse,
   UploadMarkerPatternRequest,
   UploadMarkerPatternResponse,
+  MarkerValidation,
   ArConfigResponse
 } from '@/types/arSessions';
 
 // use deployed Firebase Cloud Functions API directly
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://api-rrm3u3yaba-uc.a.run.app';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://us-central1-wmcyn-online-mobile.cloudfunctions.net/api';
 const PROXY_BASE = '/api/proxy';
 const DEV_X_UID = process.env.NEXT_PUBLIC_DEV_X_UID;
 const ADMIN_API_TOKEN = process.env.NEXT_PUBLIC_ADMIN_API_TOKEN;
@@ -87,7 +88,23 @@ async function apiFetch<T = any>(path: string, init: RequestInit = {}): Promise<
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     console.error('[apiClient] Request failed:', res.status, text);
-    throw new Error(text || `request_failed_${res.status}`);
+    
+    // provide cleaner error messages based on status code
+    if (res.status === 404) {
+      throw new Error('Resource not found');
+    } else if (res.status === 401) {
+      throw new Error('Unauthorized');
+    } else if (res.status === 403) {
+      throw new Error('Forbidden');
+    } else if (res.status === 503) {
+      throw new Error('Backend service unavailable - the Cloud Function may be cold-starting or not deployed. Please try again in a few moments.');
+    } else if (res.status >= 500) {
+      throw new Error('Server error');
+    } else {
+      // for other errors, try to extract meaningful message from response
+      const cleanText = text.replace(/<[^>]*>/g, '').trim();
+      throw new Error(cleanText || `Request failed with status ${res.status}`);
+    }
   }
 
   // return json or empty object
@@ -249,9 +266,19 @@ async function adminApiFetch<T = any>(path: string, init: RequestInit = {}): Pro
       } else {
         throw new Error('Authentication required - check if backend supports the authentication method');
       }
+    } else if (res.status === 404) {
+      throw new Error('Resource not found');
+    } else if (res.status === 403) {
+      throw new Error('Forbidden');
+    } else if (res.status === 503) {
+      throw new Error('Backend service unavailable - the Cloud Function may be cold-starting or not deployed. Please try again in a few moments.');
+    } else if (res.status >= 500) {
+      throw new Error('Server error');
+    } else {
+      // for other errors, try to extract meaningful message from response
+      const cleanText = text.replace(/<[^>]*>/g, '').trim();
+      throw new Error(cleanText || `Admin request failed with status ${res.status}`);
     }
-    
-    throw new Error(text || `admin_request_failed_${res.status}`);
   }
 
   const jsonResponse = await res.json().catch(() => ({}));
@@ -271,11 +298,107 @@ export const getProductSets = (): Promise<ProductSetsResponse> =>
 export const getProductSet = (id: string): Promise<ProductSet> => 
   adminApiFetch(`/v1/productSets/${id}`);
 
-export const createProductSet = (data: CreateProductSetRequest): Promise<ProductSet> => 
-  adminApiFetch('/v1/productSets/create', {
+export const createProductSet = (data: CreateProductSetRequest): Promise<ProductSet> => {
+  console.log('[createProductSet] Sending data:', JSON.stringify(data, null, 2));
+  return adminApiFetch('/v1/productSets/create', {
     method: 'POST',
     body: JSON.stringify(data)
   });
+};
+
+// test if the backend endpoint exists at all
+export const testProductSetEndpoint = async () => {
+  try {
+    console.log('[testProductSetEndpoint] Testing if endpoint exists...');
+    
+    // try a simple GET request to see if the endpoint exists
+    const response = await fetch(`${API_BASE}/v1/productSets`, {
+      method: 'GET',
+      headers: {
+        'x-admin-token': 'test-token',
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    console.log('[testProductSetEndpoint] GET response status:', response.status);
+    console.log('[testProductSetEndpoint] GET response headers:', Object.fromEntries(response.headers.entries()));
+    
+    const text = await response.text();
+    console.log('[testProductSetEndpoint] GET response text:', text);
+    
+    // try a simple POST with minimal data
+    const postResponse = await fetch(`${API_BASE}/v1/productSets/create`, {
+      method: 'POST',
+      headers: {
+        'x-admin-token': 'test-token',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ test: true })
+    });
+    
+    console.log('[testProductSetEndpoint] POST response status:', postResponse.status);
+    const postText = await postResponse.text();
+    console.log('[testProductSetEndpoint] POST response text:', postText);
+    
+  } catch (error) {
+    console.error('[testProductSetEndpoint] Error:', error);
+  }
+};
+
+// test function to try different product set structures
+export const testProductSetCreation = async (baseData: any) => {
+  const variations = [
+    // variation 1: minimal data
+    {
+      name: baseData.name,
+      items: baseData.items,
+      checkout: baseData.checkout
+    },
+    // variation 2: with stats
+    {
+      ...baseData,
+      stats: {
+        totalClaims: 0,
+        remainingInventory: 0,
+        qrCodesGenerated: 0
+      }
+    },
+    // variation 3: different field names
+    {
+      name: baseData.name,
+      description: baseData.description,
+      campaign: baseData.campaign,
+      items: baseData.items,
+      checkout: baseData.checkout,
+      arSessionId: baseData.linkedARSessionId, // different field name
+      remainingInventory: 0
+    },
+    // variation 4: with all optional fields
+    {
+      ...baseData,
+      remainingInventory: 0,
+      tags: [],
+      status: 'active'
+    }
+  ];
+
+  for (let i = 0; i < variations.length; i++) {
+    try {
+      console.log(`[testProductSetCreation] Trying variation ${i + 1}:`, variations[i]);
+      const result = await adminApiFetch('/v1/productSets/create', {
+        method: 'POST',
+        body: JSON.stringify(variations[i])
+      });
+      console.log(`[testProductSetCreation] Variation ${i + 1} succeeded:`, result);
+      return result;
+    } catch (error: any) {
+      console.log(`[testProductSetCreation] Variation ${i + 1} failed:`, error.message);
+      if (i === variations.length - 1) {
+        throw error; // throw the last error if all variations fail
+      }
+    }
+  }
+};
 
 export const updateProductSet = (id: string, data: UpdateProductSetRequest): Promise<ProductSet> => 
   adminApiFetch(`/v1/productSets/${id}`, {
@@ -378,7 +501,7 @@ export const arSessions = {
 
   // create ar session (admin)
   create: async (data: CreateARSessionRequest): Promise<ARSessionData> => {
-    return adminApiFetch('/v1/ar-sessions/create', {
+    return adminApiFetch('/v1/ar-sessions', {
       method: 'POST',
       body: JSON.stringify(data)
     });
@@ -432,6 +555,14 @@ export const markerPatterns = {
   delete: async (id: string): Promise<void> => {
     return adminApiFetch(`/v1/marker-patterns/${id}`, {
       method: 'DELETE'
+    });
+  },
+
+  // validate marker pattern (admin)
+  validate: async (patternId: string, validation: MarkerValidation): Promise<void> => {
+    return adminApiFetch(`/v1/marker-patterns/${patternId}/validate`, {
+      method: 'POST',
+      body: JSON.stringify({ validationResult: validation })
     });
   }
 };
