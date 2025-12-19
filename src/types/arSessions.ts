@@ -21,7 +21,7 @@ export type ArConfigResponse = {
   code: string;
   targetType: string;
   targetId?: string;
-  markerType: 'custom' | 'hiro' | 'kanji';
+  markerType: 'custom' | 'hiro' | 'kanji' | 'nft';
   markerDataUrl: string;
   overlayConfig: OverlayConfig;
   metadata?: { title?: string; description?: string; actions?: any[] };
@@ -41,10 +41,14 @@ export type ResolvedArConfig = {
 // ar session data from backend api
 export interface ARSessionData {
   sessionId: string;
+  id?: string;  // backend may return 'id' instead of 'sessionId'
+  name?: string; // optional name field from backend
   markerPattern: {
-    url: string;        // direct url to .patt file
-    type: string;       // 'custom' | 'hiro' | 'kanji'
-    name: string;       // human-readable name
+    url?: string;        // direct url to .patt file
+    type: string;       // 'custom' | 'hiro' | 'kanji' | 'nft'
+    name?: string;       // human-readable name
+    patternId?: string;  // backend may return patternId
+    previewUrl?: string; // preview image url for embedding in qr codes
   };
   metadata: {
     title: string;
@@ -77,8 +81,8 @@ export interface ARSessionData {
 export interface MarkerPattern {
   id: string;
   name: string;
-  type: 'custom' | 'hiro' | 'kanji';
-  patternUrl: string;   // .patt file url
+  type: 'custom' | 'hiro' | 'kanji' | 'nft';
+  patternUrl: string;   // .patt file url or nft descriptor path (without extension for nft)
   previewUrl: string;   // preview image url
   createdBy: string;
   createdAt: string;
@@ -103,7 +107,7 @@ export interface CreateARSessionRequest {
   productId?: string;
   markerPattern: {
     patternId: string;
-    type: 'custom' | 'hiro' | 'kanji';
+    type: 'custom' | 'hiro' | 'kanji' | 'nft';
   };
   metadata: ARSessionMetadata;
   asset3D?: {
@@ -128,18 +132,30 @@ export interface UploadMarkerPatternRequest {
 }
 
 // api response types
+// backend may return either 'sessions' or 'arSessions' property
 export interface ARSessionListResponse {
-  arSessions: ARSessionData[];
-  total: number;
+  arSessions?: ARSessionData[];
+  sessions?: ARSessionData[];
+  total?: number;
 }
 
 export interface MarkerPatternListResponse {
-  markerPatterns: MarkerPattern[];
-  total: number;
+  markerPatterns?: MarkerPattern[];
+  patterns?: MarkerPattern[];
+  items?: MarkerPattern[];
+  total?: number;
 }
 
 export interface UploadMarkerPatternResponse {
   patternId: string;
   patternUrl: string;
   previewUrl: string;
+}
+
+// marker validation result
+export interface MarkerValidation {
+  isValid: boolean;
+  score?: number;
+  issues?: string[];
+  testedAt: string;
 }

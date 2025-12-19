@@ -118,50 +118,70 @@ export default function ARProductBuilder({ onSubmit, onCancel, loading = false }
     
     try {
       const reader = new FileReader();
-      reader.readAsDataURL(file);
+      
       reader.onloadend = async () => {
-        const fullDataUrl = reader.result?.toString();
-        const base64data = fullDataUrl?.split(',')[1];
-        
-        if (!base64data || !fullDataUrl) {
-          throw new Error('Failed to read file as base64');
-        }
+        try {
+          const fullDataUrl = reader.result?.toString();
+          const base64data = fullDataUrl?.split(',')[1];
+          
+          if (!base64data || !fullDataUrl) {
+            throw new Error('Failed to read file as base64');
+          }
 
-        // Store the image preview immediately
-        setUploadedImagePreview(fullDataUrl);
+          // store the image preview immediately
+          setUploadedImagePreview(fullDataUrl);
 
-        const request: UploadMarkerPatternRequest = {
-          type: 'upload',
-          name: file.name.split('.')[0],
-          description: formData.description || `Marker pattern for ${file.name.split('.')[0]}`,
-          imageFile: {
-            data: base64data,
-            mimeType: file.type,
-            filename: file.name,
-          },
-        };
-
-        const result = await markerPatternsAPI.upload(request);
-        if (result && result.patternId) {
-          setFormData(prev => ({ ...prev, markerPatternId: result.patternId }));
-          setUploadedPatternInfo({
+          const request: UploadMarkerPatternRequest = {
+            type: 'upload',
             name: file.name.split('.')[0],
-            patternId: result.patternId
-          });
-        } else {
-          throw new Error('Invalid response from marker pattern upload');
+            description: formData.description || `Marker pattern for ${file.name.split('.')[0]}`,
+            imageFile: {
+              data: base64data,
+              mimeType: file.type,
+              filename: file.name,
+            },
+          };
+
+          console.log('[ARProductBuilder] Uploading marker pattern:', { name: request.name, mimeType: file.type, dataLength: base64data.length });
+          
+          const result = await markerPatternsAPI.upload(request);
+          console.log('[ARProductBuilder] Upload result:', result);
+          
+          if (result && result.patternId) {
+            setFormData(prev => ({ ...prev, markerPatternId: result.patternId }));
+            setUploadedPatternInfo({
+              name: file.name.split('.')[0],
+              patternId: result.patternId
+            });
+            await loadMarkerPatterns(); // refresh list
+          } else {
+            throw new Error('Invalid response from marker pattern upload - missing patternId');
+          }
+        } catch (uploadError: any) {
+          console.error('[ARProductBuilder] Upload error:', uploadError);
+          const errorMessage = uploadError.message || 'Failed to upload marker image';
+          alert(`Marker upload failed: ${errorMessage}`);
+          setUploadedImagePreview(null);
+          setUploadedPatternInfo(null);
+        } finally {
+          setUploadingMarker(false);
         }
-        await loadMarkerPatterns(); // Refresh list
       };
+      
       reader.onerror = () => {
-        throw new Error('Error reading file');
+        console.error('[ARProductBuilder] FileReader error');
+        setUploadingMarker(false);
+        setUploadedImagePreview(null);
+        alert('Error reading file');
       };
-    } catch (error) {
-      console.error('Failed to upload marker:', error);
-      alert('Failed to upload marker image');
+      
+      reader.readAsDataURL(file);
+    } catch (error: any) {
+      console.error('[ARProductBuilder] Unexpected error:', error);
+      const errorMessage = error.message || 'Failed to process file';
+      alert(`Marker upload failed: ${errorMessage}`);
       setUploadedImagePreview(null);
       setUploadedPatternInfo(null);
-    } finally {
       setUploadingMarker(false);
     }
   };

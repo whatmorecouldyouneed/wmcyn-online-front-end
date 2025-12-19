@@ -273,7 +273,10 @@ async function adminApiFetch<T = any>(path: string, init: RequestInit = {}): Pro
     } else if (res.status === 503) {
       throw new Error('Backend service unavailable - the Cloud Function may be cold-starting or not deployed. Please try again in a few moments.');
     } else if (res.status >= 500) {
-      throw new Error('Server error');
+      // include response text for debugging server errors
+      const cleanText = text.replace(/<[^>]*>/g, '').trim();
+      const errorDetails = cleanText ? `: ${cleanText.substring(0, 300)}` : ' - check backend logs for details';
+      throw new Error(`Server error (${res.status})${errorDetails}`);
     } else {
       // for other errors, try to extract meaningful message from response
       const cleanText = text.replace(/<[^>]*>/g, '').trim();
@@ -292,18 +295,62 @@ export const getInventory = (includeProduct = false) =>
   apiFetch(`/v1/profile/inventory${includeProduct ? '?includeProduct=true' : ''}`);
 
 // admin product sets API calls - updated to match deployed endpoints
-export const getProductSets = (): Promise<ProductSetsResponse> => 
-  adminApiFetch('/v1/productSets');
+export const getProductSets = async (): Promise<ProductSetsResponse> => {
+  const response = await adminApiFetch('/v1/productSets');
+  console.log('[getProductSets] Raw response:', response);
+  return response;
+};
 
 export const getProductSet = (id: string): Promise<ProductSet> => 
   adminApiFetch(`/v1/productSets/${id}`);
 
-export const createProductSet = (data: CreateProductSetRequest): Promise<ProductSet> => {
-  console.log('[createProductSet] Sending data:', JSON.stringify(data, null, 2));
-  return adminApiFetch('/v1/productSets/create', {
-    method: 'POST',
-    body: JSON.stringify(data)
+export const createProductSet = async (data: CreateProductSetRequest): Promise<ProductSet> => {
+  // transform items to use 'qty' field and remove undefined values
+  const cleanItems = data.items.map(item => {
+    const cleanItem: any = {
+      productId: item.productId || 'default-product',
+      qty: item.quantity || item.qty || 1
+    };
+    if (item.variantId) cleanItem.variantId = item.variantId;
+    if (item.maxPerUser) cleanItem.maxPerUser = item.maxPerUser;
+    return cleanItem;
   });
+  
+  // build clean request body without undefined values
+  const transformedData: any = {
+    name: data.name,
+    items: cleanItems
+  };
+  
+  // only add optional fields if they have values
+  if (data.description) transformedData.description = data.description;
+  if (data.campaign) transformedData.campaign = data.campaign;
+  if (data.checkout) {
+    transformedData.checkout = {
+      type: data.checkout.type || 'product'
+    };
+    if (data.checkout.cartLink) transformedData.checkout.cartLink = data.checkout.cartLink;
+    if (data.checkout.discountCode) transformedData.checkout.discountCode = data.checkout.discountCode;
+  }
+  if (data.remainingInventory !== undefined) transformedData.remainingInventory = data.remainingInventory;
+  if (data.linkedARSessionId) transformedData.linkedARSessionId = data.linkedARSessionId;
+  
+  console.log('[createProductSet] Sending clean data:', JSON.stringify(transformedData, null, 2));
+  
+  // try the /create endpoint first, then fall back to just POST /productSets
+  try {
+    return await adminApiFetch('/v1/productSets/create', {
+      method: 'POST',
+      body: JSON.stringify(transformedData)
+    });
+  } catch (err: any) {
+    console.log('[createProductSet] /create endpoint failed, trying POST /productSets:', err.message);
+    // try alternative endpoint
+    return adminApiFetch('/v1/productSets', {
+      method: 'POST',
+      body: JSON.stringify(transformedData)
+    });
+  }
 };
 
 // test if the backend endpoint exists at all
@@ -406,10 +453,33 @@ export const updateProductSet = (id: string, data: UpdateProductSetRequest): Pro
     body: JSON.stringify(data)
   });
 
-export const deleteProductSet = (id: string): Promise<void> => 
-  adminApiFetch(`/v1/productSets/${id}`, {
-    method: 'DELETE'
-  });
+export const deleteProductSet = async (id: string): Promise<void> => {
+  console.log('[deleteProductSet] Attempting to delete:', id);
+  
+  // try DELETE /v1/productSets/{id} first
+  try {
+    return await adminApiFetch(`/v1/productSets/${id}`, {
+      method: 'DELETE'
+    });
+  } catch (err: any) {
+    if (err.message === 'Resource not found') {
+      console.log('[deleteProductSet] DELETE method failed, trying POST /delete');
+      // try POST /v1/productSets/{id}/delete as fallback
+      try {
+        return await adminApiFetch(`/v1/productSets/${id}/delete`, {
+          method: 'POST'
+        });
+      } catch (err2: any) {
+        console.log('[deleteProductSet] POST /delete also failed, trying DELETE /delete');
+        // try DELETE /v1/productSets/delete/{id} as final fallback
+        return await adminApiFetch(`/v1/productSets/delete/${id}`, {
+          method: 'DELETE'
+        });
+      }
+    }
+    throw err;
+  }
+};
 
 // admin QR codes API calls - updated to match deployed endpoints
 export const generateQRCode = (data: GenerateQRCodeRequest): Promise<GenerateQRCodeResponse> => 
@@ -496,7 +566,9 @@ export const arSessions = {
   // list ar sessions (admin)
   list: async (filters?: { status?: string; campaign?: string }): Promise<ARSessionListResponse> => {
     const params = new URLSearchParams(filters);
-    return adminApiFetch(`/v1/ar-sessions?${params}`);
+    const response = await adminApiFetch(`/v1/ar-sessions?${params}`);
+    console.log('[arSessions.list] Raw response:', response);
+    return response;
   },
 
   // create ar session (admin)
@@ -583,6 +655,62 @@ export const generateARSessionQR = async (sessionId: string, options?: {
       ...options
     })
   });
+};
+
+// generate template for ar session
+// this creates the template files in src/ar/templates/{code}/
+export const generateTemplateForSession = async (
+  arSession: ARSessionData,
+  code?: string
+): Promise<{ success: boolean; templatePath?: string; error?: string }> => {
+  const sessionId = arSession.sessionId || arSession.id;
+  const templateCode = code || sessionId;
+  
+  // resolve marker pattern url
+  let markerPatternUrl = '/patterns/pattern-wmcyn_logo_full.patt';
+  if (arSession.markerPattern?.url) {
+    markerPatternUrl = arSession.markerPattern.url;
+  } else if (arSession.markerPattern?.patternId) {
+    // try to construct url from pattern id
+    markerPatternUrl = `/patterns/${arSession.markerPattern.patternId}.patt`;
+  }
+  
+  try {
+    const response = await fetch('/api/generate-template', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code: templateCode,
+        productName: arSession.metadata?.title || arSession.name || 'AR Experience',
+        campaign: arSession.campaign || 'default',
+        targetType: 'AR_SESSION',
+        targetId: sessionId,
+        markerPatternUrl: markerPatternUrl,
+        metadata: {
+          title: arSession.metadata?.title || arSession.name || 'AR Experience',
+          description: arSession.metadata?.description || '',
+          effects: {
+            type: 'default',
+            intensity: 1.0,
+            theme: 'default'
+          }
+        }
+      })
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      console.log('[generateTemplateForSession] Template generated:', result);
+      return { success: true, templatePath: result.templatePath };
+    } else {
+      const errorText = await response.text();
+      console.error('[generateTemplateForSession] Failed:', response.status, errorText);
+      return { success: false, error: `Template generation failed: ${response.status}` };
+    }
+  } catch (error: any) {
+    console.error('[generateTemplateForSession] Error:', error);
+    return { success: false, error: error.message };
+  }
 };
 
 // fetch ar config by qr code (public endpoint, no auth required)

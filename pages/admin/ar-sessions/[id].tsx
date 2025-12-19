@@ -50,14 +50,30 @@ export default function ARSessionEditPage({ sessionId }: ARSessionEditPageProps)
       setLoading(true);
       setError(null);
       const response = await arSessionsAPI.list();
-      const session = response.arSessions.find(s => s.sessionId === sessionId);
+      console.log('[ARSessionEdit] API response:', response);
+      
+      // handle both array response and object with sessions/arSessions property
+      const sessionsData = Array.isArray(response) 
+        ? response 
+        : (response?.arSessions || response?.sessions || []);
+      
+      // find session by sessionId or id (backend may use either)
+      const session = sessionsData.find((s: any) => 
+        s.sessionId === sessionId || s.id === sessionId
+      );
       
       if (!session) {
         setError('ar session not found');
         return;
       }
       
-      setSessionData(session);
+      // normalize the session data - ensure sessionId is set
+      const normalizedSession = {
+        ...session,
+        sessionId: session.sessionId || session.id
+      };
+      
+      setSessionData(normalizedSession);
     } catch (error: any) {
       console.error('failed to load ar session:', error);
       setError(error.message || 'failed to load ar session');
@@ -86,7 +102,7 @@ export default function ARSessionEditPage({ sessionId }: ARSessionEditPageProps)
   const handleDelete = async () => {
     if (!sessionData) return;
     
-    if (!confirm(`are you sure you want to delete "${sessionData.metadata.title}"? this action cannot be undone.`)) {
+    if (!confirm(`are you sure you want to delete "${sessionData.metadata?.title || sessionData.name || 'this session'}"? this action cannot be undone.`)) {
       return;
     }
 
@@ -239,17 +255,18 @@ export default function ARSessionEditPage({ sessionId }: ARSessionEditPageProps)
         {/* form */}
         <ARSessionForm
           initialData={{
-            name: sessionData.metadata.title, // using title as name for now
-            description: sessionData.campaign,
-            campaign: sessionData.campaign,
+            name: sessionData.metadata?.title || sessionData.name || '',
+            description: sessionData.metadata?.description || sessionData.campaign || '',
+            campaign: sessionData.campaign || '',
             productId: sessionData.product?.id,
             markerPattern: {
-              patternId: sessionData.markerPattern.name, // this might need adjustment
-              type: sessionData.markerPattern.type as 'custom' | 'hiro' | 'kanji'
+              patternId: sessionData.markerPattern?.patternId || sessionData.markerPattern?.name || '',
+              type: (sessionData.markerPattern?.type as 'custom' | 'hiro' | 'kanji' | 'nft') || 'custom'
             },
             metadata: {
-              ...sessionData.metadata,
-              actions: sessionData.metadata.actions?.map(action => ({
+              title: sessionData.metadata?.title || sessionData.name || '',
+              description: sessionData.metadata?.description || '',
+              actions: sessionData.metadata?.actions?.map(action => ({
                 ...action,
                 type: action.type as 'purchase' | 'share' | 'claim' | 'info'
               })) || []

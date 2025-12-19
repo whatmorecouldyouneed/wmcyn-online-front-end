@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@ar-js-org/ar.js": "^3.4.5",
+    "@ar-js-org/ar.js-threejs": "^0.3.2",
     "@fortawesome/fontawesome-svg-core": "^6.6.0",
     "@fortawesome/free-solid-svg-icons": "^6.6.0",
     "@fortawesome/react-fontawesome": "^0.2.2",

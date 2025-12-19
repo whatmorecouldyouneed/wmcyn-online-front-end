@@ -34,11 +34,18 @@ export default function ARSessionsList() {
   const loadARSessions = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await arSessionsAPI.list();
-      setSessions(response.arSessions);
+      console.log('[ARSessionsList] API response:', response);
+      // handle both array response and object with arSessions property
+      const sessionsData = Array.isArray(response) 
+        ? response 
+        : (response?.arSessions || response?.sessions || []);
+      setSessions(sessionsData);
     } catch (error: any) {
       console.error('failed to load ar sessions:', error);
       setError(error.message || 'failed to load ar sessions');
+      setSessions([]); // ensure sessions is always an array
     } finally {
       setLoading(false);
     }
@@ -59,7 +66,10 @@ export default function ARSessionsList() {
 
     try {
       await arSessionsAPI.delete(sessionId);
-      setSessions(sessions.filter(s => s.sessionId !== sessionId));
+      // filter using both sessionId and id since backend may use either
+      setSessions((sessions || []).filter(s => 
+        (s.sessionId || s.id) !== sessionId
+      ));
     } catch (error: any) {
       console.error('failed to delete ar session:', error);
       alert('failed to delete ar session: ' + (error.message || 'unknown error'));
@@ -70,11 +80,17 @@ export default function ARSessionsList() {
     router.push(`/admin/ar-sessions/${sessionId}?generateQR=true`);
   };
 
-  // filter sessions
-  const filteredSessions = sessions.filter(session => {
-    const matchesSearch = session.metadata.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         session.metadata.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (session.campaign && session.campaign.toLowerCase().includes(searchTerm.toLowerCase()));
+  // filter sessions - ensure sessions is always an array
+  const filteredSessions = (sessions || []).filter(session => {
+    if (!session || !session.metadata) return false;
+    
+    const title = session.metadata.title || '';
+    const description = session.metadata.description || '';
+    const campaign = session.campaign || '';
+    
+    const matchesSearch = title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         campaign.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || session.status === statusFilter;
     
@@ -199,60 +215,68 @@ export default function ARSessionsList() {
                   {campaign} ({campaignSessions.length})
                 </h2>
                 <div className={styles.sessionsGrid}>
-                  {campaignSessions.map((session) => (
-                    <div key={session.sessionId} className={styles.sessionCard}>
-                      <div className={styles.sessionHeader}>
-                        <h3 className={styles.sessionTitle}>{session.metadata.title}</h3>
-                        <span className={`${styles.statusBadge} ${styles[session.status]}`}>
-                          {session.status}
-                        </span>
-                      </div>
-                      
-                      <p className={styles.sessionDescription}>
-                        {session.metadata.description}
-                      </p>
-                      
-                      <div className={styles.sessionMeta}>
-                        <div className={styles.metaRow}>
-                          <span className={styles.metaLabel}>marker:</span>
-                          <span className={styles.metaValue}>{session.markerPattern.name}</span>
-                        </div>
-                        <div className={styles.metaRow}>
-                          <span className={styles.metaLabel}>created:</span>
-                          <span className={styles.metaValue}>
-                            {new Date(session.createdAt).toLocaleDateString()}
+                  {campaignSessions.map((session) => {
+                    const sessionId = session.sessionId || session.id || '';
+                    const title = session.metadata?.title || session.name || 'untitled';
+                    const description = session.metadata?.description || '';
+                    
+                    return (
+                      <div key={sessionId} className={styles.sessionCard}>
+                        <div className={styles.sessionHeader}>
+                          <h3 className={styles.sessionTitle}>{title}</h3>
+                          <span className={`${styles.statusBadge} ${styles[session.status]}`}>
+                            {session.status}
                           </span>
                         </div>
-                        <div className={styles.metaRow}>
-                          <span className={styles.metaLabel}>actions:</span>
-                          <span className={styles.metaValue}>
-                            {session.metadata.actions.length} configured
-                          </span>
+                        
+                        <p className={styles.sessionDescription}>
+                          {description}
+                        </p>
+                        
+                        <div className={styles.sessionMeta}>
+                          <div className={styles.metaRow}>
+                            <span className={styles.metaLabel}>marker:</span>
+                            <span className={styles.metaValue}>
+                              {session.markerPattern?.name || session.markerPattern?.patternId || session.markerPattern?.type || 'custom'}
+                            </span>
+                          </div>
+                          <div className={styles.metaRow}>
+                            <span className={styles.metaLabel}>created:</span>
+                            <span className={styles.metaValue}>
+                              {new Date(session.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <div className={styles.metaRow}>
+                            <span className={styles.metaLabel}>actions:</span>
+                            <span className={styles.metaValue}>
+                              {session.metadata?.actions?.length || 0} configured
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className={styles.sessionActions}>
+                          <button
+                            onClick={() => handleEdit(sessionId)}
+                            className={styles.actionButton}
+                          >
+                            edit
+                          </button>
+                          <button
+                            onClick={() => handleGenerateQR(sessionId)}
+                            className={styles.actionButton}
+                          >
+                            generate qr
+                          </button>
+                          <button
+                            onClick={() => handleDelete(sessionId, title)}
+                            className={`${styles.actionButton} ${styles.dangerButton}`}
+                          >
+                            delete
+                          </button>
                         </div>
                       </div>
-                      
-                      <div className={styles.sessionActions}>
-                        <button
-                          onClick={() => handleEdit(session.sessionId)}
-                          className={styles.actionButton}
-                        >
-                          edit
-                        </button>
-                        <button
-                          onClick={() => handleGenerateQR(session.sessionId)}
-                          className={styles.actionButton}
-                        >
-                          generate qr
-                        </button>
-                        <button
-                          onClick={() => handleDelete(session.sessionId, session.metadata.title)}
-                          className={`${styles.actionButton} ${styles.dangerButton}`}
-                        >
-                          delete
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ))}

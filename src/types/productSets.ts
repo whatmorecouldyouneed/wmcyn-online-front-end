@@ -1,7 +1,10 @@
 // product set item definition
 export interface ProductSetItem {
   productId: string;
-  quantity: number;
+  quantity?: number;  // frontend uses quantity
+  qty?: number;       // backend may expect qty
+  variantId?: string;
+  maxPerUser?: number;
 }
 
 // checkout configuration
@@ -46,11 +49,13 @@ export interface ProductSet {
   description?: string;
   campaign?: string;
   items: ProductSetItem[];
-  checkout: CheckoutConfig;
-  stats: ProductSetStats;
+  checkout?: CheckoutConfig;  // optional - backend may not return
+  stats?: ProductSetStats;    // optional - backend may not return
   linkedARSessionId?: string; // optional link to AR session
-  createdAt: string;
-  updatedAt: string;
+  version?: number;           // from backend
+  createdBy?: string;         // from backend
+  createdAt?: string;         // optional
+  updatedAt?: string;         // optional
 }
 
 // QR code data with new structure
@@ -147,9 +152,15 @@ export interface GenerateQRCodeResponse {
 }
 
 // API response wrappers
+// backend returns { items: [...], total, limit, offset }
 export interface ProductSetsResponse {
-  productSets: ProductSet[];
-  total: number;
+  items?: ProductSet[];
+  productSets?: ProductSet[];
+  products?: ProductSet[];
+  data?: ProductSet[];
+  total?: number;
+  limit?: number;
+  offset?: number;
 }
 
 export interface QRCodesResponse {

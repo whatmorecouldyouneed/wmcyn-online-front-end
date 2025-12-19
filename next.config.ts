@@ -4,6 +4,8 @@ const isGithubActions = process.env.GITHUB_ACTIONS === 'true';
 
 const nextConfig: NextConfig = {
   reactStrictMode: false,
+  // allow ngrok for mobile testing
+  allowedDevOrigins: ['*.ngrok-free.app', '*.ngrok.io'],
   basePath: '',
   assetPrefix: '',
   images: {

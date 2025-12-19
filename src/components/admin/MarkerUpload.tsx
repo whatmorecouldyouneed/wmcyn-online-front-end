@@ -30,10 +30,25 @@ export default function MarkerUpload({
     try {
       setLoading(true);
       const response = await markerPatternsAPI.list();
-      setPatterns(response.markerPatterns);
+      console.log('[MarkerUpload] API response:', response);
+      
+      // handle different response formats
+      let patternsData: MarkerPattern[] = [];
+      if (Array.isArray(response)) {
+        patternsData = response;
+      } else if (response?.markerPatterns) {
+        patternsData = response.markerPatterns;
+      } else if (response?.patterns) {
+        patternsData = response.patterns;
+      } else if (response?.items) {
+        patternsData = response.items;
+      }
+      
+      setPatterns(patternsData);
     } catch (error: any) {
       console.error('failed to load marker patterns:', error);
       setError(error.message || 'failed to load marker patterns');
+      setPatterns([]); // ensure patterns is always an array
     } finally {
       setLoading(false);
     }
@@ -195,7 +210,7 @@ export default function MarkerUpload({
       </div>
 
       {/* existing patterns */}
-      {patterns.length > 0 && (
+      {patterns && patterns.length > 0 && (
         <div className={styles.existingPatterns}>
           <h4 className={styles.subsectionTitle}>existing patterns</h4>
           <div className={styles.patternsGrid}>

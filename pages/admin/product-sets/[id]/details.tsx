@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
-import { getProductSet, getQRCodes, deleteQRCode } from '@/lib/apiClient';
+import { getProductSet, getQRCodes, deleteQRCode, arSessions } from '@/lib/apiClient';
 import { ProductSet, QRCodeData } from '@/types/productSets';
+import { ARSessionData } from '@/types/arSessions';
 import QRCodeGenerator from '@/components/admin/QRCodeGenerator';
 import NextImage from '@/components/NextImage';
 import styles from '@/styles/Admin.module.scss';
@@ -15,6 +16,7 @@ export default function ProductSetDetails() {
   const { id } = router.query;
   const [productSet, setProductSet] = useState<ProductSet | null>(null);
   const [qrCodes, setQRCodes] = useState<QRCodeData[]>([]);
+  const [linkedARSession, setLinkedARSession] = useState<ARSessionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showQRGenerator, setShowQRGenerator] = useState(false);
@@ -46,6 +48,24 @@ export default function ProductSetDetails() {
       
       setProductSet(productSetData);
       setQRCodes(qrCodesData.qrCodes);
+      
+      // fetch linked ar session if exists
+      if (productSetData.linkedARSessionId) {
+        try {
+          const sessionsResponse = await arSessions.list();
+          const sessions = Array.isArray(sessionsResponse) 
+            ? sessionsResponse 
+            : (sessionsResponse?.sessions || sessionsResponse?.arSessions || []);
+          const session = sessions.find((s: ARSessionData) => 
+            (s.sessionId || s.id) === productSetData.linkedARSessionId
+          );
+          if (session) {
+            setLinkedARSession(session);
+          }
+        } catch (sessionError) {
+          console.warn('failed to load linked AR session:', sessionError);
+        }
+      }
     } catch (err: any) {
       console.error('failed to load data:', err);
       setError(err.message || 'failed to load product set details');
@@ -71,12 +91,31 @@ export default function ProductSetDetails() {
     }
   };
 
-  const handleQRSuccess = () => {
-    // refresh QR codes
+  const handleQRSuccess = (response: any) => {
+    console.log('[handleQRSuccess] QR code generated:', response);
+    
+    // add the newly generated qr code directly to state
+    if (response?.qrCode) {
+      setQRCodes(prev => {
+        // avoid duplicates
+        const exists = prev.some(qr => qr.id === response.qrCode.id || qr.code === response.qrCode.code);
+        if (exists) {
+          return prev;
+        }
+        return [...prev, response.qrCode];
+      });
+    }
+    
+    // also refresh from api after a short delay to ensure consistency
     if (id && typeof id === 'string') {
-      getQRCodes(id).then(response => {
-        setQRCodes(response.qrCodes);
-      }).catch(console.error);
+      setTimeout(() => {
+        getQRCodes(id).then(apiResponse => {
+          console.log('[handleQRSuccess] API refresh response:', apiResponse);
+          if (apiResponse?.qrCodes && apiResponse.qrCodes.length > 0) {
+            setQRCodes(apiResponse.qrCodes);
+          }
+        }).catch(console.error);
+      }, 1000);
     }
   };
 
@@ -280,6 +319,227 @@ export default function ProductSetDetails() {
             )}
           </div>
         </div>
+
+        {/* test ar experience section */}
+        {(productSet.linkedARSessionId || (qrCodes && qrCodes.length > 0)) && (
+          <div style={{ 
+            background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15))',
+            border: '1px solid rgba(102, 126, 234, 0.3)',
+            borderRadius: '12px',
+            padding: '24px',
+            marginBottom: '32px',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <h3 style={{ 
+              color: 'white', 
+              marginBottom: '16px', 
+              fontSize: '1.1rem', 
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <span style={{ fontSize: '1.3rem' }}>🎯</span>
+              test AR experience
+            </h3>
+            
+            <p style={{ 
+              color: 'rgba(255, 255, 255, 0.7)', 
+              fontSize: '0.9rem', 
+              marginBottom: '20px',
+              lineHeight: '1.5'
+            }}>
+              test your AR marker detection. point your camera at the uploaded marker image to see the 3D WMCYN logo.
+            </p>
+
+            {/* linked ar session info */}
+            {linkedARSession && (
+              <div style={{ 
+                marginBottom: '20px',
+                padding: '12px 16px',
+                background: 'rgba(16, 185, 129, 0.1)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                borderRadius: '8px'
+              }}>
+                <div style={{ color: '#10b981', fontSize: '0.85rem', fontWeight: '500', marginBottom: '4px' }}>
+                  ✓ linked AR session
+                </div>
+                <div style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.9rem' }}>
+                  {linkedARSession.metadata?.title || linkedARSession.name || 'AR Session'}
+                  {linkedARSession.markerPattern?.name && (
+                    <span style={{ color: 'rgba(255, 255, 255, 0.5)', marginLeft: '8px' }}>
+                      • marker: {linkedARSession.markerPattern.name}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* test links */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {/* qr code test link (primary - this is what users should use) */}
+              {qrCodes && qrCodes.length > 0 && (() => {
+                const qrCode = qrCodes[0].code;
+                const testUrl = `http://localhost:3000/ar/${encodeURIComponent(qrCode)}`;
+                return (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '12px 16px',
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    borderRadius: '8px',
+                    flexWrap: 'wrap',
+                    gap: '12px'
+                  }}>
+                    <div style={{ flex: 1, minWidth: '200px' }}>
+                      <div style={{ color: '#10b981', fontSize: '0.8rem', marginBottom: '4px', fontWeight: '500' }}>
+                        ✓ QR code test link (recommended)
+                      </div>
+                      <code style={{ 
+                        color: '#60a5fa', 
+                        fontSize: '0.85rem',
+                        wordBreak: 'break-all',
+                        display: 'block',
+                        padding: '8px',
+                        background: 'rgba(0,0,0,0.2)',
+                        borderRadius: '4px'
+                      }}>
+                        {testUrl}
+                      </code>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <a
+                        href={`/ar/${encodeURIComponent(qrCode)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={styles.buttonPrimary}
+                        style={{ 
+                          fontSize: '0.85rem', 
+                          padding: '8px 16px',
+                          textDecoration: 'none',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <span>🚀</span> open AR
+                      </a>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(testUrl);
+                          alert('URL copied to clipboard!');
+                        }}
+                        className={styles.buttonSecondary}
+                        style={{ fontSize: '0.85rem', padding: '8px 12px' }}
+                      >
+                        copy
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* ar session test link (fallback) */}
+              {productSet.linkedARSessionId && (() => {
+                const sessionId = productSet.linkedARSessionId;
+                const testUrl = `http://localhost:3000/ar/${encodeURIComponent(sessionId)}`;
+                return (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '12px 16px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '8px',
+                    flexWrap: 'wrap',
+                    gap: '12px'
+                  }}>
+                    <div style={{ flex: 1, minWidth: '200px' }}>
+                      <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.8rem', marginBottom: '4px' }}>
+                        AR session link (dev)
+                      </div>
+                      <code style={{ 
+                        color: '#60a5fa', 
+                        fontSize: '0.85rem',
+                        wordBreak: 'break-all',
+                        display: 'block',
+                        padding: '8px',
+                        background: 'rgba(0,0,0,0.2)',
+                        borderRadius: '4px'
+                      }}>
+                        {testUrl}
+                      </code>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <a
+                        href={`/ar/${encodeURIComponent(sessionId)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={styles.buttonPrimary}
+                        style={{ 
+                          fontSize: '0.85rem', 
+                          padding: '8px 16px',
+                          textDecoration: 'none',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <span>🚀</span> open AR
+                      </a>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(testUrl);
+                          alert('URL copied to clipboard!');
+                        }}
+                        className={styles.buttonSecondary}
+                        style={{ fontSize: '0.85rem', padding: '8px 12px' }}
+                      >
+                        copy
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* testing instructions */}
+            <div style={{ 
+              marginTop: '20px',
+              padding: '16px',
+              background: 'rgba(251, 191, 36, 0.1)',
+              border: '1px solid rgba(251, 191, 36, 0.3)',
+              borderRadius: '8px'
+            }}>
+              <div style={{ 
+                color: '#fbbf24', 
+                fontSize: '0.85rem', 
+                fontWeight: '500', 
+                marginBottom: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <span>💡</span> testing tips
+              </div>
+              <ul style={{ 
+                color: 'rgba(255, 255, 255, 0.7)', 
+                fontSize: '0.85rem', 
+                margin: 0,
+                paddingLeft: '20px',
+                lineHeight: '1.6'
+              }}>
+                <li>open the AR link on your phone or use chrome devtools mobile emulator</li>
+                <li>allow camera access when prompted</li>
+                <li>point camera at the marker image you uploaded</li>
+                <li>the 3D WMCYN logo should appear when marker is detected</li>
+              </ul>
+            </div>
+          </div>
+        )}
 
         {/* items list */}
         <div style={{ 

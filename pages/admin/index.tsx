@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
-import { getProductSets, arSessions as arSessionsAPI } from '@/lib/apiClient';
-import { ProductSet } from '@/types/productSets';
+import { getProductSets, getQRCodes, arSessions as arSessionsAPI } from '@/lib/apiClient';
+import { ProductSet, QRCodeData } from '@/types/productSets';
 import { ARSessionData } from '@/types/arSessions';
 import ProductSetCard from '@/components/admin/ProductSetCard';
 import QRCodeGenerator from '@/components/admin/QRCodeGenerator';
@@ -16,6 +16,7 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [productSets, setProductSets] = useState<ProductSet[]>([]);
   const [arSessions, setArSessions] = useState<ARSessionData[]>([]);
+  const [qrCodeCounts, setQrCodeCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [arSessionsError, setArSessionsError] = useState<string | null>(null);
@@ -37,52 +38,123 @@ export default function AdminDashboard() {
     }
   }, [isAuthenticated]);
 
-  const loadProductSets = async () => {
+  const loadProductSets = async (): Promise<ProductSet[]> => {
     try {
       setError('');
       const response = await getProductSets();
-      // handle different response structures
-      const productSetsData = response.productSets || response || [];
-      setProductSets(Array.isArray(productSetsData) ? productSetsData : []);
+      console.log('[AdminDashboard] Product sets raw response:', response);
+      
+      // handle different response structures - backend returns { items: [...] }
+      let productSetsData: ProductSet[] = [];
+      if (Array.isArray(response)) {
+        productSetsData = response;
+      } else if (response?.items) {
+        // backend returns { items: [...], total, limit, offset }
+        productSetsData = response.items;
+      } else if (response?.productSets) {
+        productSetsData = response.productSets;
+      } else if (response?.products) {
+        productSetsData = response.products;
+      } else if (response?.data) {
+        productSetsData = Array.isArray(response.data) ? response.data : [];
+      }
+      
+      console.log('[AdminDashboard] Parsed product sets:', productSetsData.length, 'items');
+      const data = Array.isArray(productSetsData) ? productSetsData : [];
+      setProductSets(data);
+      return data;
     } catch (err: any) {
       console.error('failed to load wmcyn products:', err);
       setError(err.message || 'failed to load wmcyn products');
-      setProductSets([]); // ensure productSets is always an array
+      setProductSets([]);
+      return [];
+    }
+  };
+
+  const loadQRCodeCounts = async (productSetsData?: ProductSet[]) => {
+    try {
+      const products = productSetsData || productSets;
+      if (products.length === 0) {
+        console.log('[AdminDashboard] No product sets to load QR codes for');
+        return;
+      }
+      
+      // fetch qr codes for each product set individually (backend requires productSetId)
+      const counts: Record<string, number> = {};
+      
+      await Promise.all(products.map(async (ps) => {
+        try {
+          const response = await getQRCodes(ps.id);
+          console.log(`[AdminDashboard] QR codes for ${ps.id}:`, response);
+          
+          // handle different response structures
+          let qrCodesData: QRCodeData[] = [];
+          if (Array.isArray(response)) {
+            qrCodesData = response;
+          } else if (response?.qrCodes) {
+            qrCodesData = response.qrCodes;
+          } else if (response?.items) {
+            qrCodesData = response.items;
+          } else if (response?.data) {
+            qrCodesData = Array.isArray(response.data) ? response.data : [];
+          }
+          
+          counts[ps.id] = qrCodesData.length;
+        } catch (err) {
+          console.error(`[AdminDashboard] Failed to load QR codes for ${ps.id}:`, err);
+          counts[ps.id] = 0;
+        }
+      }));
+      
+      console.log('[AdminDashboard] QR code counts per product set:', counts);
+      setQrCodeCounts(counts);
+    } catch (err: any) {
+      console.error('failed to load qr codes:', err);
+      // don't show error to user, just leave counts at 0
     }
   };
 
   const loadARSessions = async () => {
     try {
       console.log('loading ar sessions, isAuthenticated:', isAuthenticated);
-      setArSessionsError(null); // clear any previous errors
+      setArSessionsError(null);
       const response = await arSessionsAPI.list();
-      setArSessions(response.arSessions || []);
-        } catch (err: any) {
-          console.error('failed to load ar sessions:', err);
-          // provide more helpful error messages based on the error type
-          if (err.message?.includes('invalid token')) {
-            setArSessionsError('Authentication failed - the admin API token may be invalid or the backend needs to be updated');
-          } else if (err.message?.includes('Access denied')) {
-            setArSessionsError('Access denied - admin privileges required for AR sessions');
-          } else if (err.message?.includes('Authentication required')) {
-            setArSessionsError('Authentication required - check if NEXT_PUBLIC_ADMIN_API_TOKEN is configured correctly');
-          } else if (err.message === 'unauthorized' || err.message?.includes('401')) {
-            setArSessionsError('AR sessions API endpoint requires authentication - check backend deployment status');
-          } else {
-            setArSessionsError(`Failed to load AR sessions: ${err.message}`);
-          }
-          // don't set error for ar sessions, just log it
-          // this is optional data, so we don't want to break the page
-          setArSessions([]); // ensure it's an empty array
-        }
+      console.log('[AdminDashboard] AR sessions response:', response);
+      // handle both array response and object with arSessions property
+      const sessionsData = Array.isArray(response) 
+        ? response 
+        : (response?.arSessions || response?.sessions || []);
+      setArSessions(sessionsData);
+    } catch (err: any) {
+      console.error('failed to load ar sessions:', err);
+      // provide more helpful error messages based on the error type
+      if (err.message?.includes('invalid token')) {
+        setArSessionsError('Authentication failed - the admin API token may be invalid or the backend needs to be updated');
+      } else if (err.message?.includes('Access denied')) {
+        setArSessionsError('Access denied - admin privileges required for AR sessions');
+      } else if (err.message?.includes('Authentication required')) {
+        setArSessionsError('Authentication required - check if NEXT_PUBLIC_ADMIN_API_TOKEN is configured correctly');
+      } else if (err.message === 'unauthorized' || err.message?.includes('401')) {
+        setArSessionsError('AR sessions API endpoint requires authentication - check backend deployment status');
+      } else {
+        setArSessionsError(`Failed to load AR sessions: ${err.message}`);
+      }
+      setArSessions([]);
+    }
   };
 
   const loadAllData = async () => {
     setLoading(true);
-    await loadProductSets();
-    if (isAuthenticated) {
-      await loadARSessions();
-    }
+    
+    // load product sets first so we can use them to map ar sessions
+    const [productSetsData] = await Promise.all([
+      loadProductSets(),
+      isAuthenticated ? loadARSessions() : Promise.resolve()
+    ]);
+    
+    // now load qr code counts with the product sets data
+    await loadQRCodeCounts(productSetsData as ProductSet[]);
+    
     setLoading(false);
   };
 
@@ -103,9 +175,11 @@ export default function AdminDashboard() {
     setShowQRGenerator(true);
   };
 
-  const handleQRSuccess = () => {
-    // refresh the wmcyn products to update stats
-    loadProductSets();
+  const handleQRSuccess = async () => {
+    // refresh the wmcyn products and qr code counts
+    const products = await loadProductSets();
+    // pass the freshly loaded product sets to load qr code counts
+    await loadQRCodeCounts(products);
   };
 
   const handleLogout = () => {
@@ -245,6 +319,7 @@ export default function AdminDashboard() {
                 productSet={productSet}
                 onDelete={handleDelete}
                 onGenerateQR={handleGenerateQR}
+                qrCodeCount={qrCodeCounts[productSet.id] || 0}
               />
             ))}
           </div>
@@ -301,18 +376,24 @@ export default function AdminDashboard() {
               </button>
             </div>
             <div className={styles.arSessionsGrid}>
-              {(arSessions || []).slice(0, 3).map((session) => (
-                <div key={session.sessionId} className={styles.arSessionCard}>
-                  <h4 className={styles.arSessionTitle}>{session.metadata.title}</h4>
-                  <p className={styles.arSessionDescription}>{session.metadata.description}</p>
-                  <div className={styles.arSessionMeta}>
-                    <span className={styles.arSessionStatus}>{session.status}</span>
-                    <span className={styles.arSessionDate}>
-                      {new Date(session.createdAt).toLocaleDateString()}
-                    </span>
+              {(arSessions || []).slice(0, 3).map((session) => {
+                const sessionId = session.sessionId || session.id || '';
+                const title = session.metadata?.title || session.name || 'untitled';
+                const description = session.metadata?.description || '';
+                
+                return (
+                  <div key={sessionId} className={styles.arSessionCard}>
+                    <h4 className={styles.arSessionTitle}>{title}</h4>
+                    <p className={styles.arSessionDescription}>{description}</p>
+                    <div className={styles.arSessionMeta}>
+                      <span className={styles.arSessionStatus}>{session.status}</span>
+                      <span className={styles.arSessionDate}>
+                        {new Date(session.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -346,7 +427,7 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <div style={{ fontSize: '1.5rem', fontWeight: '600', color: 'white' }}>
-                  {(productSets || []).reduce((sum, ps) => sum + ps.stats.totalClaims, 0)}
+                  {(productSets || []).reduce((sum, ps) => sum + (ps.stats?.totalClaims || 0), 0)}
                 </div>
                 <div style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)' }}>
                   total claims
@@ -354,7 +435,7 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <div style={{ fontSize: '1.5rem', fontWeight: '600', color: 'white' }}>
-                  {(productSets || []).reduce((sum, ps) => sum + ps.stats.remainingInventory, 0)}
+                  {(productSets || []).reduce((sum, ps) => sum + (ps.stats?.remainingInventory || 0), 0)}
                 </div>
                 <div style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)' }}>
                   remaining inventory
@@ -362,7 +443,8 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <div style={{ fontSize: '1.5rem', fontWeight: '600', color: 'white' }}>
-                  {(productSets || []).reduce((sum, ps) => sum + ps.stats.qrCodesGenerated, 0)}
+                  {Object.values(qrCodeCounts).reduce((sum, count) => sum + count, 0) || 
+                   (productSets || []).reduce((sum, ps) => sum + (ps.stats?.qrCodesGenerated || 0), 0)}
                 </div>
                 <div style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)' }}>
                   QR codes generated

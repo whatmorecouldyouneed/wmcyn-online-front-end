@@ -8,9 +8,10 @@ interface ProductSetCardProps {
   productSet: ProductSet;
   onDelete: (id: string) => void;
   onGenerateQR: (productSet: ProductSet) => void;
+  qrCodeCount?: number;
 }
 
-export default function ProductSetCard({ productSet, onDelete, onGenerateQR }: ProductSetCardProps) {
+export default function ProductSetCard({ productSet, onDelete, onGenerateQR, qrCodeCount }: ProductSetCardProps) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
 
@@ -31,9 +32,13 @@ export default function ProductSetCard({ productSet, onDelete, onGenerateQR }: P
     try {
       await deleteProductSet(productSet.id);
       onDelete(productSet.id);
-    } catch (error) {
+    } catch (error: any) {
       console.error('failed to delete wmcyn product:', error);
-      alert('failed to delete wmcyn product. please try again.');
+      if (error.message === 'Resource not found') {
+        alert('Delete endpoint not available on backend. The product may need to be deleted directly from the database.');
+      } else {
+        alert(`failed to delete wmcyn product: ${error.message}`);
+      }
     } finally {
       setDeleting(false);
     }
@@ -48,8 +53,12 @@ export default function ProductSetCard({ productSet, onDelete, onGenerateQR }: P
   };
 
   const getTotalItems = () => {
-    return productSet.items.reduce((total, item) => total + item.quantity, 0);
+    if (!productSet.items || !Array.isArray(productSet.items)) return 0;
+    return productSet.items.reduce((total, item) => total + (item.quantity || item.qty || 1), 0);
   };
+  
+  // safely access stats with defaults
+  const stats = productSet.stats || { totalClaims: 0, remainingInventory: 0, qrCodesGenerated: 0 };
 
   return (
     <div className={styles.productSetCard}>
@@ -78,15 +87,15 @@ export default function ProductSetCard({ productSet, onDelete, onGenerateQR }: P
           <div className={styles.statLabel}>total items</div>
         </div>
         <div className={styles.statItem}>
-          <div className={styles.statValue}>{productSet.stats.totalClaims}</div>
+          <div className={styles.statValue}>{stats.totalClaims}</div>
           <div className={styles.statLabel}>claims</div>
         </div>
         <div className={styles.statItem}>
-          <div className={styles.statValue}>{productSet.stats.remainingInventory}</div>
+          <div className={styles.statValue}>{stats.remainingInventory}</div>
           <div className={styles.statLabel}>remaining</div>
         </div>
         <div className={styles.statItem}>
-          <div className={styles.statValue}>{productSet.stats.qrCodesGenerated}</div>
+          <div className={styles.statValue}>{qrCodeCount ?? stats.qrCodesGenerated}</div>
           <div className={styles.statLabel}>qr codes</div>
         </div>
       </div>
@@ -97,8 +106,8 @@ export default function ProductSetCard({ productSet, onDelete, onGenerateQR }: P
         marginBottom: '16px',
         textAlign: 'center'
       }}>
-        created {formatDate(productSet.createdAt)}
-        {productSet.updatedAt !== productSet.createdAt && (
+        {productSet.createdAt && <>created {formatDate(productSet.createdAt)}</>}
+        {productSet.updatedAt && productSet.updatedAt !== productSet.createdAt && (
           <span> • updated {formatDate(productSet.updatedAt)}</span>
         )}
       </div>

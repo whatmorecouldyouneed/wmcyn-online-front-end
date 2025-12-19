@@ -1,10 +1,18 @@
 import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, ComponentType } from 'react';
 import { fetchArConfigByCode } from '@/lib/apiClient';
 import { resolveArConfig } from '@/ar/overlayRegistry';
-import type { ResolvedArConfig } from '@/types/arSessions';
+import type { ResolvedArConfig, ResolvedOverlay } from '@/types/arSessions';
 import ARCameraQR from '@/components/ARCameraQR';
-import dynamic from 'next/dynamic';
+
+// default overlay to use when no overlays are provided
+const DEFAULT_OVERLAY: ResolvedOverlay = {
+  type: 'model',
+  src: '/models/wmcyn_3d_logo.glb',
+  scale: [0.3, 0.3, 0.3],
+  position: [0, 0, 0],
+  rotation: [0, 0, 0]
+};
 
 export default function ARByCode() {
   const { query } = useRouter();
@@ -14,7 +22,7 @@ export default function ARByCode() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [useGeneratedTemplate, setUseGeneratedTemplate] = useState(false);
-  const [GeneratedTemplate, setGeneratedTemplate] = useState<any>(null);
+  const [GeneratedTemplate, setGeneratedTemplate] = useState<ComponentType<any> | null>(null);
 
   useEffect(() => {
     if (!code) return;
@@ -23,21 +31,24 @@ export default function ARByCode() {
       try {
         setLoading(true);
         
-        // First, try to load the generated template
+        // first, try to load the generated template using dynamic import
         try {
-          const GeneratedComponent = dynamic(() => import(`@/ar/templates/${code}/index`), {
-            ssr: false,
-            loading: () => <div>Loading AR template...</div>
-          });
-          setGeneratedTemplate(GeneratedComponent);
-          setUseGeneratedTemplate(true);
-          setLoading(false);
-          return;
-        } catch (templateError) {
-          console.log('No generated template found, falling back to API config');
+          console.log('[ARByCode] Attempting to load generated template for:', code);
+          const templateModule = await import(`@/ar/templates/${code}/index`);
+          
+          if (templateModule && templateModule.default) {
+            console.log('[ARByCode] Generated template loaded successfully');
+            setGeneratedTemplate(() => templateModule.default);
+            setUseGeneratedTemplate(true);
+            setLoading(false);
+            return;
+          }
+        } catch (templateError: any) {
+          // template doesn't exist, this is expected for codes without templates
+          console.log('[ARByCode] No generated template found, falling back to API config:', templateError.message);
         }
         
-        // Fallback to API config
+        // fallback to API config
         console.log('[ARByCode] Fetching AR config for code:', code);
         try {
           const rawConfig = await fetchArConfigByCode(code);
@@ -45,9 +56,9 @@ export default function ARByCode() {
           const resolvedConfig = resolveArConfig(rawConfig);
           console.log('[ARByCode] Resolved config:', resolvedConfig);
           setConfig(resolvedConfig);
-        } catch (arConfigError) {
+        } catch (arConfigError: any) {
           console.log('[ARByCode] AR config failed, trying product set lookup:', arConfigError);
-          // Try to get product set data instead
+          // try to get product set data instead
           try {
             const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://us-central1-wmcyn-online-mobile.cloudfunctions.net/api';
             const productSetResponse = await fetch(`${API_BASE}/v1/qrcodes/${code}/product-set`, {
@@ -57,14 +68,57 @@ export default function ARByCode() {
             if (productSetResponse.ok) {
               const productSetData = await productSetResponse.json();
               console.log('[ARByCode] Product set data received:', productSetData);
-              // TODO: Convert product set data to AR config
-              setError('Product set QR code detected, but AR conversion not implemented yet.');
+              
+              // resolve marker pattern url from product set or linked ar session
+              let markerDataUrl = '/patterns/pattern-wmcyn_logo_full.patt';
+              
+              // check if product set has marker pattern url
+              if (productSetData.markerPatternUrl) {
+                markerDataUrl = productSetData.markerPatternUrl;
+                console.log('[ARByCode] Using product set marker pattern:', markerDataUrl);
+              }
+              // check if product set has linked ar session
+              else if (productSetData.linkedARSessionId) {
+                console.log('[ARByCode] Product set has linked AR session:', productSetData.linkedARSessionId);
+                try {
+                  // try to fetch the linked ar session's config
+                  const sessionConfigResponse = await fetch(`${API_BASE}/v1/ar-sessions/${productSetData.linkedARSessionId}/data`, {
+                    method: 'GET',
+                    credentials: 'omit'
+                  });
+                  if (sessionConfigResponse.ok) {
+                    const sessionData = await sessionConfigResponse.json();
+                    console.log('[ARByCode] Linked session data:', sessionData);
+                    if (sessionData.markerPattern?.url) {
+                      markerDataUrl = sessionData.markerPattern.url;
+                      console.log('[ARByCode] Using linked session marker:', markerDataUrl);
+                    } else if (sessionData.markerPattern?.patternId) {
+                      markerDataUrl = `/patterns/${sessionData.markerPattern.patternId}.patt`;
+                      console.log('[ARByCode] Using linked session pattern ID:', markerDataUrl);
+                    }
+                  }
+                } catch (sessionError) {
+                  console.warn('[ARByCode] Failed to fetch linked session:', sessionError);
+                }
+              }
+              
+              // create AR config with resolved marker pattern
+              setConfig({
+                markerType: 'custom',
+                markerDataUrl: markerDataUrl,
+                overlays: [DEFAULT_OVERLAY],
+                meta: {
+                  title: productSetData.name || 'WMCYN AR Experience',
+                  description: productSetData.description || 'Scan to view AR content',
+                  actions: []
+                }
+              });
             } else {
               throw new Error(`Product set lookup failed: ${productSetResponse.status}`);
             }
           } catch (productSetError) {
             console.log('[ARByCode] Product set lookup also failed:', productSetError);
-            throw arConfigError; // Re-throw original error
+            throw arConfigError; // re-throw original error
           }
         }
       } catch (e: any) {
@@ -167,7 +221,7 @@ export default function ARByCode() {
     if (useGeneratedTemplate && GeneratedTemplate) {
       return (
         <GeneratedTemplate
-          overlays={[]} // Generated template handles its own overlays
+          overlays={[DEFAULT_OVERLAY]} // pass default wmcyn logo overlay
           onMarkerFound={handleMarkerFound}
           onMarkerLost={handleMarkerLost}
           onClose={handleCloseAR}
@@ -176,15 +230,28 @@ export default function ARByCode() {
       );
     }
     
+    // ensure we always have at least the default overlay
+    const overlays = config?.overlays && config.overlays.length > 0 
+      ? config.overlays 
+      : [DEFAULT_OVERLAY];
+    
+    // determine mindar target for nft markers
+    const isNFT = config?.markerType === 'nft';
+    const mindTargetSrc = isNFT 
+      ? (config?.markerDataUrl?.replace(/\.(fset|fset3|iset)$/, '.mind') || '/patterns/pinball.mind')
+      : undefined;
+    
     return (
       <ARCameraQR
         markerType={config?.markerType || 'custom'}
-        markerDataUrl={config?.markerDataUrl || ''}
-        overlays={config?.overlays || []}
+        markerDataUrl={config?.markerDataUrl || '/patterns/pattern-wmcyn_logo_full.patt'}
+        mindTargetSrc={mindTargetSrc}
+        overlays={overlays}
         onMarkerFound={handleMarkerFound}
         onMarkerLost={handleMarkerLost}
         onClose={handleCloseAR}
         qrCode={code}
+        meta={config?.meta}
       />
     );
   }
