@@ -48,17 +48,21 @@ export default function ProductSetBuilder({ productSet, onSubmit, onCancel, load
   useEffect(() => {
     if (productSet) {
       setFormData({
-        name: productSet.name,
+        name: productSet.name || '',
         description: productSet.description || '',
         campaign: productSet.campaign || '',
         markerPatternId: '', // TODO: add this field to ProductSet type
-        arTitle: productSet.name, // Use product name as default AR title
+        arTitle: productSet.name || '', // Use product name as default AR title
         arDescription: productSet.description || '',
         arActions: [], // TODO: add this field to ProductSet type
-        items: productSet.items,
-        checkout: productSet.checkout,
-        remainingInventory: productSet.stats.remainingInventory,
-        linkedARSessionId: ''
+        items: productSet.items || [],
+        checkout: productSet.checkout || {
+          type: 'product' as const,
+          cartLink: '',
+          discountCode: ''
+        },
+        remainingInventory: productSet.stats?.remainingInventory || 0,
+        linkedARSessionId: productSet.linkedARSessionId || ''
       });
     }
   }, [productSet]);

@@ -20,6 +20,7 @@ const ARMetadataOverlay: React.FC<ARMetadataOverlayProps> = ({
   onPurchase,
   onAction
 }) => {
+
   const formatPrice = (amount: string, currency: string) => {
     return `${currency === 'USD' ? '$' : currency}${amount}`;
   };
@@ -33,12 +34,26 @@ const ARMetadataOverlay: React.FC<ARMetadataOverlayProps> = ({
     });
   };
 
-  if (!metadata) return null;
+  if (!metadata) {
+    console.warn('[ARMetadataOverlay] No metadata provided, returning null');
+    return null;
+  }
 
   // check if this is ar session metadata with dynamic actions
+  // ar session metadata has actions array, product metadata has printDate/price/etc
   const isARSessionMetadata = 'actions' in metadata && Array.isArray(metadata.actions);
-  const arSessionMetadata = isARSessionMetadata ? metadata as ARSessionMetadata : null;
+  const arSessionMetadata = isARSessionMetadata ? metadata as ARSessionMetadata & { createdAt?: string; campaign?: string } : null;
   const productMetadata = !isARSessionMetadata ? metadata as ProductMetadata : null;
+  
+  console.log('[ARMetadataOverlay] Rendering with:', {
+    isARSessionMetadata,
+    hasActions: arSessionMetadata ? arSessionMetadata.actions?.length : 0,
+    actions: arSessionMetadata?.actions,
+    createdAt: arSessionMetadata?.createdAt,
+    campaign: arSessionMetadata?.campaign,
+    description: metadata.description,
+    title: metadata.title
+  });
 
   const handleAction = (action: { type: string; label: string; url?: string }) => {
     if (action.url) {
@@ -90,8 +105,29 @@ const ARMetadataOverlay: React.FC<ARMetadataOverlayProps> = ({
           </div>
         )}
 
-        {metadata.description && (
-          <p className={styles.description}>{metadata.description}</p>
+        {/* show metadata section for ar session metadata (qr code flows) */}
+        {arSessionMetadata && (arSessionMetadata.createdAt || arSessionMetadata.campaign) && (
+          <div className={styles.metadata}>
+            {arSessionMetadata.createdAt && (
+              <div className={styles.metadataRow}>
+                <span className={styles.label}>printed:</span>
+                <span className={styles.value}>{formatDate(arSessionMetadata.createdAt)}</span>
+              </div>
+            )}
+            {arSessionMetadata.campaign && (
+              <div className={styles.metadataRow}>
+                <span className={styles.label}>campaign:</span>
+                <span className={styles.value}>{arSessionMetadata.campaign}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* always show description - from form if available */}
+        {metadata.description && metadata.description.trim() && (
+          <p className={styles.description}>
+            {metadata.description}
+          </p>
         )}
         
         <div className={styles.actions}>

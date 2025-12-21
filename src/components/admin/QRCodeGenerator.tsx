@@ -177,12 +177,17 @@ export default function QRCodeGenerator({ productSet, arSession, isOpen, onClose
         let markerPatternUrl = '/patterns/pattern-wmcyn_logo_full.patt';
         
         // 1. if we have an ar session directly, use its marker pattern
-        if (arSession?.markerPattern?.url) {
+        // 1. check if product set has nft marker with .mind file (highest priority)
+        if (productSet?.nftMarker?.mindFileUrl) {
+          markerPatternUrl = productSet.nftMarker.mindFileUrl;
+        }
+        // 2. check if ar session has marker pattern
+        else if (arSession?.markerPattern?.url) {
           markerPatternUrl = arSession.markerPattern.url;
         } else if (arSession?.markerPattern?.patternId) {
           markerPatternUrl = `/patterns/${arSession.markerPattern.patternId}.patt`;
         }
-        // 2. if we have a product set with linked ar session, fetch that session's marker
+        // 3. if we have a product set with linked ar session, fetch that session's marker
         else if (productSet?.linkedARSessionId) {
           console.log('[QRCodeGenerator] Fetching linked AR session marker:', productSet.linkedARSessionId);
           try {
@@ -207,11 +212,14 @@ export default function QRCodeGenerator({ productSet, arSession, isOpen, onClose
         
         console.log('[QRCodeGenerator] Generating template with marker:', markerPatternUrl);
         
+        // get the code from response - handle both response formats
+        const qrCode = response.qrCode?.code || response.code;
+        
         const templateResponse = await fetch('/api/generate-template', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            code: response.qrCode.code,
+            code: qrCode,
             productName: request.label || 'Custom AR Experience',
             campaign: request.campaign || 'default',
             targetType: request.target.type,
@@ -233,7 +241,7 @@ export default function QRCodeGenerator({ productSet, arSession, isOpen, onClose
           const templateResult = await templateResponse.json();
           if (templateResult.success) {
             setTemplateGenerated(true);
-            console.log('✅ Template generated for QR code:', response.qrCode.code);
+            console.log('✅ Template generated for QR code:', qrCode);
           } else {
             console.warn('⚠️ Template generation failed:', templateResult.error);
           }

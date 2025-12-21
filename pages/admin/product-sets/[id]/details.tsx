@@ -5,6 +5,7 @@ import { getProductSet, getQRCodes, deleteQRCode, arSessions } from '@/lib/apiCl
 import { ProductSet, QRCodeData } from '@/types/productSets';
 import { ARSessionData } from '@/types/arSessions';
 import QRCodeGenerator from '@/components/admin/QRCodeGenerator';
+import NFTMarkerCompiler from '@/components/admin/NFTMarkerCompiler';
 import NextImage from '@/components/NextImage';
 import styles from '@/styles/Admin.module.scss';
 
@@ -21,6 +22,8 @@ export default function ProductSetDetails() {
   const [error, setError] = useState('');
   const [showQRGenerator, setShowQRGenerator] = useState(false);
   const [deletingQR, setDeletingQR] = useState<string | null>(null);
+  const [uploadingMarker, setUploadingMarker] = useState(false);
+  const [markerError, setMarkerError] = useState<string | null>(null);
 
   // redirect if not authenticated
   useEffect(() => {
@@ -91,6 +94,38 @@ export default function ProductSetDetails() {
     }
   };
 
+  // download QR code image with CORS handling
+  const handleDownloadQR = async (url: string, filename: string) => {
+    try {
+      // try direct download first (works if CORS allows)
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      // fallback: fetch and download (handles CORS)
+      try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+      } catch (fetchError) {
+        console.error('failed to download QR code:', fetchError);
+        // final fallback: open in new tab
+        window.open(url, '_blank');
+      }
+    }
+  };
+
   const handleQRSuccess = (response: any) => {
     console.log('[handleQRSuccess] QR code generated:', response);
     
@@ -116,6 +151,71 @@ export default function ProductSetDetails() {
           }
         }).catch(console.error);
       }, 1000);
+    }
+  };
+
+  // handle marker compiled - receives compiled .mind file from browser
+  const handleMarkerCompiled = async (data: {
+    mindFileData: string;      // base64 encoded .mind file
+    sourceImageData: string;   // base64 encoded source image
+    filename: string;
+    quality?: number;
+  }) => {
+    if (!productSet?.id) return;
+
+    console.log('[handleMarkerCompiled] Uploading compiled marker to backend...');
+    setUploadingMarker(true);
+    setMarkerError(null);
+
+    try {
+      // upload to backend
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://us-central1-wmcyn-online-mobile.cloudfunctions.net/api';
+      const url = `${API_BASE}/v1/productSets/${productSet.id}/nft-marker`;
+      
+      console.log('[handleMarkerCompiled] Uploading to:', url);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-token': process.env.NEXT_PUBLIC_ADMIN_API_TOKEN || '',
+        },
+        body: JSON.stringify({
+          sourceImageData: data.sourceImageData,
+          mindFileData: data.mindFileData,
+          filename: data.filename,
+          quality: data.quality,
+        }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        console.error('[handleMarkerCompiled] Upload failed:', { status: response.status, text });
+        throw new Error(`Upload failed: ${response.status} - ${text}`);
+      }
+
+      const result = await response.json();
+      console.log('[handleMarkerCompiled] Upload result:', result);
+
+      // update product set with new marker info
+      setProductSet(prev => prev ? {
+        ...prev,
+        nftMarker: {
+          mindFileUrl: result.mindFileUrl,
+          sourceImageUrl: result.sourceImageUrl,
+          compiledAt: new Date().toISOString(),
+          quality: data.quality
+        }
+      } : null);
+
+      // show success notification
+      alert(`✓ Marker uploaded successfully!\n\nMind file: ${result.mindFileUrl}`);
+
+    } catch (err: any) {
+      console.error('[handleMarkerCompiled] Upload error:', err);
+      setMarkerError(err.message || 'Failed to upload marker');
+    } finally {
+      setUploadingMarker(false);
     }
   };
 
@@ -663,6 +763,52 @@ export default function ProductSetDetails() {
           </div>
         </div>
 
+        {/* NFT marker section */}
+        <div style={{ 
+          background: 'rgba(255, 255, 255, 0.05)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '12px',
+          padding: '24px',
+          marginBottom: '32px',
+          backdropFilter: 'blur(10px)'
+        }}>
+          {markerError && (
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: '8px',
+              padding: '12px',
+              marginBottom: '16px',
+              color: '#fca5a5',
+              fontSize: '0.9rem'
+            }}>
+              {markerError}
+            </div>
+          )}
+          
+          {uploadingMarker && (
+            <div style={{
+              background: 'rgba(59, 130, 246, 0.1)',
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              borderRadius: '8px',
+              padding: '12px',
+              marginBottom: '16px',
+              color: '#93c5fd',
+              fontSize: '0.9rem',
+              textAlign: 'center'
+            }}>
+              uploading marker to server...
+            </div>
+          )}
+          
+          <NFTMarkerCompiler
+            productSetId={productSet.id}
+            onCompiled={handleMarkerCompiled}
+            existingMarker={productSet.nftMarker}
+            disabled={uploadingMarker}
+          />
+        </div>
+
         {/* QR codes */}
         <div style={{ 
           background: 'rgba(255, 255, 255, 0.05)',
@@ -688,7 +834,9 @@ export default function ProductSetDetails() {
 
           {(qrCodes || []).length > 0 ? (
             <div>
-              {(qrCodes || []).slice(0, 1).map((qrCode) => (
+              {(qrCodes || []).slice(0, 1).map((qrCode) => {
+                console.log('[ProductSetDetails] Rendering QR code:', qrCode);
+                return (
                 <div key={qrCode.id} style={{ 
                   background: 'rgba(255, 255, 255, 0.03)',
                   border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -716,6 +864,134 @@ export default function ProductSetDetails() {
                     >
                       {deletingQR === qrCode.id ? 'deleting...' : 'delete'}
                     </button>
+                  </div>
+
+                  {/* QR code image display - always show */}
+                  {(() => {
+                    // get asset URLs - use provided or construct from code
+                    const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://us-central1-wmcyn-online-mobile.cloudfunctions.net/api';
+                    const pngUrl = qrCode.assets?.qrPngUrl || `https://api-rrm3u3yaba-uc.a.run.app/api/qr-assets/${qrCode.code}.png`;
+                    const svgUrl = qrCode.assets?.qrSvgUrl || `https://api-rrm3u3yaba-uc.a.run.app/api/qr-assets/${qrCode.code}.svg`;
+                    
+                    return (
+                      <div style={{ 
+                        textAlign: 'center', 
+                        marginBottom: '16px',
+                        padding: '16px',
+                        background: 'white',
+                        borderRadius: '8px'
+                      }}>
+                        <img 
+                          src={pngUrl} 
+                          alt={`QR Code ${qrCode.code}`}
+                          onError={(e) => {
+                            // fallback to SVG if PNG fails
+                            if (e.currentTarget.src !== svgUrl) {
+                              e.currentTarget.src = svgUrl;
+                            }
+                          }}
+                          style={{ 
+                            maxWidth: '200px', 
+                            width: '100%', 
+                            height: 'auto',
+                            display: 'block',
+                            margin: '0 auto'
+                          }}
+                        />
+                        
+                        {/* download buttons - always show */}
+                        <div style={{ 
+                          display: 'flex', 
+                          gap: '8px', 
+                          justifyContent: 'center',
+                          marginTop: '12px'
+                        }}>
+                          <button
+                            onClick={() => handleDownloadQR(pngUrl, `qr-code-${qrCode.code}.png`)}
+                            style={{
+                              padding: '8px 16px',
+                              background: '#000',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '0.9rem',
+                              fontWeight: '500'
+                            }}
+                          >
+                            download png
+                          </button>
+                          <button
+                            onClick={() => handleDownloadQR(svgUrl, `qr-code-${qrCode.code}.svg`)}
+                            style={{
+                              padding: '8px 16px',
+                              background: '#000',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '0.9rem',
+                              fontWeight: '500'
+                            }}
+                          >
+                            download svg
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* QR code URL */}
+                  <div style={{ 
+                    marginBottom: '16px',
+                    padding: '12px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '6px'
+                  }}>
+                    <div style={{ 
+                      fontSize: '0.8rem', 
+                      color: 'rgba(255, 255, 255, 0.6)',
+                      marginBottom: '4px'
+                    }}>
+                      QR code URL:
+                    </div>
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <code style={{ 
+                        flex: 1,
+                        padding: '6px 8px',
+                        background: 'rgba(0, 0, 0, 0.3)',
+                        borderRadius: '4px',
+                        color: '#60a5fa',
+                        fontSize: '0.85rem',
+                        wordBreak: 'break-all',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        {`https://wmcyn.online/qr?code=${qrCode.code}`}
+                      </code>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(`https://wmcyn.online/qr?code=${qrCode.code}`);
+                          alert('URL copied to clipboard!');
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          background: 'rgba(255, 255, 255, 0.1)',
+                          color: 'white',
+                          border: '1px solid rgba(255, 255, 255, 0.2)',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '0.8rem',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        copy
+                      </button>
+                    </div>
                   </div>
                   
                   <div style={{ 
@@ -760,7 +1036,8 @@ export default function ProductSetDetails() {
                     </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div style={{ 

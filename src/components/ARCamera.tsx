@@ -13,6 +13,8 @@ interface ARCameraProps {
     title?: string;
     description?: string;
     actions?: Array<{ type: string; label: string; url?: string }>;
+    createdAt?: string;  // for "printed on" display
+    campaign?: string;   // for campaign display
   };
 }
 
@@ -24,16 +26,10 @@ const ARCamera = ({ onClose, configs, meta }: ARCameraProps): JSX.Element => {
   // use provided configs or default marker configs
   const effectiveConfigs = configs || defaultMarkerConfigs;
 
-  // log loading state changes
-  useEffect(() => {
-    console.log('ARCamera: Loading state changed to:', isLoading);
-  }, [isLoading]);
 
   // marker detection callback - show overlay
   const handleMarkerFound = useCallback((config: MarkerConfig) => {
-    console.log(`Marker detected: ${config.name}`);
     setDetectedMarker(config);
-    config.onFound?.();
   }, []);
 
   // create configs with detection callbacks
@@ -119,25 +115,34 @@ const ARCamera = ({ onClose, configs, meta }: ARCameraProps): JSX.Element => {
     };
   }, []);
 
-  // get metadata from detected marker or from meta prop
+  // get metadata from meta prop (preferred) or detected marker
   const overlayMetadata = useMemo(() => {
-    // priority: detected marker metadata > meta prop > null
-    if (detectedMarker?.metadata) {
-      return detectedMarker.metadata;
-    }
+    // priority: meta prop (ar overlay settings) > detected marker metadata > null
+    // meta prop contains the user-defined AR title/description from product set
     if (meta) {
-      return {
+      const result = {
         title: meta.title || 'WMCYN AR Experience',
-        description: meta.description || '',
+        // preserve undefined if description not provided - don't use fallback
+        description: meta.description,
         actions: meta.actions?.map(a => ({
           type: a.type as 'purchase' | 'share' | 'claim' | 'info',
           label: a.label,
           url: a.url
-        })) || []
+        })) || [],
+        createdAt: meta.createdAt,  // pass through for "printed on" display
+        campaign: meta.campaign      // pass through for campaign display
       };
+      console.log('[ARCamera] overlayMetadata from meta prop:', result);
+      return result;
     }
+    // fallback to detected marker metadata if no meta prop (homepage flow)
+    if (detectedMarker?.metadata) {
+      console.log('[ARCamera] overlayMetadata from detected marker:', detectedMarker.metadata);
+      return detectedMarker.metadata;
+    }
+    console.log('[ARCamera] No overlayMetadata available');
     return null;
-  }, [detectedMarker?.metadata, meta]);
+  }, [meta, detectedMarker?.metadata]);
 
   // action handlers
   const handleClaim = () => {
@@ -205,7 +210,7 @@ const ARCamera = ({ onClose, configs, meta }: ARCameraProps): JSX.Element => {
         </div>
       )}
 
-      {/* metadata overlay - show when we have metadata and not loading */}
+      {/* metadata overlay - show when marker detected OR when meta is provided (qr flows) */}
       {!isLoading && overlayMetadata && (
         <ARMetadataOverlay
           metadata={overlayMetadata}

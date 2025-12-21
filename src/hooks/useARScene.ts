@@ -14,17 +14,29 @@ const MODEL_Y_OFFSET = -0.6; // move model down below the marker (negative = dow
 // helper to get mindar class from window (scripts loaded in _document.tsx)
 const getMindARThree = (): any => {
   const win = window as any;
+  
+  // check all possible paths where MindARThree might be
   const paths = [
-    win.MINDAR?.IMAGE?.MindARThree,
-    win.MindARThree,
-    win.MINDAR?.MindARThree,
+    { name: 'MINDAR.IMAGE.MindARThree', value: win.MINDAR?.IMAGE?.MindARThree },
+    { name: 'MindARThree', value: win.MindARThree },
+    { name: 'MINDAR.MindARThree', value: win.MINDAR?.MindARThree },
   ];
   
   for (const path of paths) {
-    if (path && typeof path === 'function') {
-      return path;
+    if (path.value && typeof path.value === 'function') {
+      console.log('[getMindARThree] Found at:', path.name);
+      return path.value;
     }
   }
+  
+  // log what we do have for debugging
+  console.log('[getMindARThree] Not found. Available:', {
+    MINDAR: !!win.MINDAR,
+    'MINDAR.IMAGE': win.MINDAR?.IMAGE ? Object.keys(win.MINDAR.IMAGE) : 'undefined',
+    MindARThree: !!win.MindARThree,
+    THREE: !!win.THREE
+  });
+  
   return null;
 };
 
@@ -33,13 +45,16 @@ const loadMindARScript = (): Promise<any> => {
   return new Promise((resolve, reject) => {
     const existing = getMindARThree();
     if (existing) {
+      console.log('[useARScene] MindAR found immediately');
       resolve(existing);
       return;
     }
 
+    console.log('[useARScene] Waiting for MindAR to load...');
+
     // poll for it in case scripts are still loading
     let attempts = 0;
-    const maxAttempts = 100; // 10 seconds max
+    const maxAttempts = 200; // 20 seconds max (increased for slow mobile connections)
     
     const checkInterval = setInterval(() => {
       attempts++;
@@ -47,13 +62,15 @@ const loadMindARScript = (): Promise<any> => {
       
       if (found) {
         clearInterval(checkInterval);
+        console.log('[useARScene] MindAR found after', attempts * 100, 'ms');
         resolve(found);
         return;
       }
       
       if (attempts >= maxAttempts) {
         clearInterval(checkInterval);
-        reject(new Error('MindAR not available'));
+        console.error('[useARScene] MindAR not available after 20 seconds. Window.MINDAR:', (window as any).MINDAR);
+        reject(new Error('MindAR not available - scripts may have failed to load'));
       }
     }, 100);
   });
@@ -83,10 +100,20 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
     const config = configs[0];
     const isNFTMarker = config?.markerType === 'nft' && config?.mindTargetSrc;
 
+    console.log('[useARScene] Initializing with config:', {
+      name: config?.name,
+      markerType: config?.markerType,
+      mindTargetSrc: config?.mindTargetSrc,
+      isNFTMarker,
+      configCount: configs.length
+    });
+
     // use nft detection or fallback to pattern ar
     if (isNFTMarker) {
+      console.log('[useARScene] Using NFT AR mode with target:', config.mindTargetSrc);
       initNFTAR(container, config);
     } else {
+      console.log('[useARScene] Using Pattern AR mode (fallback)');
       initPatternAR(container, config);
     }
 
@@ -127,6 +154,31 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
     // nft marker initialization using mindar
     async function initNFTAR(container: HTMLDivElement, config: MarkerConfig) {
       try {
+        console.log('[useARScene] Starting NFT AR initialization...');
+        
+        // pre-flight check: verify camera permission
+        console.log('[useARScene] Checking camera permission...');
+        try {
+          const permissionStatus = await navigator.permissions?.query({ name: 'camera' as PermissionName });
+          console.log('[useARScene] Camera permission status:', permissionStatus?.state);
+        } catch (permErr) {
+          console.log('[useARScene] Could not query camera permission (normal on some browsers)');
+        }
+        
+        // pre-flight check: verify .mind file is accessible
+        const mindFileUrl = config.mindTargetSrc;
+        console.log('[useARScene] Checking .mind file accessibility:', mindFileUrl);
+        try {
+          const response = await fetch(mindFileUrl!, { method: 'HEAD' });
+          if (!response.ok) {
+            throw new Error(`.mind file not accessible: ${response.status} ${response.statusText}`);
+          }
+          console.log('[useARScene] .mind file accessible, content-type:', response.headers.get('content-type'));
+        } catch (fetchErr: any) {
+          console.error('[useARScene] .mind file fetch failed:', fetchErr.message);
+          // don't throw - let MindAR try to load it anyway (might be CORS issue with HEAD)
+        }
+        
         const MindARThree = await loadMindARScript();
         if (isCancelledRef.current || !MindARThree) return;
 
@@ -138,6 +190,8 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
         // create mindar instance with built-in stabilization
         // filterMinCF: lower = smoother but more delay (default: 0.001)
         // filterBeta: higher = more responsive but more jitter (default: 1000)
+        console.log('[useARScene] Creating MindAR instance with target:', config.mindTargetSrc);
+        
         const mindar = new MindARThree({
           container: container,
           imageTargetSrc: config.mindTargetSrc,
@@ -148,6 +202,8 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
           filterMinCF: 0.0001, // very smooth tracking
           filterBeta: 0.01, // low responsiveness for stability
         });
+        
+        console.log('[useARScene] MindAR instance created');
 
         mindARRef.current = mindar;
         const { renderer, scene, camera } = mindar;
@@ -173,13 +229,29 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
         const modelUrl = config?.modelUrl || '/models/wmcyn_3d_logo.glb';
         let model: any = null;
 
+        console.log('[useARScene] Loading 3D model from:', modelUrl);
         const GLTFLoader = (THREE as any).GLTFLoader;
         
         if (GLTFLoader) {
           try {
             const loader = new GLTFLoader();
             const gltf = await new Promise<any>((resolve, reject) => {
-              loader.load(modelUrl, resolve, undefined, reject);
+              loader.load(
+                modelUrl, 
+                (loaded: any) => {
+                  console.log('[useARScene] Model loaded successfully');
+                  resolve(loaded);
+                }, 
+                (progress: any) => {
+                  if (progress.lengthComputable) {
+                    console.log('[useARScene] Model loading:', Math.round(progress.loaded / progress.total * 100) + '%');
+                  }
+                }, 
+                (error: any) => {
+                  console.error('[useARScene] Model load error:', error);
+                  reject(error);
+                }
+              );
             });
             
             model = gltf.scene;
@@ -195,20 +267,19 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
             const center = box.getCenter(new THREE.Vector3());
             model.position.set(-center.x * scale, MODEL_Y_OFFSET, -center.z * scale);
             
-          } catch (err) {
-            console.warn('[useARScene] Model load failed, using fallback');
+          } catch (err: any) {
+            console.error('[useARScene] Model load failed:', err?.message || err);
           }
+        } else {
+          console.warn('[useARScene] GLTFLoader not available');
         }
         
-        // fallback cube if model didn't load
-        if (!model) {
-          const geometry = new THREE.BoxGeometry(0.15, 0.15, 0.15);
-          const material = new THREE.MeshStandardMaterial({ color: 0x4CC3D9 });
-          model = new THREE.Mesh(geometry, material);
-          model.position.y = 0.15;
+        // only add model if it loaded successfully - no fallback cube
+        if (model) {
+          anchor.group.add(model);
+        } else {
+          console.error('[useARScene] No model loaded - check model path:', modelUrl);
         }
-        
-        anchor.group.add(model);
         
         // track spin rotation separately
         let spinRotation = 0;
@@ -216,19 +287,54 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
 
         // target callbacks
         anchor.onTargetFound = () => {
+          console.log('[useARScene] 🎯 TARGET FOUND! Config:', config?.name);
           if (anchor.group) {
             anchor.group.visible = true;
             anchor.group.children.forEach((child: any) => { child.visible = true; });
           }
-          config?.onFound?.();
+          if (config?.onFound) {
+            console.log('[useARScene] Calling onFound callback');
+            config.onFound();
+          } else {
+            console.log('[useARScene] No onFound callback defined');
+          }
         };
 
         anchor.onTargetLost = () => {
-          // target lost
+          console.log('[useARScene] Target lost');
         };
 
-        // start mindar
-        await mindar.start();
+        // start mindar with timeout to prevent infinite hang
+        console.log('[useARScene] Starting MindAR...');
+        console.log('[useARScene] MindAR instance:', {
+          hasRenderer: !!mindar.renderer,
+          hasScene: !!mindar.scene,
+          hasCamera: !!mindar.camera
+        });
+        
+        const startPromise = mindar.start();
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => {
+            console.error('[useARScene] Timeout reached - MindAR.start() did not complete');
+            reject(new Error('MindAR start timed out after 30 seconds. Check camera permissions and .mind file.'));
+          }, 30000);
+        });
+        
+        // log progress every 5 seconds
+        const progressInterval = setInterval(() => {
+          console.log('[useARScene] Still waiting for MindAR.start()...');
+        }, 5000);
+        
+        try {
+          await Promise.race([startPromise, timeoutPromise]);
+          clearInterval(progressInterval);
+        } catch (startError: any) {
+          clearInterval(progressInterval);
+          console.error('[useARScene] MindAR start failed:', startError?.message || startError);
+          throw startError;
+        }
+        
+        console.log('[useARScene] MindAR started successfully');
 
         if (isCancelledRef.current) {
           mindar.stop();
@@ -258,9 +364,32 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
         setIsLoading(false);
 
       } catch (err: any) {
-        console.error('[useARScene] NFT AR failed:', err?.message);
-        // fallback to pattern ar
-        initPatternAR(container, config);
+        console.error('[useARScene] NFT AR failed:', err?.message || err);
+        console.error('[useARScene] Full error:', err);
+        
+        // determine specific error message
+        let errorMessage = err?.message || 'MindAR could not load';
+        let suggestion = 'Try refreshing the page';
+        
+        if (errorMessage.includes('timed out')) {
+          suggestion = 'Check your camera permissions and internet connection';
+        } else if (errorMessage.includes('camera') || errorMessage.includes('permission')) {
+          suggestion = 'Please allow camera access and try again';
+        } else if (errorMessage.includes('not available')) {
+          suggestion = 'The AR library failed to load. Check your internet connection';
+        }
+        
+        // show error message instead of silent fallback
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.9);color:white;padding:24px;border-radius:12px;text-align:center;z-index:100;max-width:85%;';
+        errorDiv.innerHTML = `
+          <h3 style="margin:0 0 12px 0;font-size:18px;">AR Initialization Failed</h3>
+          <p style="margin:0;font-size:14px;opacity:0.85;">${errorMessage}</p>
+          <p style="margin:12px 0 16px 0;font-size:13px;opacity:0.65;">${suggestion}</p>
+          <button onclick="location.reload()" style="background:#fff;color:#000;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;">Reload Page</button>
+        `;
+        container.appendChild(errorDiv);
+        setIsLoading(false);
       }
     }
 
@@ -340,12 +469,9 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
           model.position.y += 0.25;
           scene.add(model);
           
-        } catch (modelErr) {
-          const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-          const material = new THREE.MeshStandardMaterial({ color: 0x4CC3D9 });
-          model = new THREE.Mesh(geometry, material);
-          model.position.y = 0.25;
-          scene.add(model);
+        } catch (modelErr: any) {
+          console.error('[useARScene] Pattern AR model load failed:', modelErr?.message || modelErr);
+          // no fallback cube - just log the error
         }
 
         threeRef.current = { renderer, scene, camera, model, spinRotation: 0 };

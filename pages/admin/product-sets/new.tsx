@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
-import { createProductSet, arSessions } from '@/lib/apiClient';
+import { createProductSet } from '@/lib/apiClient';
 import { CreateProductSetRequest } from '@/types/productSets';
-import { CreateARSessionRequest } from '@/types/arSessions';
 import ARProductBuilder from '@/components/admin/ARProductBuilder';
 import NextImage from '@/components/NextImage';
 import styles from '@/styles/Admin.module.scss';
@@ -33,6 +32,7 @@ export default function CreateProductSet() {
     description: string;
     campaign: string;
     markerPatternId: string;
+    mindFileUrl?: string | null;
     arTitle: string;
     arDescription: string;
     arActions: Array<{ type: string; label: string; url?: string }>;
@@ -40,42 +40,10 @@ export default function CreateProductSet() {
     try {
       setLoading(true);
       
-      // step 1: create ar session first with marker pattern and metadata
-      console.log('[CreateProductSet] Step 1: Creating AR Session...');
-      const arSessionData: CreateARSessionRequest = {
-        name: data.name,
-        description: data.arDescription || data.description,
-        campaign: data.campaign || undefined,
-        productId: 'ar-product',
-        markerPattern: {
-          patternId: data.markerPatternId,
-          type: 'custom'
-        },
-        metadata: {
-          title: data.arTitle || data.name,
-          description: data.arDescription || data.description || '',
-          actions: data.arActions.map(action => ({
-            type: action.type as 'purchase' | 'share' | 'claim' | 'info',
-            label: action.label,
-            url: action.url
-          }))
-        }
-      };
+      // create product set with marker pattern and mind file url
+      console.log('[CreateProductSet] Creating Product Set...');
+      console.log('[CreateProductSet] Mind file URL:', data.mindFileUrl);
       
-      console.log('[CreateProductSet] AR Session data:', arSessionData);
-      
-      let arSession;
-      try {
-        arSession = await arSessions.create(arSessionData);
-        console.log('[CreateProductSet] AR Session created:', arSession);
-      } catch (arError: any) {
-        console.error('[CreateProductSet] AR Session creation failed:', arError);
-        // continue without ar session if it fails - product can still be created
-        console.log('[CreateProductSet] Continuing without AR session...');
-      }
-      
-      // step 2: create product set linked to ar session
-      console.log('[CreateProductSet] Step 2: Creating Product Set...');
       const productSetData: CreateProductSetRequest = {
         name: data.name,
         description: data.description || undefined,
@@ -87,8 +55,19 @@ export default function CreateProductSet() {
         checkout: {
           type: 'product'
         },
-        // link to ar session if created
-        linkedARSessionId: arSession?.sessionId || arSession?.id
+        // include the nft marker info if we have a mind file url
+        ...(data.mindFileUrl && {
+          nftMarker: {
+            mindFileUrl: data.mindFileUrl,
+            compiledAt: new Date().toISOString()
+          }
+        }),
+        // include ar overlay metadata
+        arMetadata: {
+          title: data.arTitle || data.name,
+          description: data.arDescription || data.description,
+          actions: data.arActions || []
+        }
       };
       
       console.log('[CreateProductSet] Product Set data:', productSetData);
@@ -96,48 +75,10 @@ export default function CreateProductSet() {
       const productSet = await createProductSet(productSetData);
       console.log('[CreateProductSet] Product set created:', productSet);
       
-      // step 3: generate template for the ar session
-      if (arSession) {
-        console.log('[CreateProductSet] Step 3: Generating AR template...');
-        try {
-          const templateResponse = await fetch('/api/generate-template', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              code: arSession.sessionId || arSession.id,
-              productName: data.arTitle || data.name,
-              campaign: data.campaign || 'default',
-              targetType: 'AR_SESSION',
-              targetId: arSession.sessionId || arSession.id,
-              markerPatternUrl: arSession.markerPattern?.url || 
-                `/patterns/${data.markerPatternId}.patt`,
-              metadata: {
-                title: data.arTitle || data.name,
-                description: data.arDescription || data.description || '',
-                effects: {
-                  type: 'default',
-                  intensity: 1.0,
-                  theme: 'default'
-                }
-              }
-            })
-          });
-          
-          if (templateResponse.ok) {
-            const templateResult = await templateResponse.json();
-            console.log('[CreateProductSet] Template generated:', templateResult);
-          } else {
-            console.warn('[CreateProductSet] Template generation failed:', templateResponse.status);
-          }
-        } catch (templateError) {
-          console.warn('[CreateProductSet] Template generation error:', templateError);
-        }
-      }
-      
       // show success modal with test link
       setCreatedData({
         productSetId: productSet.id,
-        arSessionId: arSession?.sessionId || arSession?.id || null,
+        arSessionId: null,
         name: data.name
       });
       setShowSuccess(true);

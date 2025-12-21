@@ -136,47 +136,53 @@ export default function ARSessionsList() {
               height={40}
               priority
             />
-            <h1 className={styles.adminTitle}>ar sessions</h1>
+            <h1 className={styles.adminTitle}>Admin Dashboard</h1>
           </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button 
-              onClick={() => router.push('/admin')}
-              className={styles.buttonSecondary}
-            >
-              back to dashboard
-            </button>
+          <div className={styles.adminActions}>
             <button 
               onClick={handleCreateNew}
               className={styles.buttonPrimary}
             >
-              create ar session
+              Create AR Session
             </button>
           </div>
         </div>
 
-        {/* filters */}
-        <div className={styles.filtersContainer}>
-          <div className={styles.searchContainer}>
-            <input
-              type="text"
-              placeholder="search sessions..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className={styles.searchInput}
-            />
-          </div>
-          <div className={styles.filterContainer}>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className={styles.filterSelect}
-            >
-              <option value="all">all statuses</option>
-              <option value="active">active</option>
-              <option value="inactive">inactive</option>
-              <option value="draft">draft</option>
-            </select>
-          </div>
+        {/* navigation tabs */}
+        <div className={styles.adminTabs}>
+          <button
+            className={styles.tabButton}
+            onClick={() => router.push('/admin')}
+          >
+            AR Products
+          </button>
+          <button 
+            className={`${styles.tabButton} ${styles.active}`}
+            onClick={() => router.push('/admin/ar-sessions')}
+          >
+            AR Sessions
+          </button>
+        </div>
+
+        {/* search and filter */}
+        <div className={styles.searchContainer}>
+          <input
+            type="text"
+            placeholder="Search sessions..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className={styles.searchInput}
+          />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className={styles.filterSelect}
+          >
+            <option value="all">All Statuses</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="draft">Draft</option>
+          </select>
         </div>
 
         {/* content */}
@@ -193,17 +199,19 @@ export default function ARSessionsList() {
             </button>
           </div>
         ) : filteredSessions.length === 0 ? (
-          <div className={styles.emptyContainer}>
-            <h3>no ar sessions found</h3>
-            <p>
-              {searchTerm || statusFilter !== 'all' 
-                ? 'try adjusting your search or filters'
-                : 'create your first ar session to get started'
+          <div className={styles.emptyState}>
+            <h2 className={styles.emptyStateTitle}>
+              {searchTerm || statusFilter !== 'all' ? 'No matching AR sessions' : 'No AR sessions yet'}
+            </h2>
+            <p className={styles.emptyStateDescription}>
+              {searchTerm || statusFilter !== 'all'
+                ? 'Try adjusting your search or filters'
+                : 'Create your first AR session to get started'
               }
             </p>
             {!searchTerm && statusFilter === 'all' && (
               <button onClick={handleCreateNew} className={styles.buttonPrimary}>
-                create ar session
+                Create AR Session
               </button>
             )}
           </div>

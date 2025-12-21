@@ -21,7 +21,7 @@ export type ArConfigResponse = {
   code: string;
   targetType: string;
   targetId?: string;
-  markerType: 'custom' | 'hiro' | 'kanji' | 'nft';
+  markerType: 'custom' | 'hiro' | 'kanji' | 'nft' | 'mind';
   markerDataUrl: string;
   overlayConfig: OverlayConfig;
   metadata?: { title?: string; description?: string; actions?: any[] };
@@ -119,16 +119,33 @@ export interface CreateARSessionRequest {
 
 export type UpdateARSessionRequest = Partial<CreateARSessionRequest>;
 
-// marker pattern upload request
+// marker pattern upload request (legacy - backend compiles)
 export interface UploadMarkerPatternRequest {
   name: string;
+  type: 'upload';          // required by backend
   description?: string;
-  type: 'upload';
+  productSetId?: string;   // optional product set to associate with
   imageFile: {
-    data: string;       // base64 data
-    mimeType: string;
-    filename: string;
+    data: string;          // base64 encoded image data
+    mimeType: string;      // e.g. 'image/png'
+    filename: string;      // original filename
   };
+}
+
+// nft marker upload request (frontend compiles .mind file)
+export interface UploadNFTMarkerRequest {
+  sourceImageData: string;  // base64 encoded source image
+  mindFileData: string;     // base64 encoded pre-compiled .mind file
+  filename: string;         // name for the file
+  quality?: number;         // optional quality score (0-100)
+}
+
+// nft marker response
+export interface NFTMarkerResponse {
+  mindFileUrl: string;
+  sourceImageUrl: string;
+  quality?: number;
+  compiledAt?: string;
 }
 
 // api response types
@@ -148,8 +165,11 @@ export interface MarkerPatternListResponse {
 
 export interface UploadMarkerPatternResponse {
   patternId: string;
-  patternUrl: string;
-  previewUrl: string;
+  mindFileUrl: string;      // url to compiled .mind file
+  sourceImageUrl: string;   // url to source image
+  patternUrl?: string;      // deprecated, use mindFileUrl
+  previewUrl?: string;      // deprecated, use sourceImageUrl
+  quality?: number;         // quality score 0-100
 }
 
 // marker validation result

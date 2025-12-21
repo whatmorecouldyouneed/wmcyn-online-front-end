@@ -17,6 +17,7 @@ export default function AdminDashboard() {
   const [productSets, setProductSets] = useState<ProductSet[]>([]);
   const [arSessions, setArSessions] = useState<ARSessionData[]>([]);
   const [qrCodeCounts, setQrCodeCounts] = useState<Record<string, number>>({});
+  const [qrCodesByProductSet, setQrCodesByProductSet] = useState<Record<string, QRCodeData[]>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [arSessionsError, setArSessionsError] = useState<string | null>(null);
@@ -91,6 +92,9 @@ export default function AdminDashboard() {
           let qrCodesData: QRCodeData[] = [];
           if (Array.isArray(response)) {
             qrCodesData = response;
+          } else if (response?.qrcodes) {
+            // handle lowercase 'qrcodes' from API (check this first since API uses lowercase)
+            qrCodesData = response.qrcodes;
           } else if (response?.qrCodes) {
             qrCodesData = response.qrCodes;
           } else if (response?.items) {
@@ -99,7 +103,15 @@ export default function AdminDashboard() {
             qrCodesData = Array.isArray(response.data) ? response.data : [];
           }
           
+          console.log(`[AdminDashboard] Parsed QR codes for ${ps.id}:`, qrCodesData.length, qrCodesData);
           counts[ps.id] = qrCodesData.length;
+          // also store the QR codes for download functionality
+          if (qrCodesData.length > 0) {
+            setQrCodesByProductSet(prev => ({
+              ...prev,
+              [ps.id]: qrCodesData
+            }));
+          }
         } catch (err) {
           console.error(`[AdminDashboard] Failed to load QR codes for ${ps.id}:`, err);
           counts[ps.id] = 0;
@@ -222,37 +234,45 @@ export default function AdminDashboard() {
               height={40}
               priority
             />
-            <h1 className={styles.adminTitle}>admin dashboard</h1>
+            <h1 className={styles.adminTitle}>Admin Dashboard</h1>
           </div>
           <div className={styles.adminActions}>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button 
-                onClick={handleCreateNew}
-                className={styles.buttonPrimary}
-              >
-                create wmcyn product
-              </button>
-              <button 
-                onClick={handleCreateARSession}
-                className={styles.buttonSecondary}
-              >
-                create AR session
-              </button>
-            </div>
+            <button 
+              onClick={handleCreateNew}
+              className={styles.buttonPrimary}
+            >
+              Create AR Product
+            </button>
             <button 
               onClick={handleLogout}
               className={styles.buttonSecondary}
             >
-              logout
+              Logout
             </button>
           </div>
+        </div>
+
+        {/* navigation tabs */}
+        <div className={styles.adminTabs}>
+          <button
+            className={`${styles.tabButton} ${styles.active}`}
+            onClick={() => router.push('/admin')}
+          >
+            AR Products
+          </button>
+          <button 
+            className={styles.tabButton}
+            onClick={() => router.push('/admin/ar-sessions')}
+          >
+            AR Sessions
+          </button>
         </div>
 
         {/* search and filter */}
         <div className={styles.searchContainer}>
           <input
             type="text"
-                placeholder="search AR products..."
+            placeholder="Search AR products..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className={styles.searchInput}
@@ -260,9 +280,8 @@ export default function AdminDashboard() {
           <button 
             onClick={loadAllData}
             className={styles.buttonSecondary}
-            style={{ padding: '12px 16px' }}
           >
-            refresh
+            Refresh
           </button>
         </div>
 
@@ -272,22 +291,6 @@ export default function AdminDashboard() {
             {error}
           </div>
         )}
-
-        {/* navigation tabs */}
-        <div className={styles.adminTabs}>
-              <button
-                className={`${styles.tabButton} ${styles.active}`}
-                onClick={() => router.push('/admin')}
-              >
-                AR products
-              </button>
-          <button 
-            className={styles.tabButton}
-            onClick={() => router.push('/admin/ar-sessions')}
-          >
-            ar sessions
-          </button>
-        </div>
 
         {/* help text */}
         <div style={{ 
@@ -320,6 +323,7 @@ export default function AdminDashboard() {
                 onDelete={handleDelete}
                 onGenerateQR={handleGenerateQR}
                 qrCodeCount={qrCodeCounts[productSet.id] || 0}
+                qrCodes={qrCodesByProductSet[productSet.id] || []}
               />
             ))}
           </div>

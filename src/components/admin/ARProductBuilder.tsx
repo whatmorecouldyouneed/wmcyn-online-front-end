@@ -1,7 +1,21 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { markerPatterns as markerPatternsAPI } from '@/lib/apiClient';
-import { MarkerPattern, UploadMarkerPatternRequest } from '@/types/arSessions';
+import { MarkerPattern } from '@/types/arSessions';
 import styles from '@/styles/Admin.module.scss';
+
+// extend window for MindAR
+declare global {
+  interface Window {
+    MINDAR?: {
+      IMAGE?: {
+        Compiler?: new () => {
+          compileImageTargets: (images: HTMLImageElement[], onProgress: (progress: number) => void) => Promise<void>;
+          exportData: () => Promise<ArrayBuffer>;
+        };
+      };
+    };
+  }
+}
 
 interface ARProductBuilderProps {
   onSubmit: (data: {
@@ -9,6 +23,7 @@ interface ARProductBuilderProps {
     description: string;
     campaign: string;
     markerPatternId: string;
+    mindFileUrl?: string | null; // url to the compiled .mind file
     arTitle: string;
     arDescription: string;
     arActions: Array<{ type: string; label: string; url?: string }>;
@@ -23,6 +38,7 @@ export default function ARProductBuilder({ onSubmit, onCancel, loading = false }
     description: '',
     campaign: '',
     markerPatternId: '',
+    mindFileUrl: null as string | null, // url to the compiled .mind file
     arTitle: '',
     arDescription: '',
     arActions: [] as Array<{ type: string; label: string; url?: string }>
@@ -33,7 +49,7 @@ export default function ARProductBuilder({ onSubmit, onCancel, loading = false }
   const [uploadingMarker, setUploadingMarker] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(null);
-  const [uploadedPatternInfo, setUploadedPatternInfo] = useState<{name: string, patternId: string} | null>(null);
+  const [uploadedPatternInfo, setUploadedPatternInfo] = useState<{name: string, patternId: string, mindFileUrl?: string | null} | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -111,78 +127,155 @@ export default function ARProductBuilder({ onSubmit, onCancel, loading = false }
     }));
   };
 
+
+  // dynamically load the mindar compiler script
+  const loadCompilerScript = useCallback(async (): Promise<void> => {
+    if (window.MINDAR?.IMAGE?.Compiler) return;
+
+    const existingScript = document.querySelector('script[src*="mindar-image.prod.js"]');
+    if (!existingScript) {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image.prod.js';
+      script.crossOrigin = 'anonymous';
+      
+      await new Promise<void>((resolve, reject) => {
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('Failed to load MindAR compiler script'));
+        document.head.appendChild(script);
+      });
+    }
+  }, []);
+
+  // wait for mindar compiler to load (max 10 seconds)
+  const waitForCompiler = useCallback(async (): Promise<typeof window.MINDAR.IMAGE.Compiler> => {
+    await loadCompilerScript();
+
+    const maxAttempts = 100;
+    for (let i = 0; i < maxAttempts; i++) {
+      if (window.MINDAR?.IMAGE?.Compiler) {
+        return window.MINDAR.IMAGE.Compiler;
+      }
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    throw new Error('MindAR compiler failed to load after 10 seconds. Please refresh the page.');
+  }, [loadCompilerScript]);
+
+  // convert arraybuffer to base64
+  const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  };
+
+  // load image element from file
+  const loadImageElement = (file: File): Promise<HTMLImageElement> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
+  const [compilationProgress, setCompilationProgress] = useState(0);
+
   const handleFileUpload = async (file: File) => {
     setUploadingMarker(true);
     setUploadedImagePreview(null);
     setUploadedPatternInfo(null);
+    setCompilationProgress(0);
     
     try {
-      const reader = new FileReader();
+      // create preview immediately
+      const previewUrl = URL.createObjectURL(file);
+      setUploadedImagePreview(previewUrl);
+
+      // read file as base64
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(',')[1]); // remove data:...;base64, prefix
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // load image element for compiler
+      const imageElement = await loadImageElement(file);
+      const CompilerClass = await waitForCompiler();
       
-      reader.onloadend = async () => {
-        try {
-          const fullDataUrl = reader.result?.toString();
-          const base64data = fullDataUrl?.split(',')[1];
-          
-          if (!base64data || !fullDataUrl) {
-            throw new Error('Failed to read file as base64');
-          }
+      // compile the image
+      const compiler = new CompilerClass();
+      await compiler.compileImageTargets([imageElement], (progress: number) => {
+        setCompilationProgress(Math.round(progress * 100));
+      });
 
-          // store the image preview immediately
-          setUploadedImagePreview(fullDataUrl);
+      const exportedData = await compiler.exportData();
+      const mindFileData = arrayBufferToBase64(exportedData);
+      const quality = Math.min(100, Math.round((exportedData.byteLength / 50000) * 100));
 
-          const request: UploadMarkerPatternRequest = {
-            type: 'upload',
-            name: file.name.split('.')[0],
-            description: formData.description || `Marker pattern for ${file.name.split('.')[0]}`,
-            imageFile: {
-              data: base64data,
-              mimeType: file.type,
-              filename: file.name,
-            },
-          };
+      // upload to backend with pre-compiled data
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://us-central1-wmcyn-online-mobile.cloudfunctions.net/api';
+      const url = `${API_BASE}/v1/marker-patterns/upload`;
 
-          console.log('[ARProductBuilder] Uploading marker pattern:', { name: request.name, mimeType: file.type, dataLength: base64data.length });
-          
-          const result = await markerPatternsAPI.upload(request);
-          console.log('[ARProductBuilder] Upload result:', result);
-          
-          if (result && result.patternId) {
-            setFormData(prev => ({ ...prev, markerPatternId: result.patternId }));
-            setUploadedPatternInfo({
-              name: file.name.split('.')[0],
-              patternId: result.patternId
-            });
-            await loadMarkerPatterns(); // refresh list
-          } else {
-            throw new Error('Invalid response from marker pattern upload - missing patternId');
-          }
-        } catch (uploadError: any) {
-          console.error('[ARProductBuilder] Upload error:', uploadError);
-          const errorMessage = uploadError.message || 'Failed to upload marker image';
-          alert(`Marker upload failed: ${errorMessage}`);
-          setUploadedImagePreview(null);
-          setUploadedPatternInfo(null);
-        } finally {
-          setUploadingMarker(false);
-        }
+      const requestBody = {
+        type: 'upload',
+        name: file.name.split('.')[0],
+        imageFile: {
+          data: base64Data,
+          mimeType: file.type,
+          filename: file.name,
+        },
+        mindFileData: mindFileData,
+        filename: file.name,
+        quality: quality,
       };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-token': process.env.NEXT_PUBLIC_ADMIN_API_TOKEN || '',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Upload failed: ${response.status} - ${text}`);
+      }
+
+      const result = await response.json();
       
-      reader.onerror = () => {
-        console.error('[ARProductBuilder] FileReader error');
-        setUploadingMarker(false);
-        setUploadedImagePreview(null);
-        alert('Error reading file');
-      };
-      
-      reader.readAsDataURL(file);
+      if (result && result.patternId) {
+        // capture both patternId and mindFileUrl from response
+        setFormData(prev => ({ 
+          ...prev, 
+          markerPatternId: result.patternId,
+          mindFileUrl: result.mindFileUrl || result.mindUrl || null
+        }));
+        setUploadedPatternInfo({
+          name: file.name.split('.')[0],
+          patternId: result.patternId,
+          mindFileUrl: result.mindFileUrl || result.mindUrl || null
+        });
+        await loadMarkerPatterns();
+      } else {
+        throw new Error('Invalid response - missing patternId');
+      }
+
     } catch (error: any) {
-      console.error('[ARProductBuilder] Unexpected error:', error);
-      const errorMessage = error.message || 'Failed to process file';
-      alert(`Marker upload failed: ${errorMessage}`);
+      console.error('[ARProductBuilder] Error:', error);
+      alert(`Marker upload failed: ${error.message || 'Unknown error'}`);
       setUploadedImagePreview(null);
       setUploadedPatternInfo(null);
+    } finally {
       setUploadingMarker(false);
+      setCompilationProgress(0);
     }
   };
 
@@ -332,8 +425,24 @@ export default function ARProductBuilder({ onSubmit, onCancel, loading = false }
               />
               {uploadingMarker ? (
                 <div>
-                  <div className={styles.spinner} style={{ margin: '0 auto 12px' }}></div>
-                  <p style={{ color: 'white', margin: '0' }}>generating marker pattern...</p>
+                  <div style={{ 
+                    width: '100%', 
+                    height: '8px', 
+                    background: 'rgba(255, 255, 255, 0.1)', 
+                    borderRadius: '4px',
+                    marginBottom: '12px',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{ 
+                      width: `${compilationProgress}%`, 
+                      height: '100%', 
+                      background: 'linear-gradient(90deg, #3b82f6, #8b5cf6)',
+                      transition: 'width 0.3s ease'
+                    }} />
+                  </div>
+                  <p style={{ color: 'white', margin: '0' }}>
+                    {compilationProgress > 0 ? `compiling .mind file... ${compilationProgress}%` : 'loading image...'}
+                  </p>
                 </div>
               ) : (
                 <>

@@ -8,7 +8,9 @@ import {
   QRCodeData,
   GenerateQRCodeRequest,
   GenerateQRCodeResponse,
-  QRCodesResponse
+  QRCodesResponse,
+  NFTMarker,
+  UploadNFTMarkerRequest
 } from '@/types/productSets';
 import {
   ARSessionData,
@@ -479,6 +481,32 @@ export const deleteProductSet = async (id: string): Promise<void> => {
     }
     throw err;
   }
+};
+
+// upload nft marker for product set ar tracking
+export const uploadNFTMarker = async (
+  productSetId: string, 
+  data: UploadNFTMarkerRequest
+): Promise<NFTMarker> => {
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://us-central1-wmcyn-online-mobile.cloudfunctions.net/api';
+  const url = `${API_BASE}/v1/productSets/${productSetId}/nft-marker`;
+  console.log('[uploadNFTMarker] Making request to:', url);
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data)
+  });
+  
+  if (!response.ok) {
+    const text = await response.text();
+    console.error('[uploadNFTMarker] Request failed:', { status: response.status, text });
+    throw new Error(`Upload failed: ${response.status} - ${text}`);
+  }
+  
+  return response.json();
 };
 
 // admin QR codes API calls - updated to match deployed endpoints

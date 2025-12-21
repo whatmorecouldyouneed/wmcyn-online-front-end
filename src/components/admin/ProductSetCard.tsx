@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
-import { ProductSet } from '@/types/productSets';
+import { ProductSet, QRCodeData } from '@/types/productSets';
 import { deleteProductSet } from '@/lib/apiClient';
 import styles from '@/styles/Admin.module.scss';
 
@@ -9,9 +9,10 @@ interface ProductSetCardProps {
   onDelete: (id: string) => void;
   onGenerateQR: (productSet: ProductSet) => void;
   qrCodeCount?: number;
+  qrCodes?: QRCodeData[];
 }
 
-export default function ProductSetCard({ productSet, onDelete, onGenerateQR, qrCodeCount }: ProductSetCardProps) {
+export default function ProductSetCard({ productSet, onDelete, onGenerateQR, qrCodeCount, qrCodes = [] }: ProductSetCardProps) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
 
@@ -111,6 +112,54 @@ export default function ProductSetCard({ productSet, onDelete, onGenerateQR, qrC
           <span> • updated {formatDate(productSet.updatedAt)}</span>
         )}
       </div>
+
+      {/* QR code download buttons if QR codes exist */}
+      {qrCodes && qrCodes.length > 0 && (() => {
+        const firstQR = qrCodes[0];
+        const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://us-central1-wmcyn-online-mobile.cloudfunctions.net/api';
+        const pngUrl = firstQR.assets?.qrPngUrl || `https://api-rrm3u3yaba-uc.a.run.app/api/qr-assets/${firstQR.code}.png`;
+        const svgUrl = firstQR.assets?.qrSvgUrl || `https://api-rrm3u3yaba-uc.a.run.app/api/qr-assets/${firstQR.code}.svg`;
+        
+        return (
+          <div style={{ 
+            marginBottom: '12px',
+            display: 'flex',
+            gap: '8px',
+            justifyContent: 'center'
+          }}>
+            <button
+              onClick={() => handleDownloadQR(pngUrl, `qr-code-${firstQR.code}.png`)}
+              style={{
+                padding: '6px 12px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                color: 'white',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+                fontWeight: '500'
+              }}
+            >
+              download png
+            </button>
+            <button
+              onClick={() => handleDownloadQR(svgUrl, `qr-code-${firstQR.code}.svg`)}
+              style={{
+                padding: '6px 12px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                color: 'white',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+                fontWeight: '500'
+              }}
+            >
+              download svg
+            </button>
+          </div>
+        );
+      })()}
 
       <div className={styles.productSetCardActions}>
         <button 
