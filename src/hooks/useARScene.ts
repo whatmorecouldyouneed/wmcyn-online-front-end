@@ -97,24 +97,40 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
     if (isInitializedRef.current) return;
 
     isCancelledRef.current = false;
-    const config = configs[0];
-    const isNFTMarker = config?.markerType === 'nft' && config?.mindTargetSrc;
-
-    console.log('[useARScene] Initializing with config:', {
-      name: config?.name,
-      markerType: config?.markerType,
-      mindTargetSrc: config?.mindTargetSrc,
-      isNFTMarker,
-      configCount: configs.length
+    
+    // filter to only nft markers with .mind files for dynamic multi-marker support
+    let nftConfigs = configs.filter(c => c?.markerType === 'nft' && c?.mindTargetSrc);
+    const patternConfigs = configs.filter(c => c?.markerType === 'pattern' || (!c?.markerType && c?.patternUrl));
+    
+    // prioritize markers - put hoodie marker first if it exists
+    // this ensures the hoodie marker is tried before the banner marker
+    nftConfigs = nftConfigs.sort((a, b) => {
+      const aIsHoodie = a.name?.includes('hoodie');
+      const bIsHoodie = b.name?.includes('hoodie');
+      if (aIsHoodie && !bIsHoodie) return -1;
+      if (!aIsHoodie && bIsHoodie) return 1;
+      return 0;
+    });
+    
+    console.log('[useARScene] Initializing with configs:', {
+      totalConfigs: configs.length,
+      nftConfigs: nftConfigs.length,
+      patternConfigs: patternConfigs.length,
+      nftMarkers: nftConfigs.map(c => ({ name: c.name, mindTargetSrc: c.mindTargetSrc })),
+      markerOrder: nftConfigs.map(c => c.name)
     });
 
-    // use nft detection or fallback to pattern ar
-    if (isNFTMarker) {
-      console.log('[useARScene] Using NFT AR mode with target:', config.mindTargetSrc);
-      initNFTAR(container, config);
-    } else {
+    // prioritize nft markers if available
+    if (nftConfigs.length > 0) {
+      console.log('[useARScene] Using NFT AR mode with', nftConfigs.length, 'marker(s)');
+      initNFTAR(container, nftConfigs);
+    } else if (patternConfigs.length > 0) {
       console.log('[useARScene] Using Pattern AR mode (fallback)');
+      const config = patternConfigs[0];
       initPatternAR(container, config);
+    } else {
+      console.error('[useARScene] No valid marker configs found');
+      setIsLoading(false);
     }
 
     // cleanup
@@ -152,7 +168,37 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
     };
 
     // nft marker initialization using mindar
-    async function initNFTAR(container: HTMLDivElement, config: MarkerConfig) {
+    // supports multiple markers by trying each one sequentially
+    async function initNFTAR(container: HTMLDivElement, configs: MarkerConfig[]) {
+      console.log('[useARScene] Initializing NFT AR with', configs.length, 'marker(s)');
+      
+      // try each marker config until one successfully initializes
+      // mindar can only load one .mind file per instance, so we try them one at a time
+      for (let i = 0; i < configs.length; i++) {
+        const config = configs[i];
+        console.log(`[useARScene] Attempting to initialize with marker ${i + 1}/${configs.length}:`, {
+          name: config.name,
+          mindTargetSrc: config.mindTargetSrc
+        });
+        
+        try {
+          await initSingleNFTMarker(container, config, configs);
+          // if successful, break out of the loop
+          console.log('[useARScene] Successfully initialized with marker:', config.name);
+          break;
+        } catch (err: any) {
+          console.error(`[useARScene] Failed to initialize with marker ${config.name}:`, err);
+          // if this is the last marker, throw the error
+          if (i === configs.length - 1) {
+            throw new Error(`Failed to initialize with any marker. Last error: ${err.message}`);
+          }
+          // otherwise, try the next marker
+          console.log(`[useARScene] Trying next marker...`);
+        }
+      }
+    }
+    
+    async function initSingleNFTMarker(container: HTMLDivElement, config: MarkerConfig, allConfigs: MarkerConfig[]) {
       try {
         console.log('[useARScene] Starting NFT AR initialization...');
         
@@ -168,15 +214,37 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
         // pre-flight check: verify .mind file is accessible
         const mindFileUrl = config.mindTargetSrc;
         console.log('[useARScene] Checking .mind file accessibility:', mindFileUrl);
+        let fileAccessible = false;
         try {
-          const response = await fetch(mindFileUrl!, { method: 'HEAD' });
+          // try GET instead of HEAD to better simulate what MindAR will do
+          const response = await fetch(mindFileUrl!, { method: 'GET' });
           if (!response.ok) {
             throw new Error(`.mind file not accessible: ${response.status} ${response.statusText}`);
           }
-          console.log('[useARScene] .mind file accessible, content-type:', response.headers.get('content-type'));
+          const contentType = response.headers.get('content-type');
+          const contentLength = response.headers.get('content-length');
+          console.log('[useARScene] .mind file accessible:', {
+            contentType,
+            contentLength,
+            url: mindFileUrl,
+            status: response.status
+          });
+          // verify it's actually a .mind file by checking the response
+          const blob = await response.blob();
+          console.log('[useARScene] .mind file blob size:', blob.size, 'bytes');
+          if (blob.size === 0) {
+            throw new Error('.mind file is empty');
+          }
+          fileAccessible = true;
         } catch (fetchErr: any) {
           console.error('[useARScene] .mind file fetch failed:', fetchErr.message);
-          // don't throw - let MindAR try to load it anyway (might be CORS issue with HEAD)
+          console.error('[useARScene] .mind file URL:', mindFileUrl);
+          console.error('[useARScene] Full fetch error:', fetchErr);
+          // if file is not accessible, this is a critical error
+          if (fetchErr.message.includes('not accessible') || fetchErr.message.includes('empty')) {
+            throw new Error(`Cannot load .mind file: ${mindFileUrl}. Error: ${fetchErr.message}`);
+          }
+          // don't throw for other errors - let MindAR try to load it anyway (might be CORS issue)
         }
         
         const MindARThree = await loadMindARScript();
@@ -191,20 +259,48 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
         // filterMinCF: lower = smoother but more delay (default: 0.001)
         // filterBeta: higher = more responsive but more jitter (default: 1000)
         console.log('[useARScene] Creating MindAR instance with target:', config.mindTargetSrc);
+        console.log('[useARScene] File accessibility check result:', fileAccessible);
         
-        const mindar = new MindARThree({
-          container: container,
-          imageTargetSrc: config.mindTargetSrc,
-          maxTrack: 1,
-          uiLoading: 'no',
-          uiScanning: 'no',
-          uiError: 'no',
-          filterMinCF: 0.0001, // very smooth tracking
-          filterBeta: 0.01, // low responsiveness for stability
-        });
+        let mindar: any;
+        try {
+          mindar = new MindARThree({
+            container: container,
+            imageTargetSrc: config.mindTargetSrc,
+            maxTrack: 1,
+            uiLoading: 'no',
+            uiScanning: 'no',
+            uiError: 'no',
+            filterMinCF: 0.0001, // very smooth tracking
+            filterBeta: 0.01, // low responsiveness for stability
+          });
+          console.log('[useARScene] MindAR instance created successfully');
+          
+          // add error listeners to catch MindAR internal errors
+          if (mindar.on && typeof mindar.on === 'function') {
+            mindar.on('error', (error: any) => {
+              console.error('[useARScene] MindAR error event:', error);
+              console.error('[useARScene] MindAR error details:', {
+                error,
+                targetFile: config.mindTargetSrc,
+                configName: config.name
+              });
+            });
+          }
+          
+          // also check for error property or methods
+          if (mindar.error) {
+            console.warn('[useARScene] MindAR has error property:', mindar.error);
+          }
+        } catch (initErr: any) {
+          console.error('[useARScene] MindAR instance creation failed:', initErr);
+          console.error('[useARScene] Error details:', {
+            message: initErr?.message,
+            stack: initErr?.stack,
+            targetFile: config.mindTargetSrc
+          });
+          throw new Error(`Failed to create MindAR instance. Target file: ${config.mindTargetSrc}. Error: ${initErr?.message || initErr}`);
+        }
         
-        console.log('[useARScene] MindAR instance created');
-
         mindARRef.current = mindar;
         const { renderer, scene, camera } = mindar;
 
@@ -309,20 +405,49 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
         console.log('[useARScene] MindAR instance:', {
           hasRenderer: !!mindar.renderer,
           hasScene: !!mindar.scene,
-          hasCamera: !!mindar.camera
+          hasCamera: !!mindar.camera,
+          imageTargetSrc: config.mindTargetSrc
         });
         
-        const startPromise = mindar.start();
-        const timeoutPromise = new Promise((_, reject) => {
+        // wrap start() in a promise to catch errors
+        const startPromise = new Promise<void>((resolve, reject) => {
+          try {
+            const startResult = mindar.start();
+            // if start() returns a promise, await it
+            if (startResult && typeof startResult.then === 'function') {
+              startResult
+                .then(() => {
+                  console.log('[useARScene] MindAR.start() promise resolved');
+                  resolve();
+                })
+                .catch((err: any) => {
+                  console.error('[useARScene] MindAR.start() promise rejected:', err);
+                  reject(err);
+                });
+            } else {
+              // if start() doesn't return a promise, resolve immediately
+              console.log('[useARScene] MindAR.start() completed synchronously');
+              resolve();
+            }
+          } catch (startErr: any) {
+            console.error('[useARScene] MindAR.start() threw error:', startErr);
+            reject(startErr);
+          }
+        });
+        
+        const timeoutPromise = new Promise<void>((_, reject) => {
           setTimeout(() => {
             console.error('[useARScene] Timeout reached - MindAR.start() did not complete');
-            reject(new Error('MindAR start timed out after 30 seconds. Check camera permissions and .mind file.'));
+            reject(new Error(`MindAR start timed out after 30 seconds. Check camera permissions and .mind file: ${config.mindTargetSrc}`));
           }, 30000);
         });
         
         // log progress every 5 seconds
         const progressInterval = setInterval(() => {
-          console.log('[useARScene] Still waiting for MindAR.start()...');
+          console.log('[useARScene] Still waiting for MindAR.start()...', {
+            targetFile: config.mindTargetSrc,
+            configName: config.name
+          });
         }, 5000);
         
         try {
@@ -330,7 +455,20 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
           clearInterval(progressInterval);
         } catch (startError: any) {
           clearInterval(progressInterval);
-          console.error('[useARScene] MindAR start failed:', startError?.message || startError);
+          const errorMsg = startError?.message || String(startError);
+          console.error('[useARScene] MindAR start failed:', errorMsg);
+          console.error('[useARScene] Error details:', {
+            message: errorMsg,
+            targetFile: config.mindTargetSrc,
+            configName: config.name,
+            error: startError
+          });
+          
+          // if error mentions "Load failed" or "null", provide specific guidance
+          if (errorMsg.includes('Load failed') || errorMsg.includes('null')) {
+            throw new Error(`Failed to load .mind file: ${config.mindTargetSrc}. Please verify the file exists and is properly compiled. Original error: ${errorMsg}`);
+          }
+          
           throw startError;
         }
         

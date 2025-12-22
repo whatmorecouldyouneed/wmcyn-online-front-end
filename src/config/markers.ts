@@ -31,6 +31,29 @@ export interface MarkerConfig {
 export const DEFAULT_MINDAR_TARGET_URL = '/patterns/wmcyn-full-hq-banner.mind'; // mindar compiled target
 
 export const markerConfigs: MarkerConfig[] = [
+  // wmcyn monogram hoodie (sample) - active (prioritized first)
+  {
+    name: 'wmcyn-hoodie-monogram',
+    modelUrl: '/models/wmcyn_3d_logo.glb',
+    scale: 0.5,
+    markerType: 'nft',
+    mindTargetSrc: '/patterns/wmcyn-ar-marker-black.mind',
+    label: 'wmcyn ar experience',
+    metadata: {
+      id: 'wmcyn-hoodie-001',
+      title: 'wmcyn monogram hoodie (sample)',
+      description: 'premium hoodie with wmcyn monogram design',
+      printDate: '2025-12-22',
+      printLocation: 'raleigh, nc',
+      quantity: 1,
+      price: {
+        amount: 'priceless',
+        currencyCode: 'USD'
+      },
+      isClaimed: false
+    }
+  },
+
   // wmcyn hq office banner - active
   {
     name: 'wmcyn-hq-banner',
