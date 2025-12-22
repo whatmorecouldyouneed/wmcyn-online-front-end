@@ -23,7 +23,9 @@ const nextConfig: NextConfig = {
     ],
   },
   trailingSlash: false,
-  // output: 'export', // Disabled to enable API routes - use 'npm run build && npm run export' for static export
+  // enable static export for github pages deployment
+  // api routes won't work on github pages anyway (static hosting)
+  ...(isGithubActions && { output: 'export' }),
   // dev-only headers for serving 3d model assets with correct mime and cors
   // note: with static export these only apply when running next dev/start
   headers: async () => [

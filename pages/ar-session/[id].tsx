@@ -1,18 +1,14 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
-import { GetServerSideProps } from 'next';
 import ARCamera from '@/components/ARCamera';
 import { ARSessionData } from '@/types/arSessions';
 import { arSessions } from '@/lib/apiClient';
 import { MarkerConfig } from '@/config/markers';
 import styles from '@/styles/Index.module.scss';
 
-interface ARSessionPageProps {
-  sessionId: string;
-}
-
-export default function ARSessionPage({ sessionId }: ARSessionPageProps) {
+export default function ARSessionPage() {
   const router = useRouter();
+  const sessionId = router.query.id as string;
   const [sessionData, setSessionData] = useState<ARSessionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -115,13 +111,3 @@ async function loadARSession(sessionId: string): Promise<ARSessionData> {
     throw error;
   }
 }
-
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  const { id } = context.params!;
-  
-  return {
-    props: {
-      sessionId: id as string
-    }
-  };
-};
