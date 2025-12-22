@@ -3,19 +3,7 @@ import { markerPatterns as markerPatternsAPI } from '@/lib/apiClient';
 import { MarkerPattern } from '@/types/arSessions';
 import styles from '@/styles/Admin.module.scss';
 
-// extend window for mindar types
-declare global {
-  interface Window {
-    MINDAR?: {
-      IMAGE?: {
-        Compiler: new () => {
-          compileImageTargets: (images: HTMLImageElement[], callback: (progress: number) => void) => Promise<void>;
-          exportData: () => Promise<ArrayBuffer>;
-        };
-      };
-    };
-  }
-}
+// MINDAR types are now in src/types/globals.d.ts
 
 interface MarkerUploadProps {
   onPatternSelect: (patternId: string) => void;
@@ -55,7 +43,7 @@ export default function MarkerUpload({
   }, []);
 
   // wait for mindar compiler to load
-  const waitForCompiler = useCallback(async (): Promise<typeof window.MINDAR.IMAGE.Compiler> => {
+  const waitForCompiler = useCallback(async () => {
     await loadCompilerScript();
 
     const maxAttempts = 100;

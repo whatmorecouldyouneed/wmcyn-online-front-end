@@ -323,8 +323,8 @@ export default function ARByCode() {
           ? config.meta.description 
           : undefined,
         actions: config.meta.actions || [],
-        createdAt: config.meta.createdAt,
-        campaign: config.meta.campaign
+        createdAt: (config.meta as any).createdAt,
+        campaign: (config.meta as any).campaign
       } : templateConfig?.metadata ? {
         title: templateConfig.metadata.title || templateConfig.productName || 'WMCYN AR Experience',
         description: (templateConfig.metadata.description && templateConfig.metadata.description.trim())
@@ -384,8 +384,8 @@ export default function ARByCode() {
         ? config.meta.description 
         : undefined,
       actions: config.meta.actions || [],
-      createdAt: config.meta.createdAt,  // pass through for "printed on" display
-      campaign: config.meta.campaign     // pass through for campaign display
+      createdAt: (config.meta as any).createdAt,  // pass through for "printed on" display
+      campaign: (config.meta as any).campaign     // pass through for campaign display
     } : {
       title: 'WMCYN AR Experience',
       actions: []

@@ -71,7 +71,7 @@ export default function ProductSetBuilder({ productSet, onSubmit, onCancel, load
     try {
       setLoadingMarkerPatterns(true);
       const response = await markerPatternsAPI.list();
-      setAvailableMarkerPatterns(response.markerPatterns);
+      setAvailableMarkerPatterns(response.markerPatterns || []);
     } catch (error) {
       console.error('failed to load marker patterns:', error);
     } finally {

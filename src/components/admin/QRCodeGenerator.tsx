@@ -213,7 +213,7 @@ export default function QRCodeGenerator({ productSet, arSession, isOpen, onClose
         console.log('[QRCodeGenerator] Generating template with marker:', markerPatternUrl);
         
         // get the code from response - handle both response formats
-        const qrCode = response.qrCode?.code || response.code;
+        const qrCode = response.qrCode?.code || (response as any).code;
         
         const templateResponse = await fetch('/api/generate-template', {
           method: 'POST',

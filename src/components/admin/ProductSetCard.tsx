@@ -53,6 +53,24 @@ export default function ProductSetCard({ productSet, onDelete, onGenerateQR, qrC
     });
   };
 
+  const handleDownloadQR = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('failed to download QR code:', error);
+      alert('failed to download QR code');
+    }
+  };
+
   const getTotalItems = () => {
     if (!productSet.items || !Array.isArray(productSet.items)) return 0;
     return productSet.items.reduce((total, item) => total + (item.quantity || item.qty || 1), 0);

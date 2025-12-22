@@ -3,19 +3,7 @@ import { markerPatterns as markerPatternsAPI } from '@/lib/apiClient';
 import { MarkerPattern } from '@/types/arSessions';
 import styles from '@/styles/Admin.module.scss';
 
-// extend window for MindAR
-declare global {
-  interface Window {
-    MINDAR?: {
-      IMAGE?: {
-        Compiler?: new () => {
-          compileImageTargets: (images: HTMLImageElement[], onProgress: (progress: number) => void) => Promise<void>;
-          exportData: () => Promise<ArrayBuffer>;
-        };
-      };
-    };
-  }
-}
+// MINDAR types are now in src/types/globals.d.ts
 
 interface ARProductBuilderProps {
   onSubmit: (data: {
@@ -147,7 +135,7 @@ export default function ARProductBuilder({ onSubmit, onCancel, loading = false }
   }, []);
 
   // wait for mindar compiler to load (max 10 seconds)
-  const waitForCompiler = useCallback(async (): Promise<typeof window.MINDAR.IMAGE.Compiler> => {
+  const waitForCompiler = useCallback(async () => {
     await loadCompilerScript();
 
     const maxAttempts = 100;

@@ -195,6 +195,9 @@ export interface ProductSetsResponse {
 }
 
 export interface QRCodesResponse {
-  qrCodes: QRCodeData[];
-  total: number;
+  qrCodes?: QRCodeData[];
+  qrcodes?: QRCodeData[]; // lowercase variant from API
+  items?: QRCodeData[];
+  data?: QRCodeData[];
+  total?: number;
 }

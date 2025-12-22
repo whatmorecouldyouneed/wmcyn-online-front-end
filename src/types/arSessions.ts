@@ -91,12 +91,14 @@ export interface MarkerPattern {
 // ar session metadata configuration
 export interface ARSessionMetadata {
   title: string;
-  description: string;
+  description?: string; // optional to match usage in components
   actions: Array<{
     type: 'purchase' | 'share' | 'claim' | 'info';
     label: string;
     url?: string;
   }>;
+  createdAt?: string; // optional for "printed on" display
+  campaign?: string; // optional for campaign display
 }
 
 // api request types

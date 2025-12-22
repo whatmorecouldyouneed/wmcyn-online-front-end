@@ -1,19 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import styles from '@/styles/Admin.module.scss';
 
-// extend window for MindAR
-declare global {
-  interface Window {
-    MINDAR?: {
-      IMAGE?: {
-        Compiler?: new () => {
-          compileImageTargets: (images: HTMLImageElement[], onProgress: (progress: number) => void) => Promise<void>;
-          exportData: () => Promise<ArrayBuffer>;
-        };
-      };
-    };
-  }
-}
+// MINDAR types are now in src/types/globals.d.ts
 
 interface NFTMarkerCompilerProps {
   productSetId: string;
@@ -82,7 +70,7 @@ export default function NFTMarkerCompiler({
   }, []);
 
   // wait for mindar compiler to load (max 10 seconds)
-  const waitForCompiler = useCallback(async (): Promise<typeof window.MINDAR.IMAGE.Compiler> => {
+  const waitForCompiler = useCallback(async () => {
     // first, ensure the script is loaded
     await loadCompilerScript();
 

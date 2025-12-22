@@ -50,7 +50,21 @@ export default function ProductSetDetails() {
       ]);
       
       setProductSet(productSetData);
-      setQRCodes(qrCodesData.qrCodes);
+      
+      // handle different response structures
+      let qrCodesArray: QRCodeData[] = [];
+      if (Array.isArray(qrCodesData)) {
+        qrCodesArray = qrCodesData;
+      } else if (qrCodesData?.qrcodes) {
+        qrCodesArray = qrCodesData.qrcodes;
+      } else if (qrCodesData?.qrCodes) {
+        qrCodesArray = qrCodesData.qrCodes;
+      } else if (qrCodesData?.items) {
+        qrCodesArray = qrCodesData.items;
+      } else if (qrCodesData?.data) {
+        qrCodesArray = Array.isArray(qrCodesData.data) ? qrCodesData.data : [];
+      }
+      setQRCodes(qrCodesArray);
       
       // fetch linked ar session if exists
       if (productSetData.linkedARSessionId) {
@@ -219,7 +233,8 @@ export default function ProductSetDetails() {
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleString('en-US', {
       year: 'numeric',
       month: 'short',

@@ -74,7 +74,7 @@ export default function ARSessionPage({ sessionId }: ARSessionPageProps) {
 
   // transform session data to marker config format
   const markerConfig: MarkerConfig = {
-    name: sessionData.markerPattern.name,
+    name: sessionData.markerPattern.name || sessionData.sessionId || 'ar-session',
     patternUrl: sessionData.markerPattern.url,
     modelUrl: sessionData.asset3D?.url || '/models/wmcyn_3d_logo.glb',
     scale: 0.3,
