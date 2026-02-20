@@ -266,6 +266,8 @@ export default function ARSessionEditPage({ sessionId }: ARSessionEditPageProps)
             },
             metadata: {
               ...(sessionData.metadata || {}),
+              title: sessionData.metadata?.title || '',
+              description: sessionData.metadata?.description || '',
               actions: sessionData.metadata?.actions?.map(action => ({
                 ...action,
                 type: action.type as 'purchase' | 'share' | 'claim' | 'info'

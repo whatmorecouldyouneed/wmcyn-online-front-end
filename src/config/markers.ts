@@ -28,6 +28,7 @@ export interface MarkerConfig {
   mindTargetSrc?: string; // path to .mind file for MindAR image tracking (only for nft type)
 }
 
+export const DEFAULT_HIRO_PATTERN_URL_PLACEHOLDER = 'USE_DEFAULT_HIRO_PATTERN';
 export const DEFAULT_MINDAR_TARGET_URL = '/patterns/wmcyn-full-hq-banner.mind'; // mindar compiled target
 
 export const markerConfigs: MarkerConfig[] = [

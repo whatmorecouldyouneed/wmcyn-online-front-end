@@ -55,14 +55,8 @@ export default function ProductSetDetails() {
       let qrCodesArray: QRCodeData[] = [];
       if (Array.isArray(qrCodesData)) {
         qrCodesArray = qrCodesData;
-      } else if (qrCodesData?.qrcodes) {
-        qrCodesArray = qrCodesData.qrcodes;
       } else if (qrCodesData?.qrCodes) {
         qrCodesArray = qrCodesData.qrCodes;
-      } else if (qrCodesData?.items) {
-        qrCodesArray = qrCodesData.items;
-      } else if (qrCodesData?.data) {
-        qrCodesArray = Array.isArray(qrCodesData.data) ? qrCodesData.data : [];
       }
       setQRCodes(qrCodesArray);
       
@@ -72,9 +66,9 @@ export default function ProductSetDetails() {
           const sessionsResponse = await arSessions.list();
           const sessions = Array.isArray(sessionsResponse) 
             ? sessionsResponse 
-            : (sessionsResponse?.sessions || sessionsResponse?.arSessions || []);
+            : (sessionsResponse?.arSessions || []);
           const session = sessions.find((s: ARSessionData) => 
-            (s.sessionId || s.id) === productSetData.linkedARSessionId
+            s.sessionId === productSetData.linkedARSessionId
           );
           if (session) {
             setLinkedARSession(session);
@@ -480,7 +474,7 @@ export default function ProductSetDetails() {
                   ✓ linked AR session
                 </div>
                 <div style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.9rem' }}>
-                  {linkedARSession.metadata?.title || linkedARSession.name || 'AR Session'}
+                  {linkedARSession.metadata?.title || 'AR Session'}
                   {linkedARSession.markerPattern?.name && (
                     <span style={{ color: 'rgba(255, 255, 255, 0.5)', marginLeft: '8px' }}>
                       • marker: {linkedARSession.markerPattern.name}
@@ -819,7 +813,7 @@ export default function ProductSetDetails() {
           <NFTMarkerCompiler
             productSetId={productSet.id}
             onCompiled={handleMarkerCompiled}
-            existingMarker={productSet.nftMarker}
+            existingMarker={(productSet as any).nftMarker}
             disabled={uploadingMarker}
           />
         </div>
