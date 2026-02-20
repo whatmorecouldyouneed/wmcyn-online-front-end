@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: CI Build
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -56,10 +56,3 @@ jobs:
 
       - name: Build
         run: yarn build
-
-      - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          branch: gh-pages
-          folder: out
-          token: ${{ secrets.GH_PAGES_TOKEN }}
