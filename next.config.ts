@@ -4,8 +4,6 @@ const isGithubActions = process.env.GITHUB_ACTIONS === 'true';
 
 const nextConfig: NextConfig = {
   reactStrictMode: false,
-  // allow ngrok for mobile testing
-  allowedDevOrigins: ['*.ngrok-free.app', '*.ngrok.io'],
   basePath: '',
   assetPrefix: '',
   images: {
@@ -23,8 +21,7 @@ const nextConfig: NextConfig = {
     ],
   },
   trailingSlash: false,
-  // enable static export for github pages deployment
-  // api routes won't work on github pages anyway (static hosting)
+  // Enable static export for GitHub Pages deployment
   ...(isGithubActions && { output: 'export' }),
   // dev-only headers for serving 3d model assets with correct mime and cors
   // note: with static export these only apply when running next dev/start

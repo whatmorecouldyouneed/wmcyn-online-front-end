@@ -47,8 +47,18 @@ export default function ARSessionPage() {
   if (error) {
     return (
       <div className={styles.errorContainer}>
-        <h2>error loading ar session</h2>
-        <p>{error}</p>
+        <h2>ar session not found</h2>
+        <p>
+          the ar session you&apos;re looking for could not be found. this might be because:
+        </p>
+        <ul style={{ textAlign: 'left', margin: '16px 0' }}>
+          <li>the session was deleted or expired</li>
+          <li>the qr code is invalid or corrupted</li>
+          <li>the session was never created properly</li>
+        </ul>
+        <p>
+          please check your qr code and try again, or contact support if the problem persists.
+        </p>
         <button onClick={handleClose} className={styles.button}>
           go back
         </button>
@@ -96,18 +106,12 @@ export default function ARSessionPage() {
 
 async function loadARSession(sessionId: string): Promise<ARSessionData> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api-rrm3u3yaba-uc.a.run.app'}/v1/ar-sessions/${sessionId}/data`);
-    
-    if (!response.ok) {
-      if (response.status === 404) {
-        throw new Error('ar session not found');
-      }
-      throw new Error(`failed to load ar session: ${response.statusText}`);
-    }
-    
-    return response.json();
-  } catch (error) {
+    return await arSessions.get(sessionId);
+  } catch (error: any) {
     console.error('error loading ar session:', error);
+    if (error.message?.includes('404') || error.message?.includes('not found')) {
+      throw new Error('ar session not found');
+    }
     throw error;
   }
 }

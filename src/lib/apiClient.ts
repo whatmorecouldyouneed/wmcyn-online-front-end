@@ -8,9 +8,7 @@ import {
   QRCodeData,
   GenerateQRCodeRequest,
   GenerateQRCodeResponse,
-  QRCodesResponse,
-  NFTMarker,
-  UploadNFTMarkerRequest
+  QRCodesResponse
 } from '@/types/productSets';
 import {
   ARSessionData,
@@ -26,7 +24,7 @@ import {
 } from '@/types/arSessions';
 
 // use deployed Firebase Cloud Functions API directly
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://us-central1-wmcyn-online-mobile.cloudfunctions.net/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://api-rrm3u3yaba-uc.a.run.app';
 const PROXY_BASE = '/api/proxy';
 const DEV_X_UID = process.env.NEXT_PUBLIC_DEV_X_UID;
 const ADMIN_API_TOKEN = process.env.NEXT_PUBLIC_ADMIN_API_TOKEN;
@@ -98,8 +96,6 @@ async function apiFetch<T = any>(path: string, init: RequestInit = {}): Promise<
       throw new Error('Unauthorized');
     } else if (res.status === 403) {
       throw new Error('Forbidden');
-    } else if (res.status === 503) {
-      throw new Error('Backend service unavailable - the Cloud Function may be cold-starting or not deployed. Please try again in a few moments.');
     } else if (res.status >= 500) {
       throw new Error('Server error');
     } else {
@@ -115,11 +111,18 @@ async function apiFetch<T = any>(path: string, init: RequestInit = {}): Promise<
 
 // admin API functions for product sets - use Firebase auth like regular API calls
 async function adminApiFetch<T = any>(path: string, init: RequestInit = {}): Promise<T> {
+  // #region agent log
+  const isClient = typeof window !== 'undefined';
+  fetch('http://127.0.0.1:7242/ingest/e9ed64ca-e301-4d56-8a7f-1b8071ba48e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'apiClient.ts:113',message:'adminApiFetch entry',data:{path,isClient,apiBase:API_BASE,envApiBase:process.env.NEXT_PUBLIC_API_BASE},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+  // #endregion
   const headers = new Headers(init.headers || {});
   headers.set('content-type', 'application/json');
 
   // use Firebase authentication for admin endpoints
   const token = await getIdToken();
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/e9ed64ca-e301-4d56-8a7f-1b8071ba48e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'apiClient.ts:120',message:'got token',data:{hasToken:!!token,hasAuth:!!auth?.currentUser,hasAdminToken:!!ADMIN_API_TOKEN,hasDevXUid:!!DEV_X_UID},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+  // #endregion
   
   console.log('[adminApiClient] Processing path:', path);
   
@@ -135,6 +138,9 @@ async function adminApiFetch<T = any>(path: string, init: RequestInit = {}): Pro
         headers.set('authorization', `Bearer ${token}`);
         headers.set('x-uid', auth.currentUser.uid);
         console.log('[adminApiClient] Falling back to Firebase token for admin endpoint request');
+        console.log('[adminApiClient] User UID:', auth.currentUser.uid);
+      } else {
+        console.error('[adminApiClient] No authentication available - neither admin token nor Firebase auth');
       }
     }
   } else if (path.includes('/productSets')) {
@@ -181,14 +187,43 @@ async function adminApiFetch<T = any>(path: string, init: RequestInit = {}): Pro
   }
 
   const doFetch = async () => {
-    console.log('[adminApiClient] Making request to:', `${API_BASE}${path}`);
+    // use proxy in development to bypass CORS, direct API in production
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const baseUrl = isDevelopment ? PROXY_BASE : API_BASE;
+    const fullUrl = `${baseUrl}${path}`;
+    const isClient = typeof window !== 'undefined';
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/e9ed64ca-e301-4d56-8a7f-1b8071ba48e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'apiClient.ts:179',message:'doFetch called',data:{isDevelopment,baseUrl,apiBase:API_BASE,path,fullUrl,isClient,envApiBase:process.env.NEXT_PUBLIC_API_BASE},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    console.log('[adminApiClient] Making request to:', fullUrl);
     console.log('[adminApiClient] Headers being sent:', {
       'x-admin-token': headers.get('x-admin-token') ? 'present' : 'missing',
       'x-cron-key': headers.get('x-cron-key') ? 'present' : 'missing',
       'authorization': headers.get('authorization') ? 'present' : 'missing',
       'x-uid': headers.get('x-uid') ? 'present' : 'missing'
     });
-    return fetch(`${API_BASE}${path}`, { ...init, headers, cache: 'no-store' });
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/e9ed64ca-e301-4d56-8a7f-1b8071ba48e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'apiClient.ts:187',message:'fetch call starting',data:{fullUrl,method:init.method||'GET',hasHeaders:!!headers},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    try {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/e9ed64ca-e301-4d56-8a7f-1b8071ba48e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'apiClient.ts:203',message:'fetch attempt',data:{fullUrl,method:init.method||'GET',mode:init.mode||'cors',credentials:init.credentials||'same-origin'},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'K'})}).catch(()=>{});
+      // #endregion
+      const response = await fetch(fullUrl, { ...init, headers, cache: 'no-store' });
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/e9ed64ca-e301-4d56-8a7f-1b8071ba48e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'apiClient.ts:206',message:'fetch succeeded',data:{status:response.status,statusText:response.statusText,ok:response.ok},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
+      return response;
+    } catch (fetchError: any) {
+      // #region agent log
+      const errorDetails: any = {errorMessage:fetchError?.message,errorName:fetchError?.name,fullUrl};
+      if (fetchError?.cause) errorDetails.cause = String(fetchError.cause);
+      if (fetchError?.stack) errorDetails.errorStack = fetchError.stack.substring(0,300);
+      fetch('http://127.0.0.1:7242/ingest/e9ed64ca-e301-4d56-8a7f-1b8071ba48e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'apiClient.ts:211',message:'fetch failed',data:errorDetails,timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
+      throw fetchError;
+    }
   };
 
   let res = await doFetch();
@@ -246,8 +281,23 @@ async function adminApiFetch<T = any>(path: string, init: RequestInit = {}): Pro
     res = await doFetch();
   }
 
+  // handle 403 for admin endpoints - try admin token if not already used
+  if (res.status === 403 && ADMIN_API_TOKEN && !headers.get('x-admin-token')) {
+    const isAdminEndpoint = path.includes('/ar-sessions') || path.includes('/marker-patterns');
+    if (isAdminEndpoint) {
+      console.log('[adminApiClient] Got 403 on admin endpoint, trying admin token...');
+      headers.delete('authorization');
+      headers.delete('x-uid');
+      headers.set('x-admin-token', ADMIN_API_TOKEN);
+      res = await doFetch();
+    }
+  }
+
   if (!res.ok) {
     const text = await res.text().catch(() => '');
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/e9ed64ca-e301-4d56-8a7f-1b8071ba48e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'apiClient.ts:245',message:'request failed',data:{status:res.status,statusText:res.statusText,path,responseText:text.substring(0,200),hasAuth:!!headers.get('authorization'),hasAdminToken:!!headers.get('x-admin-token'),hasCronKey:!!headers.get('x-cron-key'),hasXUid:!!headers.get('x-uid')},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'L'})}).catch(()=>{});
+    // #endregion
     console.error('[adminApiClient] Request failed:', {
       status: res.status,
       statusText: res.statusText,
@@ -271,14 +321,15 @@ async function adminApiFetch<T = any>(path: string, init: RequestInit = {}): Pro
     } else if (res.status === 404) {
       throw new Error('Resource not found');
     } else if (res.status === 403) {
-      throw new Error('Forbidden');
-    } else if (res.status === 503) {
-      throw new Error('Backend service unavailable - the Cloud Function may be cold-starting or not deployed. Please try again in a few moments.');
+      // check if admin token is missing for admin endpoints
+      const isAdminEndpoint = path.includes('/ar-sessions') || path.includes('/marker-patterns');
+      const hasAdminToken = !!headers.get('x-admin-token');
+      if (isAdminEndpoint && !hasAdminToken && !ADMIN_API_TOKEN) {
+        throw new Error('Forbidden - Admin endpoints require NEXT_PUBLIC_ADMIN_API_TOKEN to be configured. Please set this environment variable.');
+      }
+      throw new Error(`Forbidden - ${text || 'Access denied. Admin privileges may be required.'}`);
     } else if (res.status >= 500) {
-      // include response text for debugging server errors
-      const cleanText = text.replace(/<[^>]*>/g, '').trim();
-      const errorDetails = cleanText ? `: ${cleanText.substring(0, 300)}` : ' - check backend logs for details';
-      throw new Error(`Server error (${res.status})${errorDetails}`);
+      throw new Error('Server error');
     } else {
       // for other errors, try to extract meaningful message from response
       const cleanText = text.replace(/<[^>]*>/g, '').trim();
@@ -297,62 +348,18 @@ export const getInventory = (includeProduct = false) =>
   apiFetch(`/v1/profile/inventory${includeProduct ? '?includeProduct=true' : ''}`);
 
 // admin product sets API calls - updated to match deployed endpoints
-export const getProductSets = async (): Promise<ProductSetsResponse> => {
-  const response = await adminApiFetch('/v1/productSets');
-  console.log('[getProductSets] Raw response:', response);
-  return response;
-};
+export const getProductSets = (): Promise<ProductSetsResponse> => 
+  adminApiFetch('/v1/productSets');
 
 export const getProductSet = (id: string): Promise<ProductSet> => 
   adminApiFetch(`/v1/productSets/${id}`);
 
-export const createProductSet = async (data: CreateProductSetRequest): Promise<ProductSet> => {
-  // transform items to use 'qty' field and remove undefined values
-  const cleanItems = data.items.map(item => {
-    const cleanItem: any = {
-      productId: item.productId || 'default-product',
-      qty: item.quantity || item.qty || 1
-    };
-    if (item.variantId) cleanItem.variantId = item.variantId;
-    if (item.maxPerUser) cleanItem.maxPerUser = item.maxPerUser;
-    return cleanItem;
+export const createProductSet = (data: CreateProductSetRequest): Promise<ProductSet> => {
+  console.log('[createProductSet] Sending data:', JSON.stringify(data, null, 2));
+  return adminApiFetch('/v1/productSets/create', {
+    method: 'POST',
+    body: JSON.stringify(data)
   });
-  
-  // build clean request body without undefined values
-  const transformedData: any = {
-    name: data.name,
-    items: cleanItems
-  };
-  
-  // only add optional fields if they have values
-  if (data.description) transformedData.description = data.description;
-  if (data.campaign) transformedData.campaign = data.campaign;
-  if (data.checkout) {
-    transformedData.checkout = {
-      type: data.checkout.type || 'product'
-    };
-    if (data.checkout.cartLink) transformedData.checkout.cartLink = data.checkout.cartLink;
-    if (data.checkout.discountCode) transformedData.checkout.discountCode = data.checkout.discountCode;
-  }
-  if (data.remainingInventory !== undefined) transformedData.remainingInventory = data.remainingInventory;
-  if (data.linkedARSessionId) transformedData.linkedARSessionId = data.linkedARSessionId;
-  
-  console.log('[createProductSet] Sending clean data:', JSON.stringify(transformedData, null, 2));
-  
-  // try the /create endpoint first, then fall back to just POST /productSets
-  try {
-    return await adminApiFetch('/v1/productSets/create', {
-      method: 'POST',
-      body: JSON.stringify(transformedData)
-    });
-  } catch (err: any) {
-    console.log('[createProductSet] /create endpoint failed, trying POST /productSets:', err.message);
-    // try alternative endpoint
-    return adminApiFetch('/v1/productSets', {
-      method: 'POST',
-      body: JSON.stringify(transformedData)
-    });
-  }
 };
 
 // test if the backend endpoint exists at all
@@ -361,7 +368,7 @@ export const testProductSetEndpoint = async () => {
     console.log('[testProductSetEndpoint] Testing if endpoint exists...');
     
     // try a simple GET request to see if the endpoint exists
-    const response = await fetch(`${API_BASE}/v1/productSets`, {
+    const response = await fetch('https://api-rrm3u3yaba-uc.a.run.app/v1/productSets', {
       method: 'GET',
       headers: {
         'x-admin-token': 'test-token',
@@ -376,7 +383,7 @@ export const testProductSetEndpoint = async () => {
     console.log('[testProductSetEndpoint] GET response text:', text);
     
     // try a simple POST with minimal data
-    const postResponse = await fetch(`${API_BASE}/v1/productSets/create`, {
+    const postResponse = await fetch('https://api-rrm3u3yaba-uc.a.run.app/v1/productSets/create', {
       method: 'POST',
       headers: {
         'x-admin-token': 'test-token',
@@ -455,59 +462,10 @@ export const updateProductSet = (id: string, data: UpdateProductSetRequest): Pro
     body: JSON.stringify(data)
   });
 
-export const deleteProductSet = async (id: string): Promise<void> => {
-  console.log('[deleteProductSet] Attempting to delete:', id);
-  
-  // try DELETE /v1/productSets/{id} first
-  try {
-    return await adminApiFetch(`/v1/productSets/${id}`, {
-      method: 'DELETE'
-    });
-  } catch (err: any) {
-    if (err.message === 'Resource not found') {
-      console.log('[deleteProductSet] DELETE method failed, trying POST /delete');
-      // try POST /v1/productSets/{id}/delete as fallback
-      try {
-        return await adminApiFetch(`/v1/productSets/${id}/delete`, {
-          method: 'POST'
-        });
-      } catch (err2: any) {
-        console.log('[deleteProductSet] POST /delete also failed, trying DELETE /delete');
-        // try DELETE /v1/productSets/delete/{id} as final fallback
-        return await adminApiFetch(`/v1/productSets/delete/${id}`, {
-          method: 'DELETE'
-        });
-      }
-    }
-    throw err;
-  }
-};
-
-// upload nft marker for product set ar tracking
-export const uploadNFTMarker = async (
-  productSetId: string, 
-  data: UploadNFTMarkerRequest
-): Promise<NFTMarker> => {
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://us-central1-wmcyn-online-mobile.cloudfunctions.net/api';
-  const url = `${API_BASE}/v1/productSets/${productSetId}/nft-marker`;
-  console.log('[uploadNFTMarker] Making request to:', url);
-  
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data)
+export const deleteProductSet = (id: string): Promise<void> => 
+  adminApiFetch(`/v1/productSets/${id}`, {
+    method: 'DELETE'
   });
-  
-  if (!response.ok) {
-    const text = await response.text();
-    console.error('[uploadNFTMarker] Request failed:', { status: response.status, text });
-    throw new Error(`Upload failed: ${response.status} - ${text}`);
-  }
-  
-  return response.json();
-};
 
 // admin QR codes API calls - updated to match deployed endpoints
 export const generateQRCode = (data: GenerateQRCodeRequest): Promise<GenerateQRCodeResponse> => 
@@ -594,9 +552,9 @@ export const arSessions = {
   // list ar sessions (admin)
   list: async (filters?: { status?: string; campaign?: string }): Promise<ARSessionListResponse> => {
     const params = new URLSearchParams(filters);
-    const response = await adminApiFetch(`/v1/ar-sessions?${params}`);
-    console.log('[arSessions.list] Raw response:', response);
-    return response;
+    const queryString = params.toString();
+    const path = queryString ? `/v1/ar-sessions?${queryString}` : '/v1/ar-sessions';
+    return adminApiFetch(path);
   },
 
   // create ar session (admin)
@@ -683,62 +641,6 @@ export const generateARSessionQR = async (sessionId: string, options?: {
       ...options
     })
   });
-};
-
-// generate template for ar session
-// this creates the template files in src/ar/templates/{code}/
-export const generateTemplateForSession = async (
-  arSession: ARSessionData,
-  code?: string
-): Promise<{ success: boolean; templatePath?: string; error?: string }> => {
-  const sessionId = arSession.sessionId || arSession.id;
-  const templateCode = code || sessionId;
-  
-  // resolve marker pattern url
-  let markerPatternUrl = '/patterns/pattern-wmcyn_logo_full.patt';
-  if (arSession.markerPattern?.url) {
-    markerPatternUrl = arSession.markerPattern.url;
-  } else if (arSession.markerPattern?.patternId) {
-    // try to construct url from pattern id
-    markerPatternUrl = `/patterns/${arSession.markerPattern.patternId}.patt`;
-  }
-  
-  try {
-    const response = await fetch('/api/generate-template', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        code: templateCode,
-        productName: arSession.metadata?.title || arSession.name || 'AR Experience',
-        campaign: arSession.campaign || 'default',
-        targetType: 'AR_SESSION',
-        targetId: sessionId,
-        markerPatternUrl: markerPatternUrl,
-        metadata: {
-          title: arSession.metadata?.title || arSession.name || 'AR Experience',
-          description: arSession.metadata?.description || '',
-          effects: {
-            type: 'default',
-            intensity: 1.0,
-            theme: 'default'
-          }
-        }
-      })
-    });
-    
-    if (response.ok) {
-      const result = await response.json();
-      console.log('[generateTemplateForSession] Template generated:', result);
-      return { success: true, templatePath: result.templatePath };
-    } else {
-      const errorText = await response.text();
-      console.error('[generateTemplateForSession] Failed:', response.status, errorText);
-      return { success: false, error: `Template generation failed: ${response.status}` };
-    }
-  } catch (error: any) {
-    console.error('[generateTemplateForSession] Error:', error);
-    return { success: false, error: error.message };
-  }
 };
 
 // fetch ar config by qr code (public endpoint, no auth required)

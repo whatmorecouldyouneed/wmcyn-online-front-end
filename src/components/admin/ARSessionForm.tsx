@@ -73,9 +73,9 @@ export default function ARSessionForm({
       name: formData.name.trim(),
       description: formData.description.trim() || undefined,
       campaign: formData.campaign.trim() || undefined,
-      productId: formData.productId.trim() || undefined,
+      productId: formData.productId.trim() || 'ar-product', // ensure productId is always present
       markerPattern: {
-        patternId: formData.selectedPatternId,
+        patternId: formData.selectedPatternId || 'default', // ensure markerPattern is always present
         type: 'custom' // for now, all uploaded patterns are custom
       },
       metadata: {
@@ -200,6 +200,12 @@ export default function ARSessionForm({
           onPatternSelect={(patternId) => setFormData(prev => ({ ...prev, selectedPatternId: patternId }))}
           selectedPatternId={formData.selectedPatternId}
           disabled={loading}
+          compact={true}
+          user={{ 
+            id: 'admin', 
+            email: 'admin@wmcyn.com', 
+            permissions: ['admin.markers.write', 'admin.access'] 
+          }}
         />
         {errors.pattern && <span className={styles.errorText}>{errors.pattern}</span>}
       </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { GetServerSideProps } from 'next';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { arSessions as arSessionsAPI } from '@/lib/apiClient';
 import { ARSessionData, UpdateARSessionRequest } from '@/types/arSessions';
@@ -10,10 +11,13 @@ import styles from '@/styles/Admin.module.scss';
 
 const WMCYNLOGO = '/wmcyn_logo_white.png';
 
-export default function ARSessionEditPage() {
+interface ARSessionEditPageProps {
+  sessionId: string;
+}
+
+export default function ARSessionEditPage({ sessionId }: ARSessionEditPageProps) {
   const { isAuthenticated, loading: authLoading } = useAdminAuth();
   const router = useRouter();
-  const sessionId = router.query.id as string;
   const [sessionData, setSessionData] = useState<ARSessionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -46,30 +50,32 @@ export default function ARSessionEditPage() {
       setLoading(true);
       setError(null);
       const response = await arSessionsAPI.list();
-      console.log('[ARSessionEdit] API response:', response);
+      console.log('[ARSessionDetail] Raw response:', response);
       
-      // handle both array response and object with sessions/arSessions property
-      const sessionsData = Array.isArray(response) 
-        ? response 
-        : (response?.arSessions || response?.sessions || []);
+      // handle different response structures
+      let sessions: ARSessionData[] = [];
+      if (response && response.arSessions) {
+        sessions = response.arSessions;
+        console.log('[ARSessionDetail] Using arSessions field:', sessions.length);
+      } else if (response && Array.isArray(response)) {
+        sessions = response;
+        console.log('[ARSessionDetail] Using array response:', sessions.length);
+      } else if (response && Array.isArray(response)) {
+        sessions = response;
+        console.log('[ARSessionDetail] Using direct array response:', sessions.length);
+      } else {
+        console.warn('[ARSessionDetail] Unexpected response structure:', response);
+        sessions = [];
+      }
       
-      // find session by sessionId or id (backend may use either)
-      const session = sessionsData.find((s: any) => 
-        s.sessionId === sessionId || s.id === sessionId
-      );
+      const session = sessions.find(s => s.sessionId === sessionId);
       
       if (!session) {
         setError('ar session not found');
         return;
       }
       
-      // normalize the session data - ensure sessionId is set
-      const normalizedSession = {
-        ...session,
-        sessionId: session.sessionId || session.id
-      };
-      
-      setSessionData(normalizedSession);
+      setSessionData(session);
     } catch (error: any) {
       console.error('failed to load ar session:', error);
       setError(error.message || 'failed to load ar session');
@@ -98,7 +104,7 @@ export default function ARSessionEditPage() {
   const handleDelete = async () => {
     if (!sessionData) return;
     
-    if (!confirm(`are you sure you want to delete "${sessionData.metadata?.title || sessionData.name || 'this session'}"? this action cannot be undone.`)) {
+    if (!confirm(`are you sure you want to delete "${sessionData.metadata.title}"? this action cannot be undone.`)) {
       return;
     }
 
@@ -165,12 +171,9 @@ export default function ARSessionEditPage() {
     return (
       <div className={styles.adminPageContainer}>
         <div className={styles.adminContainer}>
-          <div className={styles.errorContainer}>
-            <h2>ar session not found</h2>
-            <p>the requested ar session could not be found.</p>
-            <button onClick={handleCancel} className={styles.button}>
-              back to ar sessions
-            </button>
+          <div className={styles.loadingContainer}>
+            <div className={styles.loadingSpinner}></div>
+            <p>Loading session data...</p>
           </div>
         </div>
       </div>
@@ -225,7 +228,9 @@ export default function ARSessionEditPage() {
           <div className={styles.sessionMeta}>
             <div className={styles.metaRow}>
               <span className={styles.metaLabel}>session id:</span>
-              <span className={styles.metaValue}>{sessionData.sessionId}</span>
+              <span className={styles.metaValue}>
+                {sessionData.sessionId || 'not available'}
+              </span>
             </div>
             <div className={styles.metaRow}>
               <span className={styles.metaLabel}>status:</span>
@@ -236,13 +241,13 @@ export default function ARSessionEditPage() {
             <div className={styles.metaRow}>
               <span className={styles.metaLabel}>created:</span>
               <span className={styles.metaValue}>
-                {new Date(sessionData.createdAt).toLocaleString()}
+                {sessionData.createdAt ? new Date(sessionData.createdAt).toLocaleString() : 'not available'}
               </span>
             </div>
             <div className={styles.metaRow}>
               <span className={styles.metaLabel}>updated:</span>
               <span className={styles.metaValue}>
-                {new Date(sessionData.updatedAt).toLocaleString()}
+                {sessionData.updatedAt ? new Date(sessionData.updatedAt).toLocaleString() : 'not available'}
               </span>
             </div>
           </div>
@@ -251,17 +256,16 @@ export default function ARSessionEditPage() {
         {/* form */}
         <ARSessionForm
           initialData={{
-            name: sessionData.metadata?.title || sessionData.name || '',
-            description: sessionData.metadata?.description || sessionData.campaign || '',
+            name: sessionData.metadata?.title || '', // using title as name for now
+            description: sessionData.campaign || '',
             campaign: sessionData.campaign || '',
             productId: sessionData.product?.id,
             markerPattern: {
-              patternId: sessionData.markerPattern?.patternId || sessionData.markerPattern?.name || '',
-              type: (sessionData.markerPattern?.type as 'custom' | 'hiro' | 'kanji' | 'nft') || 'custom'
+              patternId: sessionData.markerPattern?.name || '', // this might need adjustment
+              type: (sessionData.markerPattern?.type as 'custom' | 'hiro' | 'kanji') || 'custom'
             },
             metadata: {
-              title: sessionData.metadata?.title || sessionData.name || '',
-              description: sessionData.metadata?.description || '',
+              ...(sessionData.metadata || {}),
               actions: sessionData.metadata?.actions?.map(action => ({
                 ...action,
                 type: action.type as 'purchase' | 'share' | 'claim' | 'info'
@@ -289,3 +293,13 @@ export default function ARSessionEditPage() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const { id } = context.params!;
+  
+  return {
+    props: {
+      sessionId: id as string
+    }
+  };
+};

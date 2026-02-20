@@ -94,7 +94,10 @@ export default function ProductSetBuilder({ productSet, onSubmit, onCancel, load
       if (!item.productId.trim()) {
         newErrors[`item_${index}_productId`] = 'product ID is required';
       }
-      if (!item.quantity || item.quantity <= 0) {
+      if (!item.variantId?.trim()) {
+        newErrors[`item_${index}_variantId`] = 'variant ID is required for inventory tracking';
+      }
+      if (!item.qty || item.qty <= 0) {
         newErrors[`item_${index}_quantity`] = 'quantity must be greater than 0';
       }
     });
@@ -142,7 +145,7 @@ export default function ProductSetBuilder({ productSet, onSubmit, onCancel, load
   const addItem = () => {
     setFormData(prev => ({
       ...prev,
-      items: [...prev.items, { productId: '', quantity: 1 }]
+      items: [...prev.items, { productId: '', variantId: '', qty: 1 }]
     }));
   };
 
@@ -256,12 +259,27 @@ export default function ProductSetBuilder({ productSet, onSubmit, onCancel, load
                   </div>
                 )}
               </div>
+              <div className={`${styles.itemInput} ${styles.formRowItem}`}>
+                <input
+                  type="text"
+                  value={item.variantId || ''}
+                  onChange={(e) => updateItem(index, 'variantId', e.target.value)}
+                  className={styles.inputField}
+                  placeholder="variant ID"
+                  disabled={loading}
+                />
+                {errors[`item_${index}_variantId`] && (
+                  <div style={{ color: '#ff6b6b', fontSize: '0.8rem', marginTop: '4px' }}>
+                    {errors[`item_${index}_variantId`]}
+                  </div>
+                )}
+              </div>
               <div className={`${styles.itemQuantity} ${styles.formRowItem}`}>
                 <input
                   type="number"
                   min="1"
-                  value={item.quantity}
-                  onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                  value={item.qty}
+                  onChange={(e) => updateItem(index, 'qty', parseInt(e.target.value) || 1)}
                   className={styles.inputField}
                   disabled={loading}
                 />

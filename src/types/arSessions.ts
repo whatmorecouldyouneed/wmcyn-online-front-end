@@ -21,11 +21,16 @@ export type ArConfigResponse = {
   code: string;
   targetType: string;
   targetId?: string;
-  markerType: 'custom' | 'hiro' | 'kanji' | 'nft' | 'mind';
+  markerType: 'custom' | 'hiro' | 'kanji';
   markerDataUrl: string;
   overlayConfig: OverlayConfig;
   metadata?: { title?: string; description?: string; actions?: any[] };
   asset3D?: { url: string; type: 'glb'|'gltf'|'usdz'; transform?: { scale?: [number,number,number]; position?: [number,number,number]; rotation?: [number,number,number]; } };
+  arjsConfig?: {  // NEW: AR.js configuration from backend
+    detectionMode: 'mono' | 'stereo';
+    matrixCodeType?: '3x3' | '3x3_HAMMING63' | '3x3_PARITY65' | '4x4';
+    patternRatio?: number;
+  };
 };
 
 // resolved overlay for rendering
@@ -41,14 +46,10 @@ export type ResolvedArConfig = {
 // ar session data from backend api
 export interface ARSessionData {
   sessionId: string;
-  id?: string;  // backend may return 'id' instead of 'sessionId'
-  name?: string; // optional name field from backend
   markerPattern: {
-    url?: string;        // direct url to .patt file
-    type: string;       // 'custom' | 'hiro' | 'kanji' | 'nft'
-    name?: string;       // human-readable name
-    patternId?: string;  // backend may return patternId
-    previewUrl?: string; // preview image url for embedding in qr codes
+    url: string;        // direct url to .patt file
+    type: string;       // 'custom' | 'hiro' | 'kanji'
+    name: string;       // human-readable name
   };
   metadata: {
     title: string;
@@ -60,6 +61,11 @@ export interface ARSessionData {
     }>;
   };
   overlayConfig?: OverlayConfig; // new field for overlay configuration
+  arjsConfig?: {  // NEW: AR.js configuration from backend
+    detectionMode: 'mono' | 'stereo';
+    matrixCodeType?: '3x3' | '3x3_HAMMING63' | '3x3_PARITY65' | '4x4';
+    patternRatio?: number;
+  };
   asset3D?: {
     url: string;        // 3d model url
     type: string;       // 'gltf' | 'glb'
@@ -77,28 +83,46 @@ export interface ARSessionData {
   updatedAt: string;
 }
 
+// marker generation configuration
+export interface MarkerGenerationConfig {
+  patternRatio: number;     // 0.0-1.0, typically 0.50
+  imageSize: number;        // 256, 512, or 1024
+  borderColor: string;      // hex color, e.g., "#000000"
+  source: 'manual' | 'generated';
+}
+
+// marker validation metadata
+export interface MarkerValidation {
+  tested: boolean;
+  detectionScore?: number;  // 0-100
+  testedAt?: string;        // ISO timestamp
+  testDevice?: string;      // user agent string
+}
+
 // marker pattern details
 export interface MarkerPattern {
   id: string;
   name: string;
-  type: 'custom' | 'hiro' | 'kanji' | 'nft';
-  patternUrl: string;   // .patt file url or nft descriptor path (without extension for nft)
-  previewUrl: string;   // preview image url
+  type: 'custom' | 'hiro' | 'kanji';
+  patternUrl: string;       // .patt file url
+  previewUrl: string;       // preview image url
+  markerImageUrl?: string;  // full marker image url
+  generationConfig?: MarkerGenerationConfig;
+  validation?: MarkerValidation;
   createdBy: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 // ar session metadata configuration
 export interface ARSessionMetadata {
   title: string;
-  description?: string; // optional to match usage in components
+  description: string;
   actions: Array<{
     type: 'purchase' | 'share' | 'claim' | 'info';
     label: string;
     url?: string;
   }>;
-  createdAt?: string; // optional for "printed on" display
-  campaign?: string; // optional for campaign display
 }
 
 // api request types
@@ -109,7 +133,7 @@ export interface CreateARSessionRequest {
   productId?: string;
   markerPattern: {
     patternId: string;
-    type: 'custom' | 'hiro' | 'kanji' | 'nft';
+    type: 'custom' | 'hiro' | 'kanji';
   };
   metadata: ARSessionMetadata;
   asset3D?: {
@@ -121,63 +145,45 @@ export interface CreateARSessionRequest {
 
 export type UpdateARSessionRequest = Partial<CreateARSessionRequest>;
 
-// marker pattern upload request (legacy - backend compiles)
+// marker pattern upload request
 export interface UploadMarkerPatternRequest {
   name: string;
-  type: 'upload';          // required by backend
   description?: string;
-  productSetId?: string;   // optional product set to associate with
+  type: 'upload';
   imageFile: {
-    data: string;          // base64 encoded image data
-    mimeType: string;      // e.g. 'image/png'
-    filename: string;      // original filename
+    data: string;       // base64 data
+    mimeType: string;
+    filename: string;
   };
-}
-
-// nft marker upload request (frontend compiles .mind file)
-export interface UploadNFTMarkerRequest {
-  sourceImageData: string;  // base64 encoded source image
-  mindFileData: string;     // base64 encoded pre-compiled .mind file
-  filename: string;         // name for the file
-  quality?: number;         // optional quality score (0-100)
-}
-
-// nft marker response
-export interface NFTMarkerResponse {
-  mindFileUrl: string;
-  sourceImageUrl: string;
-  quality?: number;
-  compiledAt?: string;
+  // NEW FIELDS:
+  pattFile?: {
+    data: string;       // .patt file content (text, not base64)
+    filename: string;   // e.g., "marker-xyz.patt"
+  };
+  generationConfig?: MarkerGenerationConfig;
+  validation?: MarkerValidation;
 }
 
 // api response types
-// backend may return either 'sessions' or 'arSessions' property
 export interface ARSessionListResponse {
-  arSessions?: ARSessionData[];
-  sessions?: ARSessionData[];
-  total?: number;
+  arSessions: ARSessionData[];
+  total: number;
 }
 
 export interface MarkerPatternListResponse {
   markerPatterns?: MarkerPattern[];
   patterns?: MarkerPattern[];
-  items?: MarkerPattern[];
   total?: number;
 }
 
 export interface UploadMarkerPatternResponse {
   patternId: string;
-  mindFileUrl: string;      // url to compiled .mind file
-  sourceImageUrl: string;   // url to source image
-  patternUrl?: string;      // deprecated, use mindFileUrl
-  previewUrl?: string;      // deprecated, use sourceImageUrl
-  quality?: number;         // quality score 0-100
-}
-
-// marker validation result
-export interface MarkerValidation {
-  isValid: boolean;
-  score?: number;
-  issues?: string[];
-  testedAt: string;
+  patternUrl: string;        // .patt file url
+  previewUrl: string;        // preview image url
+  markerImageUrl: string;    // full marker image url
+  validationStatus?: {       // validation metadata
+    tested: boolean;
+    score?: number;
+    testedAt?: string;
+  };
 }

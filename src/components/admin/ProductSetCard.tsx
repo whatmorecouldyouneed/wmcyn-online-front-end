@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
-import { ProductSet, QRCodeData } from '@/types/productSets';
+import { ProductSet } from '@/types/productSets';
 import { deleteProductSet } from '@/lib/apiClient';
 import styles from '@/styles/Admin.module.scss';
 
@@ -8,11 +8,9 @@ interface ProductSetCardProps {
   productSet: ProductSet;
   onDelete: (id: string) => void;
   onGenerateQR: (productSet: ProductSet) => void;
-  qrCodeCount?: number;
-  qrCodes?: QRCodeData[];
 }
 
-export default function ProductSetCard({ productSet, onDelete, onGenerateQR, qrCodeCount, qrCodes = [] }: ProductSetCardProps) {
+export default function ProductSetCard({ productSet, onDelete, onGenerateQR }: ProductSetCardProps) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
 
@@ -33,13 +31,9 @@ export default function ProductSetCard({ productSet, onDelete, onGenerateQR, qrC
     try {
       await deleteProductSet(productSet.id);
       onDelete(productSet.id);
-    } catch (error: any) {
+    } catch (error) {
       console.error('failed to delete wmcyn product:', error);
-      if (error.message === 'Resource not found') {
-        alert('Delete endpoint not available on backend. The product may need to be deleted directly from the database.');
-      } else {
-        alert(`failed to delete wmcyn product: ${error.message}`);
-      }
+      alert('failed to delete wmcyn product. please try again.');
     } finally {
       setDeleting(false);
     }
@@ -53,31 +47,9 @@ export default function ProductSetCard({ productSet, onDelete, onGenerateQR, qrC
     });
   };
 
-  const handleDownloadQR = async (url: string, filename: string) => {
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(downloadUrl);
-    } catch (error) {
-      console.error('failed to download QR code:', error);
-      alert('failed to download QR code');
-    }
-  };
-
   const getTotalItems = () => {
-    if (!productSet.items || !Array.isArray(productSet.items)) return 0;
-    return productSet.items.reduce((total, item) => total + (item.quantity || item.qty || 1), 0);
+    return productSet.items.reduce((total, item) => total + item.qty, 0);
   };
-  
-  // safely access stats with defaults
-  const stats = productSet.stats || { totalClaims: 0, remainingInventory: 0, qrCodesGenerated: 0 };
 
   return (
     <div className={styles.productSetCard}>
@@ -106,15 +78,15 @@ export default function ProductSetCard({ productSet, onDelete, onGenerateQR, qrC
           <div className={styles.statLabel}>total items</div>
         </div>
         <div className={styles.statItem}>
-          <div className={styles.statValue}>{stats.totalClaims}</div>
+          <div className={styles.statValue}>{productSet.stats.totalClaims}</div>
           <div className={styles.statLabel}>claims</div>
         </div>
         <div className={styles.statItem}>
-          <div className={styles.statValue}>{stats.remainingInventory}</div>
+          <div className={styles.statValue}>{productSet.stats.remainingInventory}</div>
           <div className={styles.statLabel}>remaining</div>
         </div>
         <div className={styles.statItem}>
-          <div className={styles.statValue}>{qrCodeCount ?? stats.qrCodesGenerated}</div>
+          <div className={styles.statValue}>{productSet.stats.qrCodesGenerated}</div>
           <div className={styles.statLabel}>qr codes</div>
         </div>
       </div>
@@ -125,59 +97,11 @@ export default function ProductSetCard({ productSet, onDelete, onGenerateQR, qrC
         marginBottom: '16px',
         textAlign: 'center'
       }}>
-        {productSet.createdAt && <>created {formatDate(productSet.createdAt)}</>}
-        {productSet.updatedAt && productSet.updatedAt !== productSet.createdAt && (
+        created {formatDate(productSet.createdAt)}
+        {productSet.updatedAt !== productSet.createdAt && (
           <span> • updated {formatDate(productSet.updatedAt)}</span>
         )}
       </div>
-
-      {/* QR code download buttons if QR codes exist */}
-      {qrCodes && qrCodes.length > 0 && (() => {
-        const firstQR = qrCodes[0];
-        const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://us-central1-wmcyn-online-mobile.cloudfunctions.net/api';
-        const pngUrl = firstQR.assets?.qrPngUrl || `https://api-rrm3u3yaba-uc.a.run.app/api/qr-assets/${firstQR.code}.png`;
-        const svgUrl = firstQR.assets?.qrSvgUrl || `https://api-rrm3u3yaba-uc.a.run.app/api/qr-assets/${firstQR.code}.svg`;
-        
-        return (
-          <div style={{ 
-            marginBottom: '12px',
-            display: 'flex',
-            gap: '8px',
-            justifyContent: 'center'
-          }}>
-            <button
-              onClick={() => handleDownloadQR(pngUrl, `qr-code-${firstQR.code}.png`)}
-              style={{
-                padding: '6px 12px',
-                background: 'rgba(255, 255, 255, 0.1)',
-                color: 'white',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '0.75rem',
-                fontWeight: '500'
-              }}
-            >
-              download png
-            </button>
-            <button
-              onClick={() => handleDownloadQR(svgUrl, `qr-code-${firstQR.code}.svg`)}
-              style={{
-                padding: '6px 12px',
-                background: 'rgba(255, 255, 255, 0.1)',
-                color: 'white',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '0.75rem',
-                fontWeight: '500'
-              }}
-            >
-              download svg
-            </button>
-          </div>
-        );
-      })()}
 
       <div className={styles.productSetCardActions}>
         <button 

@@ -1,657 +1,293 @@
-import { useEffect, useRef } from 'react';
-import { type MarkerConfig } from '../config/markers';
+import React, { useEffect } from 'react';
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { type MarkerConfig, DEFAULT_HIRO_PATTERN_URL_PLACEHOLDER } from '../config/markers';
 
 interface UseARSceneProps {
   mountRef: React.RefObject<HTMLDivElement>;
   configs: MarkerConfig[];
   setIsLoading: (loading: boolean) => void;
+  // onLoaded?: () => void; // Optional: if more granular control is needed
+  // onError?: (message: string) => void; // Optional: for error handling
 }
 
-// animation configuration
-const ROTATION_SPEED = 0.005; // slower, more elegant rotation
-const MODEL_Y_OFFSET = -0.6; // move model down below the marker (negative = down)
-
-// helper to get mindar class from window (scripts loaded in _document.tsx)
-const getMindARThree = (): any => {
-  const win = window as any;
-  
-  // check all possible paths where MindARThree might be
-  const paths = [
-    { name: 'MINDAR.IMAGE.MindARThree', value: win.MINDAR?.IMAGE?.MindARThree },
-    { name: 'MindARThree', value: win.MindARThree },
-    { name: 'MINDAR.MindARThree', value: win.MINDAR?.MindARThree },
-  ];
-  
-  for (const path of paths) {
-    if (path.value && typeof path.value === 'function') {
-      console.log('[getMindARThree] Found at:', path.name);
-      return path.value;
-    }
-  }
-  
-  // log what we do have for debugging
-  console.log('[getMindARThree] Not found. Available:', {
-    MINDAR: !!win.MINDAR,
-    'MINDAR.IMAGE': win.MINDAR?.IMAGE ? Object.keys(win.MINDAR.IMAGE) : 'undefined',
-    MindARThree: !!win.MindARThree,
-    THREE: !!win.THREE
-  });
-  
-  return null;
-};
-
-// wait for MindARThree to be available (scripts loaded in _document.tsx)
-const loadMindARScript = (): Promise<any> => {
-  return new Promise((resolve, reject) => {
-    const existing = getMindARThree();
-    if (existing) {
-      console.log('[useARScene] MindAR found immediately');
-      resolve(existing);
-      return;
-    }
-
-    console.log('[useARScene] Waiting for MindAR to load...');
-
-    // poll for it in case scripts are still loading
-    let attempts = 0;
-    const maxAttempts = 200; // 20 seconds max (increased for slow mobile connections)
-    
-    const checkInterval = setInterval(() => {
-      attempts++;
-      const found = getMindARThree();
-      
-      if (found) {
-        clearInterval(checkInterval);
-        console.log('[useARScene] MindAR found after', attempts * 100, 'ms');
-        resolve(found);
-        return;
-      }
-      
-      if (attempts >= maxAttempts) {
-        clearInterval(checkInterval);
-        console.error('[useARScene] MindAR not available after 20 seconds. Window.MINDAR:', (window as any).MINDAR);
-        reject(new Error('MindAR not available - scripts may have failed to load'));
-      }
-    }, 100);
-  });
-};
-
 export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps) => {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const animationIdRef = useRef<number | null>(null);
-  const isInitializedRef = useRef(false);
-  const isCancelledRef = useRef(false);
-  const threeRef = useRef<any>(null);
-  const mindARRef = useRef<any>(null);
-
   useEffect(() => {
-    if (!configs || configs.length === 0) return;
-
-    const container = mountRef.current;
-    if (!container) {
+    const mountElement = mountRef.current; // Capture current mount element
+    const { THREE: WinThree, THREEx } = window as any;
+    if (!WinThree || !THREEx) {
+      console.error("three.js or ar.js (THREEx) not found on window object.");
       setIsLoading(false);
+      // onError?.("AR libraries not found.");
       return;
     }
 
-    if (isInitializedRef.current) return;
+    let renderer: THREE.WebGLRenderer;
+    let scene: THREE.Scene;
+    let camera: THREE.Camera;
+    let arToolkitSource: any;
+    let arToolkitContext: any;
+    const markerRoots: THREE.Group[] = [];
+    const markerControlsArray: any[] = [];
+    const mixers: THREE.AnimationMixer[] = [];
+    let clock: THREE.Clock;
+    let animationFrameId: number;
 
-    isCancelledRef.current = false;
-    
-    // filter to only nft markers with .mind files for dynamic multi-marker support
-    let nftConfigs = configs.filter(c => c?.markerType === 'nft' && c?.mindTargetSrc);
-    const patternConfigs = configs.filter(c => c?.markerType === 'pattern' || (!c?.markerType && c?.patternUrl));
-    
-    // prioritize markers - put hoodie marker first if it exists
-    // this ensures the hoodie marker is tried before the banner marker
-    nftConfigs = nftConfigs.sort((a, b) => {
-      const aIsHoodie = a.name?.includes('hoodie');
-      const bIsHoodie = b.name?.includes('hoodie');
-      if (aIsHoodie && !bIsHoodie) return -1;
-      if (!aIsHoodie && bIsHoodie) return 1;
-      return 0;
-    });
-    
-    console.log('[useARScene] Initializing with configs:', {
-      totalConfigs: configs.length,
-      nftConfigs: nftConfigs.length,
-      patternConfigs: patternConfigs.length,
-      nftMarkers: nftConfigs.map(c => ({ name: c.name, mindTargetSrc: c.mindTargetSrc })),
-      markerOrder: nftConfigs.map(c => c.name)
-    });
-
-    // prioritize nft markers if available
-    if (nftConfigs.length > 0) {
-      console.log('[useARScene] Using NFT AR mode with', nftConfigs.length, 'marker(s)');
-      initNFTAR(container, nftConfigs);
-    } else if (patternConfigs.length > 0) {
-      console.log('[useARScene] Using Pattern AR mode (fallback)');
-      const config = patternConfigs[0];
-      initPatternAR(container, config);
-    } else {
-      console.error('[useARScene] No valid marker configs found');
-      setIsLoading(false);
-    }
-
-    // cleanup
-    return () => {
-      isCancelledRef.current = true;
-      
-      if (animationIdRef.current) {
-        cancelAnimationFrame(animationIdRef.current);
-        animationIdRef.current = null;
+    const onResize = () => {
+      if (!arToolkitSource || !renderer || !mountRef.current) return;
+      arToolkitSource.onResizeElement();
+      arToolkitSource.copyElementSizeTo(renderer.domElement);
+      if (arToolkitContext?.arController) {
+        arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
       }
-      
-      if (mindARRef.current) {
-        try { mindARRef.current.stop(); } catch (e) { /* ignore */ }
-        mindARRef.current = null;
+      if (mountRef.current) { // Check mountRef.current before accessing clientWidth/Height
+        renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
       }
-      
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-        streamRef.current = null;
-      }
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
-        videoRef.current.remove();
-        videoRef.current = null;
-      }
-      
-      if (threeRef.current?.renderer) {
-        threeRef.current.renderer.dispose();
-        threeRef.current.renderer.domElement.remove();
-        threeRef.current = null;
-      }
-      
-      isInitializedRef.current = false;
     };
 
-    // nft marker initialization using mindar
-    // supports multiple markers by trying each one sequentially
-    async function initNFTAR(container: HTMLDivElement, configs: MarkerConfig[]) {
-      console.log('[useARScene] Initializing NFT AR with', configs.length, 'marker(s)');
+    const animate = () => {
+      animationFrameId = requestAnimationFrame(animate);
+      if (!renderer || !scene || !camera || !arToolkitSource || !arToolkitContext || !arToolkitSource.ready) return;
+      try {
+        arToolkitContext.update(arToolkitSource.domElement);
+        markerRoots.forEach(mr => {
+          if (mr) scene.visible = mr.visible; // Revisit if multiple markers need independent visibility logic
+        });
+        renderer.render(scene, camera);
+        mixers.forEach(m => m.update(clock.getDelta()));
+      } catch (error) {
+        console.error("error during animation frame:", error);
+        // Consider stopping animation or notifying user
+      }
+    };
+
+    const init = () => {
+      if (!mountRef.current) {
+        console.error("mountRef.current is null in init. Aborting AR setup.");
+        setIsLoading(false);
+        // onError?.("AR Mount point not available.");
+        return;
+      }
+
+      renderer = new THREE.WebGLRenderer({ 
+        antialias: true, 
+        alpha: true,
+        preserveDrawingBuffer: false,
+        powerPreference: 'high-performance'
+      });
+      renderer.setClearColor(new THREE.Color(0x000000), 0); // Transparent background
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.domElement.style.position = 'absolute';
+      renderer.domElement.style.top = '0px';
+      renderer.domElement.style.left = '0px';
+      renderer.domElement.style.right = '0px';
+      renderer.domElement.style.bottom = '0px';
+      renderer.domElement.style.width = '100vw';
+      renderer.domElement.style.height = '100vh';
+      renderer.domElement.style.zIndex = '2';
+      mountRef.current.appendChild(renderer.domElement);
+
+      scene = new THREE.Scene();
+      camera = new THREE.Camera();
+      scene.add(camera);
+
+      scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      dirLight.position.set(0, 10, 5);
+      scene.add(dirLight);
+
+      clock = new THREE.Clock();
+
+      // Enhanced camera configuration for better mobile support
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
-      // try each marker config until one successfully initializes
-      // mindar can only load one .mind file per instance, so we try them one at a time
-      for (let i = 0; i < configs.length; i++) {
-        const config = configs[i];
-        console.log(`[useARScene] Attempting to initialize with marker ${i + 1}/${configs.length}:`, {
-          name: config.name,
-          mindTargetSrc: config.mindTargetSrc
-        });
+      arToolkitSource = new THREEx.ArToolkitSource({ 
+        sourceType: 'webcam', 
+        sourceWidth: isMobile ? 480 : 640, 
+        sourceHeight: isMobile ? 320 : 480,
+        // Add camera constraints for mobile devices
+        facingMode: isMobile ? 'environment' : 'user'
+      });
+      
+      arToolkitSource.init(() => {
+        console.log('ArToolkitSource initialized successfully');
         
-        try {
-          await initSingleNFTMarker(container, config, configs);
-          // if successful, break out of the loop
-          console.log('[useARScene] Successfully initialized with marker:', config.name);
-          break;
-        } catch (err: any) {
-          console.error(`[useARScene] Failed to initialize with marker ${config.name}:`, err);
-          // if this is the last marker, throw the error
-          if (i === configs.length - 1) {
-            throw new Error(`Failed to initialize with any marker. Last error: ${err.message}`);
-          }
-          // otherwise, try the next marker
-          console.log(`[useARScene] Trying next marker...`);
-        }
-      }
-    }
-    
-    async function initSingleNFTMarker(container: HTMLDivElement, config: MarkerConfig, allConfigs: MarkerConfig[]) {
-      try {
-        console.log('[useARScene] Starting NFT AR initialization...');
-        
-        // pre-flight check: verify camera permission
-        console.log('[useARScene] Checking camera permission...');
-        try {
-          const permissionStatus = await navigator.permissions?.query({ name: 'camera' as PermissionName });
-          console.log('[useARScene] Camera permission status:', permissionStatus?.state);
-        } catch (permErr) {
-          console.log('[useARScene] Could not query camera permission (normal on some browsers)');
-        }
-        
-        // pre-flight check: verify .mind file is accessible
-        const mindFileUrl = config.mindTargetSrc;
-        console.log('[useARScene] Checking .mind file accessibility:', mindFileUrl);
-        let fileAccessible = false;
-        try {
-          // try GET instead of HEAD to better simulate what MindAR will do
-          const response = await fetch(mindFileUrl!, { method: 'GET' });
-          if (!response.ok) {
-            throw new Error(`.mind file not accessible: ${response.status} ${response.statusText}`);
-          }
-          const contentType = response.headers.get('content-type');
-          const contentLength = response.headers.get('content-length');
-          console.log('[useARScene] .mind file accessible:', {
-            contentType,
-            contentLength,
-            url: mindFileUrl,
-            status: response.status
-          });
-          // verify it's actually a .mind file by checking the response
-          const blob = await response.blob();
-          console.log('[useARScene] .mind file blob size:', blob.size, 'bytes');
-          if (blob.size === 0) {
-            throw new Error('.mind file is empty');
-          }
-          fileAccessible = true;
-        } catch (fetchErr: any) {
-          console.error('[useARScene] .mind file fetch failed:', fetchErr.message);
-          console.error('[useARScene] .mind file URL:', mindFileUrl);
-          console.error('[useARScene] Full fetch error:', fetchErr);
-          // if file is not accessible, this is a critical error
-          if (fetchErr.message.includes('not accessible') || fetchErr.message.includes('empty')) {
-            throw new Error(`Cannot load .mind file: ${mindFileUrl}. Error: ${fetchErr.message}`);
-          }
-          // don't throw for other errors - let MindAR try to load it anyway (might be CORS issue)
-        }
-        
-        const MindARThree = await loadMindARScript();
-        if (isCancelledRef.current || !MindARThree) return;
-
-        const THREE = (window as any).THREE;
-        if (!THREE) throw new Error('THREE not available');
-
-        if (isCancelledRef.current) return;
-
-        // create mindar instance with built-in stabilization
-        // filterMinCF: lower = smoother but more delay (default: 0.001)
-        // filterBeta: higher = more responsive but more jitter (default: 1000)
-        console.log('[useARScene] Creating MindAR instance with target:', config.mindTargetSrc);
-        console.log('[useARScene] File accessibility check result:', fileAccessible);
-        
-        let mindar: any;
-        try {
-          mindar = new MindARThree({
-            container: container,
-            imageTargetSrc: config.mindTargetSrc,
-            maxTrack: 1,
-            uiLoading: 'no',
-            uiScanning: 'no',
-            uiError: 'no',
-            filterMinCF: 0.0001, // very smooth tracking
-            filterBeta: 0.01, // low responsiveness for stability
-          });
-          console.log('[useARScene] MindAR instance created successfully');
+        // Ensure video element is properly configured and visible
+        if (arToolkitSource.domElement) {
+          console.log('Video element found:', arToolkitSource.domElement);
           
-          // add error listeners to catch MindAR internal errors
-          if (mindar.on && typeof mindar.on === 'function') {
-            mindar.on('error', (error: any) => {
-              console.error('[useARScene] MindAR error event:', error);
-              console.error('[useARScene] MindAR error details:', {
-                error,
-                targetFile: config.mindTargetSrc,
-                configName: config.name
-              });
-            });
-          }
+          // Critical styling for video visibility - force viewport dimensions
+          arToolkitSource.domElement.style.position = 'absolute';
+          arToolkitSource.domElement.style.top = '0px';
+          arToolkitSource.domElement.style.left = '0px';
+          arToolkitSource.domElement.style.right = '0px';
+          arToolkitSource.domElement.style.bottom = '0px';
+          arToolkitSource.domElement.style.width = '100vw';
+          arToolkitSource.domElement.style.height = '100vh';
+          arToolkitSource.domElement.style.maxWidth = '100vw';
+          arToolkitSource.domElement.style.maxHeight = '100vh';
+          arToolkitSource.domElement.style.minWidth = '100vw';
+          arToolkitSource.domElement.style.minHeight = '100vh';
+          arToolkitSource.domElement.style.margin = '0';
+          arToolkitSource.domElement.style.padding = '0';
+          arToolkitSource.domElement.style.boxSizing = 'border-box';
+          arToolkitSource.domElement.style.zIndex = '1';
+          arToolkitSource.domElement.style.objectFit = 'cover';
+          arToolkitSource.domElement.style.display = 'block';
           
-          // also check for error property or methods
-          if (mindar.error) {
-            console.warn('[useARScene] MindAR has error property:', mindar.error);
-          }
-        } catch (initErr: any) {
-          console.error('[useARScene] MindAR instance creation failed:', initErr);
-          console.error('[useARScene] Error details:', {
-            message: initErr?.message,
-            stack: initErr?.stack,
-            targetFile: config.mindTargetSrc
-          });
-          throw new Error(`Failed to create MindAR instance. Target file: ${config.mindTargetSrc}. Error: ${initErr?.message || initErr}`);
-        }
-        
-        mindARRef.current = mindar;
-        const { renderer, scene, camera } = mindar;
-
-        if (!renderer || !scene || !camera) {
-          throw new Error('MindAR missing components');
-        }
-
-        // add lighting
-        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
-        directionalLight.position.set(5, 10, 7);
-        scene.add(directionalLight);
-
-        // create anchor for tracking
-        const anchor = mindar.addAnchor(0);
-        
-        if (anchor.group && !scene.children.includes(anchor.group)) {
-          scene.add(anchor.group);
-        }
-
-        // load 3d model
-        const modelUrl = config?.modelUrl || '/models/wmcyn_3d_logo.glb';
-        let model: any = null;
-
-        console.log('[useARScene] Loading 3D model from:', modelUrl);
-        const GLTFLoader = (THREE as any).GLTFLoader;
-        
-        if (GLTFLoader) {
-          try {
-            const loader = new GLTFLoader();
-            const gltf = await new Promise<any>((resolve, reject) => {
-              loader.load(
-                modelUrl, 
-                (loaded: any) => {
-                  console.log('[useARScene] Model loaded successfully');
-                  resolve(loaded);
-                }, 
-                (progress: any) => {
-                  if (progress.lengthComputable) {
-                    console.log('[useARScene] Model loading:', Math.round(progress.loaded / progress.total * 100) + '%');
-                  }
-                }, 
-                (error: any) => {
-                  console.error('[useARScene] Model load error:', error);
-                  reject(error);
-                }
-              );
-            });
-            
-            model = gltf.scene;
-            
-            // scale and position the model
-            const box = new THREE.Box3().setFromObject(model);
-            const size = box.getSize(new THREE.Vector3());
-            const maxDim = Math.max(size.x, size.y, size.z);
-            const scale = (config.scale || 0.8) / maxDim;
-            model.scale.setScalar(scale);
-            
-            // center the model and offset below the marker
-            const center = box.getCenter(new THREE.Vector3());
-            model.position.set(-center.x * scale, MODEL_Y_OFFSET, -center.z * scale);
-            
-          } catch (err: any) {
-            console.error('[useARScene] Model load failed:', err?.message || err);
+          // Mobile video attributes
+          arToolkitSource.domElement.setAttribute('playsinline', 'true');
+          arToolkitSource.domElement.setAttribute('webkit-playsinline', 'true');
+          arToolkitSource.domElement.setAttribute('autoplay', 'true');
+          arToolkitSource.domElement.setAttribute('muted', 'true');
+          
+          // Ensure video is appended to mount point
+          if (mountRef.current && !mountRef.current.contains(arToolkitSource.domElement)) {
+            mountRef.current.appendChild(arToolkitSource.domElement);
           }
         } else {
-          console.warn('[useARScene] GLTFLoader not available');
+          console.error('No video element created by ArToolkitSource');
         }
         
-        // only add model if it loaded successfully - no fallback cube
-        if (model) {
-          anchor.group.add(model);
-        } else {
-          console.error('[useARScene] No model loaded - check model path:', modelUrl);
-        }
-        
-        // track spin rotation separately
-        let spinRotation = 0;
-        threeRef.current = { renderer, scene, camera, model };
-
-        // target callbacks
-        anchor.onTargetFound = () => {
-          console.log('[useARScene] 🎯 TARGET FOUND! Config:', config?.name);
-          if (anchor.group) {
-            anchor.group.visible = true;
-            anchor.group.children.forEach((child: any) => { child.visible = true; });
-          }
-          if (config?.onFound) {
-            console.log('[useARScene] Calling onFound callback');
-            config.onFound();
+        // Delay resize and setIsLoading(false) until AR source is truly ready
+        setTimeout(() => {
+          if (arToolkitSource && arToolkitSource.ready) {
+            onResize();
+            setIsLoading(false);
+            console.log('AR Scene ready with video dimensions:', {
+              videoWidth: arToolkitSource.domElement?.videoWidth,
+              videoHeight: arToolkitSource.domElement?.videoHeight,
+              ready: arToolkitSource.ready
+            });
           } else {
-            console.log('[useARScene] No onFound callback defined');
+            console.warn('ArToolkitSource not ready after timeout');
+            setIsLoading(false);
           }
-        };
+        }, 2000); // Increased delay for mobile compatibility
+      }, (error: any) => {
+        console.error('ArToolkitSource initialization failed:', error);
+        setIsLoading(false);
+      });
 
-        anchor.onTargetLost = () => {
-          console.log('[useARScene] Target lost');
-        };
+      arToolkitContext = new THREEx.ArToolkitContext({
+        cameraParametersUrl: THREEx.ArToolkitContext.baseURL + '../data/data/camera_para.dat',
+        detectionMode: 'mono',
+        matrixCodeType: '3x3',
+        // Improved detection settings for better responsiveness
+        canvasWidth: 640,
+        canvasHeight: 480,
+        imageSmoothingEnabled: false,
+      });
 
-        // start mindar with timeout to prevent infinite hang
-        console.log('[useARScene] Starting MindAR...');
-        console.log('[useARScene] MindAR instance:', {
-          hasRenderer: !!mindar.renderer,
-          hasScene: !!mindar.scene,
-          hasCamera: !!mindar.camera,
-          imageTargetSrc: config.mindTargetSrc
-        });
-        
-        // wrap start() in a promise to catch errors
-        const startPromise = new Promise<void>((resolve, reject) => {
-          try {
-            const startResult = mindar.start();
-            // if start() returns a promise, await it
-            if (startResult && typeof startResult.then === 'function') {
-              startResult
-                .then(() => {
-                  console.log('[useARScene] MindAR.start() promise resolved');
-                  resolve();
-                })
-                .catch((err: any) => {
-                  console.error('[useARScene] MindAR.start() promise rejected:', err);
-                  reject(err);
-                });
+      arToolkitContext.init(() => {
+        if (!arToolkitContext || !camera) return; // Guard against uninitialized context/camera
+        camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+
+        configs.forEach(config => {
+          const markerRoot = new THREE.Group();
+          scene.add(markerRoot);
+          markerRoots.push(markerRoot);
+
+          let actualPatternUrl = config.patternUrl;
+          if (config.patternUrl === DEFAULT_HIRO_PATTERN_URL_PLACEHOLDER) {
+            if (THREEx.ArToolkitContext && THREEx.ArToolkitContext.baseURL) {
+              actualPatternUrl = THREEx.ArToolkitContext.baseURL + '../data/data/patt.hiro';
             } else {
-              // if start() doesn't return a promise, resolve immediately
-              console.log('[useARScene] MindAR.start() completed synchronously');
-              resolve();
+              console.error('THREEx.ArToolkitContext.baseURL is not available to construct default hiro pattern URL.');
+              // onError?.(`Failed to resolve pattern for ${config.name}`);
+              return; 
             }
-          } catch (startErr: any) {
-            console.error('[useARScene] MindAR.start() threw error:', startErr);
-            reject(startErr);
           }
-        });
-        
-        const timeoutPromise = new Promise<void>((_, reject) => {
-          setTimeout(() => {
-            console.error('[useARScene] Timeout reached - MindAR.start() did not complete');
-            reject(new Error(`MindAR start timed out after 30 seconds. Check camera permissions and .mind file: ${config.mindTargetSrc}`));
-          }, 30000);
-        });
-        
-        // log progress every 5 seconds
-        const progressInterval = setInterval(() => {
-          console.log('[useARScene] Still waiting for MindAR.start()...', {
-            targetFile: config.mindTargetSrc,
-            configName: config.name
+
+          const markerControls = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+            type: 'pattern',
+            patternUrl: actualPatternUrl,
+            changeMatrixMode: 'modelViewMatrix'
           });
-        }, 5000);
-        
-        try {
-          await Promise.race([startPromise, timeoutPromise]);
-          clearInterval(progressInterval);
-        } catch (startError: any) {
-          clearInterval(progressInterval);
-          const errorMsg = startError?.message || String(startError);
-          console.error('[useARScene] MindAR start failed:', errorMsg);
-          console.error('[useARScene] Error details:', {
-            message: errorMsg,
-            targetFile: config.mindTargetSrc,
-            configName: config.name,
-            error: startError
-          });
+          markerControlsArray.push(markerControls);
           
-          // if error mentions "Load failed" or "null", provide specific guidance
-          if (errorMsg.includes('Load failed') || errorMsg.includes('null')) {
-            throw new Error(`Failed to load .mind file: ${config.mindTargetSrc}. Please verify the file exists and is properly compiled. Original error: ${errorMsg}`);
-          }
-          
-          throw startError;
-        }
-        
-        console.log('[useARScene] MindAR started successfully');
+          console.log(`Marker controls created for ${config.name} with pattern:`, actualPatternUrl);
 
-        if (isCancelledRef.current) {
-          mindar.stop();
-          return;
-        }
-
-        // animation loop - mindar handles position smoothing via filterMinCF/filterBeta
-        let lastTime = performance.now();
-        
-        renderer.setAnimationLoop(() => {
-          if (isCancelledRef.current) return;
-          
-          const now = performance.now();
-          const delta = Math.min((now - lastTime) / 1000, 0.1);
-          lastTime = now;
-          
-          // smooth spin animation (frame-rate independent)
-          if (threeRef.current?.model) {
-            spinRotation += ROTATION_SPEED * delta * 60;
-            threeRef.current.model.rotation.y = spinRotation;
-          }
-          
-          renderer.render(scene, camera);
-        });
-
-        isInitializedRef.current = true;
-        setIsLoading(false);
-
-      } catch (err: any) {
-        console.error('[useARScene] NFT AR failed:', err?.message || err);
-        console.error('[useARScene] Full error:', err);
-        
-        // determine specific error message
-        let errorMessage = err?.message || 'MindAR could not load';
-        let suggestion = 'Try refreshing the page';
-        
-        if (errorMessage.includes('timed out')) {
-          suggestion = 'Check your camera permissions and internet connection';
-        } else if (errorMessage.includes('camera') || errorMessage.includes('permission')) {
-          suggestion = 'Please allow camera access and try again';
-        } else if (errorMessage.includes('not available')) {
-          suggestion = 'The AR library failed to load. Check your internet connection';
-        }
-        
-        // show error message instead of silent fallback
-        const errorDiv = document.createElement('div');
-        errorDiv.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.9);color:white;padding:24px;border-radius:12px;text-align:center;z-index:100;max-width:85%;';
-        errorDiv.innerHTML = `
-          <h3 style="margin:0 0 12px 0;font-size:18px;">AR Initialization Failed</h3>
-          <p style="margin:0;font-size:14px;opacity:0.85;">${errorMessage}</p>
-          <p style="margin:12px 0 16px 0;font-size:13px;opacity:0.65;">${suggestion}</p>
-          <button onclick="location.reload()" style="background:#fff;color:#000;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;">Reload Page</button>
-        `;
-        container.appendChild(errorDiv);
-        setIsLoading(false);
-      }
-    }
-
-    // pattern ar fallback (camera + 3d model overlay)
-    async function initPatternAR(container: HTMLDivElement, config: MarkerConfig) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-          audio: false
-        });
-
-        if (isCancelledRef.current) {
-          stream.getTracks().forEach(track => track.stop());
-          return;
-        }
-
-        streamRef.current = stream;
-
-        // create video element
-        const video = document.createElement('video');
-        video.srcObject = stream;
-        video.setAttribute('playsinline', 'true');
-        video.setAttribute('webkit-playsinline', 'true');
-        video.muted = true;
-        video.playsInline = true;
-        video.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:1';
-        container.appendChild(video);
-        videoRef.current = video;
-
-        await video.play();
-        if (isCancelledRef.current) return;
-
-        // set up three.js
-        const THREE = await import('three');
-        const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
-        if (isCancelledRef.current) return;
-
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-
-        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-        renderer.setSize(width, height);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.setClearColor(0x000000, 0);
-        renderer.domElement.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:2;pointer-events:none';
-        container.appendChild(renderer.domElement);
-
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
-        camera.position.set(0, 0, 3);
-        camera.lookAt(0, 0, 0);
-
-        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
-        directionalLight.position.set(5, 10, 7);
-        scene.add(directionalLight);
-
-        // load model
-        const modelUrl = config?.modelUrl || '/models/wmcyn_3d_logo.glb';
-        let model: any;
-
-        try {
           const loader = new GLTFLoader();
-          const gltf = await new Promise<any>((resolve, reject) => {
-            loader.load(modelUrl, resolve, undefined, reject);
+          loader.load(config.modelUrl, gltf => {
+            const model = gltf.scene;
+            if (model) {
+              const scale = config.scale || 1.0;
+              model.scale.set(scale, scale, scale);
+              markerRoot.add(model);
+
+              if (gltf.animations && gltf.animations.length) {
+                const newMixer = new THREE.AnimationMixer(model);
+                mixers.push(newMixer);
+                const action = newMixer.clipAction(gltf.animations[0]);
+                action.play();
+              }
+              
+              if (config.onFound) {
+                // Marker visibility can be checked using markerControls.object3d.visible in animate loop,
+                // or by listening to 'markerFound' / 'markerLost' events if AR.js version supports them reliably.
+                markerControls.addEventListener('markerFound', () => {
+                  console.log(`🎯 Marker found: ${config.name}`);
+                  if(config.onFound) config.onFound();
+                });
+                markerControls.addEventListener('markerLost', () => {
+                  console.log(`❌ Marker lost: ${config.name}`);
+                });
+                // markerControls.addEventListener('markerLost', () => {
+                //   console.log(`Marker lost: ${config.name}`);
+                // });
+              }
+            }
+          }, undefined, error => {
+            console.error(`error loading model ${config.modelUrl} for marker ${config.name}:`, error);
+            // onError?.(`Failed to load model for ${config.name}`);
           });
-          if (isCancelledRef.current) return;
+        });
+      });
 
-          model = gltf.scene;
-          const box = new THREE.Box3().setFromObject(model);
-          const center = box.getCenter(new THREE.Vector3());
-          model.position.sub(center);
-          
-          const size = box.getSize(new THREE.Vector3());
-          const maxDim = Math.max(size.x, size.y, size.z);
-          model.scale.setScalar(1.5 / maxDim);
-          model.position.y += 0.25;
-          scene.add(model);
-          
-        } catch (modelErr: any) {
-          console.error('[useARScene] Pattern AR model load failed:', modelErr?.message || modelErr);
-          // no fallback cube - just log the error
-        }
+      window.addEventListener('resize', onResize);
+      
+      // Start animation loop
+      animate(); 
+    };
 
-        threeRef.current = { renderer, scene, camera, model, spinRotation: 0 };
+    init();
 
-        let lastTime = performance.now();
-        
-        const animate = () => {
-          if (isCancelledRef.current) return;
-          animationIdRef.current = requestAnimationFrame(animate);
-          
-          const now = performance.now();
-          const delta = Math.min((now - lastTime) / 1000, 0.1);
-          lastTime = now;
-          
-          if (model && threeRef.current) {
-            // smooth frame-rate independent rotation
-            threeRef.current.spinRotation += ROTATION_SPEED * delta * 60;
-            model.rotation.y = threeRef.current.spinRotation;
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('resize', onResize);
+
+      mixers.forEach(mixer => {
+        // Basic cleanup for mixers. More thorough cleanup might involve stopping actions and uncaching.
+        // mixer.stopAllAction(); // if available and needed
+      });
+      mixers.length = 0;
+
+      markerRoots.forEach(markerRoot => {
+        scene?.remove(markerRoot);
+        markerRoot.traverse(object => {
+          if (object instanceof THREE.Mesh) {
+            object.geometry?.dispose();
+            if (Array.isArray(object.material)) {
+              object.material.forEach(material => material.dispose());
+            } else {
+              object.material?.dispose();
+            }
           }
-          
-          renderer.render(scene, camera);
-        };
-        animate();
+        });
+      });
+      markerRoots.length = 0;
+      markerControlsArray.length = 0; // Controls are associated with markerRoots, no specific dispose needed beyond this
 
-        const handleResize = () => {
-          const w = window.innerWidth;
-          const h = window.innerHeight;
-          camera.aspect = w / h;
-          camera.updateProjectionMatrix();
-          renderer.setSize(w, h);
-        };
-        window.addEventListener('resize', handleResize);
+      arToolkitSource?.domElement?.remove(); // remove video element
+      arToolkitSource?.destroy?.(); // if ar.js provides a destroy method for source
+      arToolkitContext?.arController?.dispose?.(); // if ar.js provides a dispose method for controller
 
-        isInitializedRef.current = true;
-        config?.onFound?.();
-        setIsLoading(false);
-
-      } catch (err: any) {
-        console.error('[useARScene] Fallback AR error:', err?.message);
-        setIsLoading(false);
+      renderer?.dispose();
+      if (mountElement && renderer?.domElement && mountElement.contains(renderer.domElement)) {
+        mountElement.removeChild(renderer.domElement);
       }
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // empty deps - only run once on mount
-};
+      // Scene children are disposed above, scene itself doesn't have a .dispose()
+    };
+  }, [mountRef, configs, setIsLoading]); // Dependencies for the hook's useEffect
+}; 

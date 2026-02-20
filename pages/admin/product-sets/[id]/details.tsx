@@ -390,7 +390,7 @@ export default function ProductSetDetails() {
           }}>
             <div>
               <div style={{ fontSize: '1.2rem', fontWeight: '600', color: 'white' }}>
-                {productSet.items.reduce((sum, item) => sum + (item.quantity || 0), 0)}
+                {productSet.items.reduce((sum, item) => sum + (item.qty || 0), 0)}
               </div>
               <div style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)' }}>
                 total items
@@ -680,7 +680,7 @@ export default function ProductSetDetails() {
                   gap: '16px'
                 }}>
                   <span style={{ color: 'white', fontWeight: '500', fontSize: '1rem', flex: 1 }}>{item.productId}</span>
-                  <span style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.9rem', fontWeight: '500', minWidth: '80px', textAlign: 'right' }}>qty: {item.quantity || 0}</span>
+                  <span style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.9rem', fontWeight: '500', minWidth: '80px', textAlign: 'right' }}>qty: {item.qty || 0}</span>
                 </div>
               ))}
             </div>

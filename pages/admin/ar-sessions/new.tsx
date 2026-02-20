@@ -24,12 +24,10 @@ export default function CreateARSession() {
   const handleSubmit = async (data: CreateARSessionRequest | UpdateARSessionRequest) => {
     try {
       setLoading(true);
-      // ensure we have all required fields for creation
-      if (!data.name || !data.metadata) {
-        throw new Error('Missing required fields for AR session creation');
-      }
-      const session = await arSessionsAPI.create(data as CreateARSessionRequest);
-      router.push(`/admin/ar-sessions/${session.sessionId}`);
+      
+      // AR session creation is not supported by the backend
+      throw new Error('AR session creation is not currently supported. Please use the product set creation flow instead.');
+      
     } catch (error: any) {
       console.error('failed to create ar session:', error);
       throw error; // let the form handle the error display

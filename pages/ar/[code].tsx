@@ -1,38 +1,10 @@
 import { useRouter } from 'next/router';
-import { useEffect, useState, ComponentType } from 'react';
-import dynamic from 'next/dynamic';
+import { useEffect, useState } from 'react';
 import { fetchArConfigByCode } from '@/lib/apiClient';
 import { resolveArConfig } from '@/ar/overlayRegistry';
-import type { ResolvedArConfig, ResolvedOverlay } from '@/types/arSessions';
-
-// dynamically import ARCamera exactly like homepage does - this is critical for proper loading
-const ARCamera = dynamic(
-  () => import('@/components/ARCamera'),
-  {
-    ssr: false,
-    loading: () => <div style={{ 
-      position: 'fixed', 
-      top: 0, 
-      left: 0, 
-      right: 0, 
-      bottom: 0, 
-      background: '#000', 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center', 
-      color: '#fff' 
-    }}>Initializing AR Scanner...</div>
-  }
-);
-
-// default overlay to use when no overlays are provided
-const DEFAULT_OVERLAY: ResolvedOverlay = {
-  type: 'model',
-  src: '/models/wmcyn_3d_logo.glb',
-  scale: [0.3, 0.3, 0.3],
-  position: [0, 0, 0],
-  rotation: [0, 0, 0]
-};
+import type { ResolvedArConfig } from '@/types/arSessions';
+import ARCameraQR from '@/components/ARCameraQR';
+import dynamic from 'next/dynamic';
 
 export default function ARByCode() {
   const { query } = useRouter();
@@ -42,161 +14,56 @@ export default function ARByCode() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [useGeneratedTemplate, setUseGeneratedTemplate] = useState(false);
-  const [GeneratedTemplate, setGeneratedTemplate] = useState<ComponentType<any> | null>(null);
-  const [templateConfig, setTemplateConfig] = useState<any>(null);
+  const [GeneratedTemplate, setGeneratedTemplate] = useState<any>(null);
 
   useEffect(() => {
     if (!code) return;
     
     const loadConfig = async () => {
-      let hasTemplate = false;
       try {
         setLoading(true);
         
-        // first, try to load the generated template using dynamic import
+        // First, try to load the generated template
         try {
-          const templateModule = await import(`@/ar/templates/${code}/index`);
-          
-          if (templateModule && templateModule.default) {
-            setGeneratedTemplate(() => templateModule.default);
-            setUseGeneratedTemplate(true);
-            hasTemplate = true;
-            
-            // try to load template config.json for fallback metadata
-            // (API config will override this if available)
-            try {
-              const configModule = await import(`@/ar/templates/${code}/config.json`);
-              if (configModule.default) {
-                setTemplateConfig(configModule.default);
-              }
-            } catch (configError) {
-              // template config not found, will use API config
-            }
-            // continue to fetch config for meta data - don't return early
-          }
-        } catch (templateError: any) {
-          // template doesn't exist, this is expected for codes without templates
+          const GeneratedComponent = dynamic(() => import(`@/ar/templates/${code}/index`), {
+            ssr: false,
+            loading: () => <div>Loading AR template...</div>
+          });
+          setGeneratedTemplate(GeneratedComponent);
+          setUseGeneratedTemplate(true);
+          setLoading(false);
+          return;
+        } catch (templateError) {
+          console.log('No generated template found, falling back to API config');
         }
         
-        // always try to fetch config to get meta data (even if template exists)
-        
-        // fallback to API config
+        // Fallback to API config
+        console.log('[ARByCode] Fetching AR config for code:', code);
         try {
           const rawConfig = await fetchArConfigByCode(code);
+          console.log('[ARByCode] Raw config received:', rawConfig);
           const resolvedConfig = resolveArConfig(rawConfig);
+          console.log('[ARByCode] Resolved config:', resolvedConfig);
           setConfig(resolvedConfig);
-        } catch (arConfigError: any) {
-          // try to get product set data instead
+        } catch (arConfigError) {
+          console.log('[ARByCode] AR config failed, trying product set lookup:', arConfigError);
+          // Try to get product set data instead
           try {
-            const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://us-central1-wmcyn-online-mobile.cloudfunctions.net/api';
-            
-            // first try the qrcode/product-set sub-resource
-            let productSetResponse = await fetch(`${API_BASE}/v1/qrcodes/${code}/product-set`, {
+            const productSetResponse = await fetch(`https://api-rrm3u3yaba-uc.a.run.app/v1/qrcodes/${code}/product-set`, {
               method: 'GET',
               credentials: 'omit'
             });
-            
-            // if that fails, try to get qr code data first, then fetch product set
-            if (!productSetResponse.ok) {
-              const qrResponse = await fetch(`${API_BASE}/v1/qrcodes/${code}`, {
-                method: 'GET',
-                credentials: 'omit'
-              });
-              
-              if (qrResponse.ok) {
-                const qrData = await qrResponse.json();
-                
-                // get product set id from qr code target
-                const productSetId = qrData.target?.productSetId || qrData.productSetId;
-                if (productSetId) {
-                  productSetResponse = await fetch(`${API_BASE}/v1/productSets/${productSetId}`, {
-                    method: 'GET',
-                    credentials: 'omit'
-                  });
-                }
-              }
-            }
-            
             if (productSetResponse.ok) {
               const productSetData = await productSetResponse.json();
-              
-              console.log('[ARByCode] Product set data:', productSetData);
-              console.log('[ARByCode] Product set arMetadata:', productSetData.arMetadata);
-              console.log('[ARByCode] Product set createdAt:', productSetData.createdAt);
-              console.log('[ARByCode] Product set campaign:', productSetData.campaign);
-              
-              // resolve marker from product set - check for nft marker first
-              let markerType: 'mind' | 'nft' | 'custom' = 'custom';
-              let markerDataUrl = '/patterns/pattern-wmcyn_logo_full.patt';
-              
-              // check if product set has nft marker (from backend .mind file upload)
-              if (productSetData.nftMarker?.mindFileUrl) {
-                markerType = 'mind';
-                markerDataUrl = productSetData.nftMarker.mindFileUrl;
-              }
-              // check if product set has marker pattern url
-              else if (productSetData.markerPatternUrl) {
-                markerDataUrl = productSetData.markerPatternUrl;
-              }
-              // check if product set has linked ar session
-              else if (productSetData.linkedARSessionId) {
-                try {
-                  // try to fetch the linked ar session's config
-                  const sessionConfigResponse = await fetch(`${API_BASE}/v1/ar-sessions/${productSetData.linkedARSessionId}/data`, {
-                    method: 'GET',
-                    credentials: 'omit'
-                  });
-                  if (sessionConfigResponse.ok) {
-                    const sessionData = await sessionConfigResponse.json();
-                    if (sessionData.markerPattern?.url) {
-                      markerDataUrl = sessionData.markerPattern.url;
-                    } else if (sessionData.markerPattern?.patternId) {
-                      markerDataUrl = `/patterns/${sessionData.markerPattern.patternId}.patt`;
-                    }
-                  }
-                } catch (sessionError) {
-                  console.warn('[ARByCode] Failed to fetch linked session:', sessionError);
-                }
-              }
-              
-              // create AR config with resolved marker
-              // use arMetadata if available, otherwise fall back to name/description
-              const arMeta = productSetData.arMetadata;
-              
-              // build meta with description and additional product set info
-              // prioritize arMetadata fields (from form) over productSetData fields
-              const metaConfig = {
-                title: arMeta?.title || productSetData.name || 'WMCYN AR Experience',
-                // use arMetadata.description if it exists and is not empty, otherwise use productSetData.description
-                description: (arMeta?.description && arMeta.description.trim()) 
-                  ? arMeta.description 
-                  : (productSetData.description && productSetData.description.trim())
-                    ? productSetData.description
-                    : undefined, // don't set fallback - let overlay handle empty description
-                actions: arMeta?.actions || [],
-                // include product set metadata for "printed on" display
-                createdAt: productSetData.createdAt,
-                campaign: productSetData.campaign
-              };
-              
-              console.log('[ARByCode] Built metaConfig:', metaConfig);
-              
-              setConfig({
-                markerType: markerType,
-                markerDataUrl: markerDataUrl,
-                overlays: [DEFAULT_OVERLAY],
-                meta: metaConfig
-              });
+              console.log('[ARByCode] Product set data received:', productSetData);
+              // TODO: Convert product set data to AR config
+              setError('Product set QR code detected, but AR conversion not implemented yet.');
             } else {
               throw new Error(`Product set lookup failed: ${productSetResponse.status}`);
             }
           } catch (productSetError) {
             console.log('[ARByCode] Product set lookup also failed:', productSetError);
-            // if we have a template, don't throw - just continue without config
-            if (!hasTemplate) {
-              throw arConfigError; // re-throw original error only if no template
-            }
-            console.log('[ARByCode] Using template without API config');
+            throw arConfigError; // Re-throw original error
           }
         }
       } catch (e: any) {
@@ -206,12 +73,7 @@ export default function ARByCode() {
           status: e.status,
           code: code
         });
-        // only set error if we don't have a template to fall back to
-        if (!hasTemplate) {
-          setError(`Invalid or expired QR code. Error: ${e.message}`);
-        } else {
-          console.log('[ARByCode] Config failed but template exists, continuing...');
-        }
+        setError(`Invalid or expired QR code. Error: ${e.message}`);
       } finally {
         setLoading(false);
       }
@@ -301,101 +163,27 @@ export default function ARByCode() {
   }
 
   if (startAR) {
-    // if we have a generated template, use it instead of direct ARCamera
     if (useGeneratedTemplate && GeneratedTemplate) {
-      // get mind file url from config
-      let mindFileUrl = config?.markerDataUrl;
-      
-      // if the url is from firebase storage, proxy it to avoid cors issues
-      if (mindFileUrl && (
-        mindFileUrl.includes('storage.googleapis.com') || 
-        mindFileUrl.includes('firebasestorage.googleapis.com')
-      )) {
-        mindFileUrl = `/api/proxy-mind?url=${encodeURIComponent(mindFileUrl)}`;
-      }
-      
-      // build meta from config (which should have product set data with arMetadata)
-      // use API config if available, otherwise fall back to template config
-      // prioritize actual form data, don't use generic fallbacks
-      const arMeta = config?.meta ? {
-        title: config.meta.title || 'WMCYN AR Experience',
-        description: (config.meta.description && config.meta.description.trim()) 
-          ? config.meta.description 
-          : undefined,
-        actions: config.meta.actions || [],
-        createdAt: (config.meta as any).createdAt,
-        campaign: (config.meta as any).campaign
-      } : templateConfig?.metadata ? {
-        title: templateConfig.metadata.title || templateConfig.productName || 'WMCYN AR Experience',
-        description: (templateConfig.metadata.description && templateConfig.metadata.description.trim())
-          ? templateConfig.metadata.description
-          : undefined,
-        actions: templateConfig.metadata.actions || [],
-        createdAt: templateConfig.generatedAt,
-        campaign: templateConfig.campaign
-      } : {
-        title: 'WMCYN AR Experience',
-        actions: []
-      };
-      
-      console.log('[ARByCode] Rendering GeneratedTemplate with meta:', arMeta);
-      console.log('[ARByCode] Config meta:', config?.meta);
-      console.log('[ARByCode] Template config:', templateConfig);
-      
       return (
-        <GeneratedTemplate 
+        <GeneratedTemplate
+          overlays={[]} // Generated template handles its own overlays
+          onMarkerFound={handleMarkerFound}
+          onMarkerLost={handleMarkerLost}
           onClose={handleCloseAR}
-          meta={arMeta}
-          mindTargetSrc={mindFileUrl}
+          qrCode={code}
         />
       );
     }
     
-    // fallback to direct ARCamera (for non-template flows)
-    // check if we have a custom .mind file from the backend
-    const hasCustomMindFile = config?.markerType === 'mind' && config?.markerDataUrl;
-    
-    // if we have a custom .mind file, create a config for it
-    // otherwise, pass undefined to use default markerConfigs (like homepage)
-    let mindFileUrl = config?.markerDataUrl;
-    
-    // if the url is from firebase storage, proxy it to avoid cors issues
-    if (mindFileUrl && (
-      mindFileUrl.includes('storage.googleapis.com') || 
-      mindFileUrl.includes('firebasestorage.googleapis.com')
-    )) {
-      mindFileUrl = `/api/proxy-mind?url=${encodeURIComponent(mindFileUrl)}`;
-    }
-    
-    const customConfigs = hasCustomMindFile ? [{
-      name: `${code}_marker`,
-      modelUrl: '/models/wmcyn_3d_logo.glb',
-      scale: 0.5,
-      markerType: 'nft' as const,
-      mindTargetSrc: mindFileUrl,
-      label: config?.meta?.title || 'AR Experience'
-    }] : undefined;
-
-    // build meta - prioritize actual form data, don't use generic fallbacks
-    const arMeta = config?.meta ? {
-      title: config.meta.title || 'WMCYN AR Experience',
-      // only use description if it exists and is not empty
-      description: (config.meta.description && config.meta.description.trim()) 
-        ? config.meta.description 
-        : undefined,
-      actions: config.meta.actions || [],
-      createdAt: (config.meta as any).createdAt,  // pass through for "printed on" display
-      campaign: (config.meta as any).campaign     // pass through for campaign display
-    } : {
-      title: 'WMCYN AR Experience',
-      actions: []
-    };
-    
     return (
-      <ARCamera 
+      <ARCameraQR
+        markerType={config?.markerType || 'custom'}
+        markerDataUrl={config?.markerDataUrl || ''}
+        overlays={config?.overlays || []}
+        onMarkerFound={handleMarkerFound}
+        onMarkerLost={handleMarkerLost}
         onClose={handleCloseAR}
-        configs={customConfigs}
-        meta={arMeta}
+        qrCode={code}
       />
     );
   }

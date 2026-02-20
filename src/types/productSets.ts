@@ -1,10 +1,8 @@
 // product set item definition
 export interface ProductSetItem {
   productId: string;
-  quantity?: number;  // frontend uses quantity
-  qty?: number;       // backend may expect qty
-  variantId?: string;
-  maxPerUser?: number;
+  variantId?: string;  // required for inventory tracking
+  qty: number;
 }
 
 // checkout configuration
@@ -42,33 +40,6 @@ export interface ProductSetStats {
   qrCodesGenerated: number;
 }
 
-// nft marker for product set ar tracking
-export interface NFTMarker {
-  mindFileUrl: string;      // firebase storage cdn url for .mind file
-  sourceImageUrl: string;   // original image preview url
-  compiledAt: string;       // iso timestamp when compiled
-  quality?: number;         // 0-100 quality score
-}
-
-// upload request for nft marker
-export interface UploadNFTMarkerRequest {
-  mindFileData: string;     // base64 encoded .mind file
-  sourceImageData: string;  // base64 encoded source image
-  filename: string;         // name for the marker
-  quality?: number;         // optional quality score
-}
-
-// ar overlay metadata for product sets
-export interface AROverlayMetadata {
-  title: string;              // title shown in ar overlay
-  description?: string;       // description shown in ar overlay
-  actions?: Array<{           // action buttons in ar overlay
-    type: string;
-    label: string;
-    url?: string;
-  }>;
-}
-
 // main product set interface
 export interface ProductSet {
   id: string;
@@ -76,15 +47,11 @@ export interface ProductSet {
   description?: string;
   campaign?: string;
   items: ProductSetItem[];
-  checkout?: CheckoutConfig;  // optional - backend may not return
-  stats?: ProductSetStats;    // optional - backend may not return
+  checkout: CheckoutConfig;
+  stats: ProductSetStats;
   linkedARSessionId?: string; // optional link to AR session
-  nftMarker?: NFTMarker;      // optional nft marker for ar tracking
-  arMetadata?: AROverlayMetadata; // ar overlay title/description/actions
-  version?: number;           // from backend
-  createdBy?: string;         // from backend
-  createdAt?: string;         // optional
-  updatedAt?: string;         // optional
+  createdAt: string;
+  updatedAt: string;
 }
 
 // QR code data with new structure
@@ -125,8 +92,6 @@ export interface CreateProductSetRequest {
   checkout: CheckoutConfig;
   remainingInventory?: number;
   linkedARSessionId?: string; // optional link to AR session
-  nftMarker?: Partial<NFTMarker>;  // optional nft marker for ar tracking
-  arMetadata?: AROverlayMetadata;  // ar overlay title/description/actions
 }
 
 export type UpdateProductSetRequest = Partial<CreateProductSetRequest>;
@@ -178,26 +143,23 @@ export interface GenerateQRCodeRequest {
 }
 
 export interface GenerateQRCodeResponse {
-  qrCode: QRCodeData;
-  qrUrl: string; // legacy field for backward compatibility
+  code: string;
+  qrUrl: string;
+  assets: {
+    qrSvgUrl: string;
+    qrPngUrl: string;
+  };
+  // legacy field for backward compatibility
+  qrCode?: QRCodeData;
 }
 
 // API response wrappers
-// backend returns { items: [...], total, limit, offset }
 export interface ProductSetsResponse {
-  items?: ProductSet[];
-  productSets?: ProductSet[];
-  products?: ProductSet[];
-  data?: ProductSet[];
-  total?: number;
-  limit?: number;
-  offset?: number;
+  productSets: ProductSet[];
+  total: number;
 }
 
 export interface QRCodesResponse {
-  qrCodes?: QRCodeData[];
-  qrcodes?: QRCodeData[]; // lowercase variant from API
-  items?: QRCodeData[];
-  data?: QRCodeData[];
-  total?: number;
+  qrCodes: QRCodeData[];
+  total: number;
 }
