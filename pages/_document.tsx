@@ -11,20 +11,12 @@ export default function Document() {
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-
-        {/* importmap for MindAR v1.2.5 + Three.js ES module loading */}
-        <script
-          type="importmap"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              imports: {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
-                "mindar-image-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
-              }
-            })
-          }}
-        />
+        
+        {/* Three.js and MindAR for NFT/image tracking */}
+        {/* plain script tags in Head load synchronously in order - required for MindAR globals */}
+        <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js" crossOrigin="anonymous" />
+        <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js" crossOrigin="anonymous" />
+        <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-three.prod.js" crossOrigin="anonymous" />
       </Head>
       <body>
         <Main />

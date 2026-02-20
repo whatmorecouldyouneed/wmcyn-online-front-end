@@ -11,22 +11,43 @@ interface UseARSceneProps {
 const ROTATION_SPEED = 0.005; // slower, more elegant rotation
 const MODEL_Y_OFFSET = -0.6; // move model down below the marker (negative = down)
 
-// dynamically import MindARThree via ES module (loaded through importmap in _document.tsx)
-const loadMindARThree = async (): Promise<any> => {
-  console.log('[useARScene] Loading MindARThree via dynamic import...');
-  try {
-    // @ts-expect-error - loaded via importmap defined in _document.tsx
-    const mindAR = await import(/* webpackIgnore: true */ 'mindar-image-three');
-    const MindARThree = mindAR.MindARThree;
-    if (!MindARThree) {
-      throw new Error('MindARThree not found in mind-ar module exports');
-    }
-    console.log('[useARScene] MindARThree loaded successfully via ES module');
-    return MindARThree;
-  } catch (err: any) {
-    console.error('[useARScene] Dynamic import of mindar-image-three failed:', err);
-    throw new Error(`Failed to load MindAR library: ${err.message}`);
+// get MindARThree from window global (loaded via script tags in _document.tsx Head)
+const getMindARThree = (): any => {
+  const win = window as any;
+  const paths = [
+    win.MINDAR?.IMAGE?.MindARThree,
+    win.MindARThree,
+    win.MINDAR?.MindARThree,
+  ];
+  for (const cls of paths) {
+    if (cls && typeof cls === 'function') return cls;
   }
+  return null;
+};
+
+// poll until the CDN scripts finish loading and expose the global
+const waitForMindAR = (): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    const found = getMindARThree();
+    if (found) { resolve(found); return; }
+
+    console.log('[useARScene] Waiting for MindAR global...');
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts++;
+      const cls = getMindARThree();
+      if (cls) {
+        clearInterval(interval);
+        console.log('[useARScene] MindAR global found after', attempts * 100, 'ms');
+        resolve(cls);
+      } else if (attempts >= 100) {
+        clearInterval(interval);
+        const win = window as any;
+        console.error('[useARScene] MindAR not found after 10s. window.MINDAR:', win.MINDAR, 'window.THREE:', !!win.THREE);
+        reject(new Error('MindAR not available after 10 seconds'));
+      }
+    }, 100);
+  });
 };
 
 export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps) => {
@@ -63,10 +84,11 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
       markerOrder: nftConfigs.map(c => c.name)
     });
 
-    // prioritize nft markers if available
+    // mindar only supports one .mind target per instance — use the first nft marker
     if (nftConfigs.length > 0) {
-      console.log('[useARScene] Using NFT AR mode with', nftConfigs.length, 'marker(s)');
-      initNFTAR(container, nftConfigs);
+      const primaryConfig = nftConfigs[0];
+      console.log('[useARScene] Using NFT AR mode with single marker:', primaryConfig.name);
+      initNFTAR(container, [primaryConfig]);
     } else if (patternConfigs.length > 0) {
       console.log('[useARScene] Using Pattern AR mode (fallback)');
       const config = patternConfigs[0];
@@ -193,11 +215,11 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
           // don't throw for other errors - let MindAR try to load it anyway (might be CORS issue)
         }
         
-        const MindARThree = await loadMindARThree();
+        const MindARThree = await waitForMindAR();
         if (isCancelledRef.current || !MindARThree) return;
 
-        const THREE = await import(/* webpackIgnore: true */ 'three');
-        if (!THREE) throw new Error('THREE not available');
+        const THREE = (window as any).THREE;
+        if (!THREE) throw new Error('THREE not available on window — CDN script may have failed');
 
         if (isCancelledRef.current) return;
 
@@ -272,7 +294,7 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
         let model: any = null;
 
         console.log('[useARScene] Loading 3D model from:', modelUrl);
-        const { GLTFLoader } = await import(/* webpackIgnore: true */ 'three/addons/loaders/GLTFLoader.js');
+        const GLTFLoader = THREE.GLTFLoader || (window as any).THREE?.GLTFLoader;
         
         if (GLTFLoader) {
           try {
