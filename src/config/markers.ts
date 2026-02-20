@@ -18,7 +18,7 @@ import { ARSessionMetadata } from '../types/arSessions';
 
 export interface MarkerConfig {
   name: string;
-  patternUrl?: string; // optional for nft markers
+  patternUrl?: string; // optional for nft markers, can be a local path or a special identifier
   modelUrl: string;
   scale?: number;
   label?: string;
@@ -31,7 +31,28 @@ export interface MarkerConfig {
 export const DEFAULT_MINDAR_TARGET_URL = '/patterns/wmcyn-full-hq-banner.mind'; // mindar compiled target
 
 export const markerConfigs: MarkerConfig[] = [
-  // wmcyn monogram hoodie (sample) - active (prioritized first)
+  // gbucks whip test - main scan target (prioritized first)
+  {
+    name: 'gbucks-whip-test',
+    modelUrl: '/models/wmcyn_3d_logo.glb',
+    scale: 0.5,
+    markerType: 'nft',
+    mindTargetSrc: '/patterns/dysco.mind', // mindar compiled target
+    label: 'gbucks whip test',
+    metadata: {
+      id: 'gbucks-whip-test-001',
+      title: 'gbucks whip test',
+      description: 'gbucks whip test ar experience',
+      printDate: new Date().toISOString().split('T')[0],
+      printLocation: 'test',
+      quantity: 1,
+      price: {
+        amount: 'priceless',
+        currencyCode: 'USD'
+      },
+      isClaimed: false
+    }
+  },
   {
     name: 'wmcyn-hoodie-monogram',
     modelUrl: '/models/wmcyn_3d_logo.glb',
