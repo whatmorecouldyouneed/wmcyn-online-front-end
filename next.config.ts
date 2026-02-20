@@ -1,7 +1,5 @@
 import type { NextConfig } from 'next';
 
-const isGithubActions = process.env.GITHUB_ACTIONS === 'true';
-
 const nextConfig: NextConfig = {
   reactStrictMode: false,
   basePath: '',
@@ -21,8 +19,6 @@ const nextConfig: NextConfig = {
     ],
   },
   trailingSlash: false,
-  // Enable static export for GitHub Pages deployment
-  ...(isGithubActions && { output: 'export' }),
   // dev-only headers for serving 3d model assets with correct mime and cors
   // note: with static export these only apply when running next dev/start
   headers: async () => [
