@@ -1,5 +1,4 @@
 import { Html, Head, Main, NextScript } from "next/document";
-import Script from "next/script";
 
 export default function Document() {
   return (
@@ -12,30 +11,24 @@ export default function Document() {
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+        {/* importmap for MindAR v1.2.5 + Three.js ES module loading */}
+        <script
+          type="importmap"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              imports: {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+                "mindar-image-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
+              }
+            })
+          }}
+        />
       </Head>
       <body>
         <Main />
         <NextScript />
-        
-        {/* scripts loaded in strict order using next/script with beforeInteractive */}
-        {/* Three.js - must load first */}
-        <Script 
-          src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js" 
-          strategy="beforeInteractive"
-          id="three-js"
-        />
-        <Script 
-          src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js" 
-          strategy="beforeInteractive"
-          id="three-gltf-loader"
-        />
-        
-        {/* MindAR - the -three version is a standalone bundle that includes everything for AR viewing */}
-        <Script 
-          src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-three.prod.js" 
-          strategy="beforeInteractive"
-          id="mindar-three"
-        />
       </body>
     </Html>
   );

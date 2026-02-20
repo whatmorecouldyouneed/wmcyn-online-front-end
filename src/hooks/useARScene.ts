@@ -11,69 +11,22 @@ interface UseARSceneProps {
 const ROTATION_SPEED = 0.005; // slower, more elegant rotation
 const MODEL_Y_OFFSET = -0.6; // move model down below the marker (negative = down)
 
-// helper to get mindar class from window (scripts loaded in _document.tsx)
-const getMindARThree = (): any => {
-  const win = window as any;
-  
-  // check all possible paths where MindARThree might be
-  const paths = [
-    { name: 'MINDAR.IMAGE.MindARThree', value: win.MINDAR?.IMAGE?.MindARThree },
-    { name: 'MindARThree', value: win.MindARThree },
-    { name: 'MINDAR.MindARThree', value: win.MINDAR?.MindARThree },
-  ];
-  
-  for (const path of paths) {
-    if (path.value && typeof path.value === 'function') {
-      console.log('[getMindARThree] Found at:', path.name);
-      return path.value;
+// dynamically import MindARThree via ES module (loaded through importmap in _document.tsx)
+const loadMindARThree = async (): Promise<any> => {
+  console.log('[useARScene] Loading MindARThree via dynamic import...');
+  try {
+    // @ts-expect-error - loaded via importmap defined in _document.tsx
+    const mindAR = await import(/* webpackIgnore: true */ 'mindar-image-three');
+    const MindARThree = mindAR.MindARThree;
+    if (!MindARThree) {
+      throw new Error('MindARThree not found in mind-ar module exports');
     }
+    console.log('[useARScene] MindARThree loaded successfully via ES module');
+    return MindARThree;
+  } catch (err: any) {
+    console.error('[useARScene] Dynamic import of mindar-image-three failed:', err);
+    throw new Error(`Failed to load MindAR library: ${err.message}`);
   }
-  
-  // log what we do have for debugging
-  console.log('[getMindARThree] Not found. Available:', {
-    MINDAR: !!win.MINDAR,
-    'MINDAR.IMAGE': win.MINDAR?.IMAGE ? Object.keys(win.MINDAR.IMAGE) : 'undefined',
-    MindARThree: !!win.MindARThree,
-    THREE: !!win.THREE
-  });
-  
-  return null;
-};
-
-// wait for MindARThree to be available (scripts loaded in _document.tsx)
-const loadMindARScript = (): Promise<any> => {
-  return new Promise((resolve, reject) => {
-    const existing = getMindARThree();
-    if (existing) {
-      console.log('[useARScene] MindAR found immediately');
-      resolve(existing);
-      return;
-    }
-
-    console.log('[useARScene] Waiting for MindAR to load...');
-
-    // poll for it in case scripts are still loading
-    let attempts = 0;
-    const maxAttempts = 200; // 20 seconds max (increased for slow mobile connections)
-    
-    const checkInterval = setInterval(() => {
-      attempts++;
-      const found = getMindARThree();
-      
-      if (found) {
-        clearInterval(checkInterval);
-        console.log('[useARScene] MindAR found after', attempts * 100, 'ms');
-        resolve(found);
-        return;
-      }
-      
-      if (attempts >= maxAttempts) {
-        clearInterval(checkInterval);
-        console.error('[useARScene] MindAR not available after 20 seconds. Window.MINDAR:', (window as any).MINDAR);
-        reject(new Error('MindAR not available - scripts may have failed to load'));
-      }
-    }, 100);
-  });
 };
 
 export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps) => {
@@ -240,10 +193,10 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
           // don't throw for other errors - let MindAR try to load it anyway (might be CORS issue)
         }
         
-        const MindARThree = await loadMindARScript();
+        const MindARThree = await loadMindARThree();
         if (isCancelledRef.current || !MindARThree) return;
 
-        const THREE = (window as any).THREE;
+        const THREE = await import(/* webpackIgnore: true */ 'three');
         if (!THREE) throw new Error('THREE not available');
 
         if (isCancelledRef.current) return;
@@ -319,7 +272,7 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
         let model: any = null;
 
         console.log('[useARScene] Loading 3D model from:', modelUrl);
-        const GLTFLoader = (THREE as any).GLTFLoader;
+        const { GLTFLoader } = await import(/* webpackIgnore: true */ 'three/addons/loaders/GLTFLoader.js');
         
         if (GLTFLoader) {
           try {
