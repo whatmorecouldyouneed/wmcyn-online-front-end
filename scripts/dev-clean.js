@@ -4,8 +4,8 @@ const { spawn } = require('child_process');
 const path = require('path');
 
 // start next dev with filtered output
-// --webpack uses webpack instead of turbopack (turbopack requires admin for symlinks on windows)
-const nextDev = spawn('npx', ['next', 'dev', '--webpack'], {
+// next 15 uses webpack by default unless --turbo/--turbopack is passed
+const nextDev = spawn('npx', ['next', 'dev'], {
   stdio: ['inherit', 'pipe', 'pipe'],
   shell: true,
   cwd: process.cwd()

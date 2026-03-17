@@ -45,6 +45,15 @@ const nextConfig: NextConfig = {
         { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
       ],
     },
+    {
+      // mind files need explicit content-type so mindar's tf.js loader doesn't reject them
+      source: '/patterns/:path*.mind',
+      headers: [
+        { key: 'Content-Type', value: 'application/octet-stream' },
+        { key: 'Access-Control-Allow-Origin', value: '*' },
+        { key: 'Cache-Control', value: 'public, max-age=3600' },
+      ],
+    },
   ],
 };
 

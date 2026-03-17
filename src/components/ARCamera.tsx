@@ -2,7 +2,9 @@ import React, { useRef, useState, useCallback, useMemo, useEffect } from 'react'
 import { type MarkerConfig, markerConfigs as defaultMarkerConfigs } from '../config/markers';
 import { useARScene } from '../hooks/useARScene';
 import ARMetadataOverlay from './ARMetadataOverlay';
-import { shareARSceneToInstagram } from '../utils/instagramSharing';
+import ARShareCard from './ARShareCard';
+import { buildShareMetadata, shareStoryCard } from '../utils/shareStoryCard';
+import { shareARCapture } from '../utils/shareARCapture';
 import styles from './ARCamera.module.scss';
 
 interface ARCameraProps {
@@ -13,19 +15,23 @@ interface ARCameraProps {
     title?: string;
     description?: string;
     actions?: Array<{ type: string; label: string; url?: string }>;
-    createdAt?: string;  // for "printed on" display
-    campaign?: string;   // for campaign display
+    createdAt?: string;
+    campaign?: string;
   };
+  // canonical share url for this experience — used in the story card and copy-link fallback
+  shareUrl?: string;
 }
 
-const ARCamera = ({ onClose, configs, meta }: ARCameraProps): JSX.Element => {
+const ARCamera = ({ onClose, configs, meta, shareUrl }: ARCameraProps): JSX.Element => {
   const mountRef = useRef<HTMLDivElement>(null);
+  const shareCardRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [detectedMarker, setDetectedMarker] = useState<MarkerConfig | null>(null);
+  const [shareStatus, setShareStatus] = useState<string | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
 
   // use provided configs or default marker configs
   const effectiveConfigs = configs || defaultMarkerConfigs;
-
 
   // marker detection callback - show overlay
   const handleMarkerFound = useCallback((config: MarkerConfig) => {
@@ -33,25 +39,26 @@ const ARCamera = ({ onClose, configs, meta }: ARCameraProps): JSX.Element => {
   }, []);
 
   // create configs with detection callbacks
-  const configsWithCallbacks = useMemo(() => 
-    effectiveConfigs.map(config => ({
-      ...config,
-      onFound: () => handleMarkerFound(config)
-    })),
+  const configsWithCallbacks = useMemo(
+    () =>
+      effectiveConfigs.map((config) => ({
+        ...config,
+        onFound: () => handleMarkerFound(config),
+      })),
     [effectiveConfigs, handleMarkerFound]
   );
 
-  // use ar scene hook
-  useARScene({ mountRef, configs: configsWithCallbacks, setIsLoading });
+  // use ar scene hook — threeRef exposes renderer/scene/camera for share capture
+  const { threeRef } = useARScene({ mountRef, configs: configsWithCallbacks, setIsLoading });
 
   // body class management for fullscreen
   useEffect(() => {
     document.body.classList.add('cameraActive');
     document.documentElement.classList.add('cameraActive');
-    
+
     const htmlElement = document.documentElement;
     const bodyElement = document.body;
-    
+
     const originalStyles = {
       htmlOverflow: htmlElement.style.overflow,
       htmlWidth: htmlElement.style.width,
@@ -63,13 +70,13 @@ const ARCamera = ({ onClose, configs, meta }: ARCameraProps): JSX.Element => {
       bodyLeft: bodyElement.style.left,
       bodyTop: bodyElement.style.top,
       bodyMargin: bodyElement.style.margin,
-      bodyPadding: bodyElement.style.padding
+      bodyPadding: bodyElement.style.padding,
     };
-    
+
     htmlElement.style.overflow = 'hidden';
     htmlElement.style.width = '100vw';
     htmlElement.style.height = '100vh';
-    
+
     bodyElement.style.overflow = 'hidden';
     bodyElement.style.position = 'fixed';
     bodyElement.style.width = '100vw';
@@ -78,9 +85,9 @@ const ARCamera = ({ onClose, configs, meta }: ARCameraProps): JSX.Element => {
     bodyElement.style.top = '0';
     bodyElement.style.margin = '0';
     bodyElement.style.padding = '0';
-    
+
     window.scrollTo(0, 1);
-    
+
     const handleOrientationChange = () => {
       setTimeout(() => {
         window.scrollTo(0, 1);
@@ -89,18 +96,18 @@ const ARCamera = ({ onClose, configs, meta }: ARCameraProps): JSX.Element => {
         }
       }, 100);
     };
-    
+
     window.addEventListener('orientationchange', handleOrientationChange);
     window.addEventListener('resize', handleOrientationChange);
-    
+
     return () => {
       document.body.classList.remove('cameraActive');
       document.documentElement.classList.remove('cameraActive');
-      
+
       htmlElement.style.overflow = originalStyles.htmlOverflow;
       htmlElement.style.width = originalStyles.htmlWidth;
       htmlElement.style.height = originalStyles.htmlHeight;
-      
+
       bodyElement.style.overflow = originalStyles.bodyOverflow;
       bodyElement.style.position = originalStyles.bodyPosition;
       bodyElement.style.width = originalStyles.bodyWidth;
@@ -109,108 +116,145 @@ const ARCamera = ({ onClose, configs, meta }: ARCameraProps): JSX.Element => {
       bodyElement.style.top = originalStyles.bodyTop;
       bodyElement.style.margin = originalStyles.bodyMargin;
       bodyElement.style.padding = originalStyles.bodyPadding;
-      
+
       window.removeEventListener('orientationchange', handleOrientationChange);
       window.removeEventListener('resize', handleOrientationChange);
     };
   }, []);
 
-  // get metadata from meta prop (preferred) or detected marker
+  // resolve metadata for the overlay (meta prop preferred, then detected marker)
   const overlayMetadata = useMemo(() => {
-    // priority: meta prop (ar overlay settings) > detected marker metadata > null
-    // meta prop contains the user-defined AR title/description from product set
     if (meta) {
-      const result = {
+      return {
         title: meta.title || 'WMCYN AR Experience',
-        // preserve undefined if description not provided - don't use fallback
         description: meta.description,
-        actions: meta.actions?.map(a => ({
+        actions: meta.actions?.map((a) => ({
           type: a.type as 'purchase' | 'share' | 'claim' | 'info',
           label: a.label,
-          url: a.url
+          url: a.url,
         })) || [],
-        createdAt: meta.createdAt,  // pass through for "printed on" display
-        campaign: meta.campaign      // pass through for campaign display
+        createdAt: meta.createdAt,
+        campaign: meta.campaign,
       };
-      console.log('[ARCamera] overlayMetadata from meta prop:', result);
-      return result;
     }
-    // fallback to detected marker metadata if no meta prop (homepage flow)
     if (detectedMarker?.metadata) {
-      console.log('[ARCamera] overlayMetadata from detected marker:', detectedMarker.metadata);
       return detectedMarker.metadata;
     }
-    console.log('[ARCamera] No overlayMetadata available');
     return null;
   }, [meta, detectedMarker?.metadata]);
 
-  // action handlers
-  const handleClaim = () => {
-    if (overlayMetadata) {
-      const metadata = overlayMetadata as any;
+  // derive the canonical share url — prefer the explicit prop, then current page
+  const resolvedShareUrl = useMemo(() => {
+    if (shareUrl) return shareUrl;
+    if (typeof window !== 'undefined') return window.location.href;
+    return 'https://wmcyn.online';
+  }, [shareUrl]);
+
+  // share metadata passed to the story card and share utility
+  const shareMetadata = useMemo(
+    () => buildShareMetadata(overlayMetadata as any, resolvedShareUrl),
+    [overlayMetadata, resolvedShareUrl]
+  );
+
+  // auto-clear share status after 3 seconds
+  useEffect(() => {
+    if (!shareStatus) return;
+    const timer = setTimeout(() => setShareStatus(null), 3000);
+    return () => clearTimeout(timer);
+  }, [shareStatus]);
+
+  // single share handler — used by both the legacy 📸 path and dynamic share actions.
+  // primary path: composite the live ar view (video + webgl canvas + overlay strip).
+  // fallback: export the hidden branded story card if live capture produces nothing.
+  const handleShare = useCallback(async () => {
+    if (isSharing) return;
+    setIsSharing(true);
+    setShareStatus('capturing ar moment…');
+
+    try {
+      const result = await shareARCapture(
+        mountRef.current,
+        overlayMetadata as any,
+        threeRef.current,
+        shareMetadata,
+        // fallback: render the static story card via html-to-image
+        async () => {
+          const { toBlob } = await import('html-to-image');
+          await document.fonts.ready;
+          const el = shareCardRef.current;
+          if (!el) throw new Error('share card not mounted');
+          const blob = await toBlob(el, {
+            pixelRatio: 1,
+            width: 1080,
+            height: 1920,
+            backgroundColor: '#0a0a0a',
+            cacheBust: true,
+          });
+          if (!blob) throw new Error('html-to-image produced null');
+          return blob;
+        }
+      );
+
+      if (!result.success) {
+        setShareStatus('error' in result ? result.error : 'could not share');
+        return;
+      }
+
+      switch (result.method) {
+        case 'native-share':
+          setShareStatus('shared!');
+          break;
+        case 'download':
+          setShareStatus('image saved — link copied too!');
+          break;
+        case 'copy-link':
+          setShareStatus('link copied!');
+          break;
+      }
+    } catch (err: any) {
+      console.error('[ARCamera] share failed:', err?.message);
+      setShareStatus('could not share — try again');
+    } finally {
+      setIsSharing(false);
+    }
+  }, [isSharing, mountRef, overlayMetadata, threeRef, shareCardRef, shareMetadata]);
+
+  // action handler passed to ARMetadataOverlay for non-share / non-url actions.
+  // url opening is handled inside ARMetadataOverlay.handleAction itself so we
+  // never open a url twice. share-typed actions are handled by ARMetadataOverlay
+  // via onShare, so they never reach here.
+  const handleAction = useCallback(
+    (_action: { type: string; label: string; url?: string }) => {
+      // intentionally a no-op — all routing is done in ARMetadataOverlay.handleAction
+    },
+    []
+  );
+
+  const handleClaim = useCallback(() => {
+    const metadata = overlayMetadata as any;
+    if (metadata) {
       console.log('Claiming product:', metadata.id || metadata.title);
     }
-  };
+  }, [overlayMetadata]);
 
-  const handlePurchase = () => {
-    if (overlayMetadata) {
-      const metadata = overlayMetadata as any;
+  const handlePurchase = useCallback(() => {
+    const metadata = overlayMetadata as any;
+    if (metadata) {
       console.log('Purchasing product:', metadata.id || metadata.title);
     }
-  };
-
-  const handleShare = async () => {
-    if (overlayMetadata) {
-      const metadata = overlayMetadata as any;
-      console.log('Sharing product:', metadata.id || metadata.title);
-      
-      try {
-        const videoElement = mountRef.current?.querySelector('video') as HTMLVideoElement;
-        const canvasElement = mountRef.current?.querySelector('canvas') as HTMLCanvasElement;
-        
-        await shareARSceneToInstagram({
-          metadata: {
-            id: metadata.id || metadata.title,
-            title: metadata.title,
-            price: metadata.price,
-            printLocation: metadata.printLocation,
-            quantity: metadata.quantity
-          },
-          videoElement,
-          canvasElement
-        });
-      } catch (error) {
-        console.error('Error sharing to Instagram:', error);
-        if (navigator.share) {
-          navigator.share({ 
-            title: metadata.title || 'WMCYN AR', 
-            url: window.location.href 
-          });
-        } else {
-          navigator.clipboard?.writeText(window.location.href);
-          alert('Link copied!');
-        }
-      }
-    }
-  };
-
-  const handleAction = (action: { type: string; label: string; url?: string }) => {
-    if (action.url) {
-      window.open(action.url, '_blank');
-    }
-  };
+  }, [overlayMetadata]);
 
   return (
     <div className={styles.arCameraContainer}>
       <div ref={mountRef} className={styles.mountPoint}></div>
-      
+
       {isLoading && (
         <div className={styles.loadingOverlay}>
           Initializing AR...
         </div>
       )}
 
-      {/* metadata overlay - show when marker detected OR when meta is provided (qr flows) */}
+      {/* metadata overlay — shown when marker detected or when meta is provided (qr flows) */}
       {!isLoading && overlayMetadata && (
         <ARMetadataOverlay
           metadata={overlayMetadata}
@@ -221,15 +265,25 @@ const ARCamera = ({ onClose, configs, meta }: ARCameraProps): JSX.Element => {
           onAction={handleAction}
         />
       )}
-      
+
+      {/* share status toast */}
+      {shareStatus && (
+        <div className={styles.shareToast}>
+          {isSharing && <span className={styles.shareSpinner} />}
+          {shareStatus}
+        </div>
+      )}
+
       {onClose && (
-        <button 
-          onClick={onClose} 
-          className={styles.closeButton}
-        >
+        <button onClick={onClose} className={styles.closeButton}>
           Close AR
         </button>
       )}
+
+      {/* hidden story card rendered offscreen — captured by html-to-image on share */}
+      <div className={styles.shareCardOffscreen}>
+        <ARShareCard ref={shareCardRef} shareMetadata={shareMetadata} />
+      </div>
     </div>
   );
 };

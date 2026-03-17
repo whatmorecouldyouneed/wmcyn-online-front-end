@@ -1,7 +1,7 @@
 // re-export ARCamera with QR-specific props for backwards compatibility
 import React, { useMemo } from 'react';
 import ARCamera from './ARCamera';
-import { type MarkerConfig, markerConfigs as defaultMarkerConfigs } from '../config/markers';
+import { type MarkerConfig, DEFAULT_MINDAR_TARGET_URL } from '../config/markers';
 import type { ResolvedOverlay } from '@/types/arSessions';
 
 interface ARCameraQRProps {
@@ -17,7 +17,11 @@ interface ARCameraQRProps {
     title?: string;
     description?: string;
     actions?: Array<{ type: string; label: string; url?: string }>;
+    createdAt?: string;
+    campaign?: string;
   };
+  // canonical share url for the story card and copy-link fallback
+  shareUrl?: string;
 }
 
 // wrapper component that converts QR props to ARCamera props
@@ -29,16 +33,14 @@ const ARCameraQR = ({
   onMarkerFound,
   onClose,
   meta,
+  shareUrl,
 }: ARCameraQRProps): JSX.Element => {
-  const fallbackMindTarget = useMemo(
-    () => defaultMarkerConfigs.find((c) => c.markerType === 'nft' && c.mindTargetSrc)?.mindTargetSrc,
-    []
-  );
   const resolvedMindTarget = useMemo(() => {
     if (mindTargetSrc) return mindTargetSrc;
     if (typeof markerDataUrl === 'string' && /\.mind(\?|$)/i.test(markerDataUrl)) return markerDataUrl;
-    return fallbackMindTarget || '/patterns/dysco.mind';
-  }, [mindTargetSrc, markerDataUrl, fallbackMindTarget]);
+    // fall back to the wmcyn banner — the canonical primary mind target
+    return DEFAULT_MINDAR_TARGET_URL;
+  }, [mindTargetSrc, markerDataUrl]);
 
   const isNFT = markerType === 'nft' || markerType === 'mind';
 
@@ -62,7 +64,7 @@ const ARCameraQR = ({
     configCount: configs.length,
   });
 
-  return <ARCamera configs={configs} onClose={onClose} meta={meta} />;
+  return <ARCamera configs={configs} onClose={onClose} meta={meta} shareUrl={shareUrl} />;
 };
 
 export default ARCameraQR;

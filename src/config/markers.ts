@@ -29,54 +29,10 @@ export interface MarkerConfig {
 }
 
 export const DEFAULT_HIRO_PATTERN_URL_PLACEHOLDER = 'USE_DEFAULT_HIRO_PATTERN';
-export const DEFAULT_MINDAR_TARGET_URL = '/patterns/wmcyn-full-hq-banner.mind'; // mindar compiled target
+export const DEFAULT_MINDAR_TARGET_URL = '/patterns/wmcyn-full-hq-banner-local.mind'; // local copy - avoids onedrive files-on-demand reparse point issues
 
 export const markerConfigs: MarkerConfig[] = [
-  // gbucks whip test - main scan target (prioritized first)
-  {
-    name: 'gbucks-whip-test',
-    modelUrl: '/models/wmcyn_3d_logo.glb',
-    scale: 0.5,
-    markerType: 'nft',
-    mindTargetSrc: '/patterns/dysco.mind', // mindar compiled target
-    label: 'gbucks whip test',
-    metadata: {
-      id: 'gbucks-whip-test-001',
-      title: 'gbucks whip test',
-      description: 'gbucks whip test ar experience',
-      printDate: new Date().toISOString().split('T')[0],
-      printLocation: 'test',
-      quantity: 1,
-      price: {
-        amount: 'priceless',
-        currencyCode: 'USD'
-      },
-      isClaimed: false
-    }
-  },
-  {
-    name: 'wmcyn-hoodie-monogram',
-    modelUrl: '/models/wmcyn_3d_logo.glb',
-    scale: 0.5,
-    markerType: 'nft',
-    mindTargetSrc: '/patterns/wmcyn-ar-marker-black.mind',
-    label: 'wmcyn ar experience',
-    metadata: {
-      id: 'wmcyn-hoodie-001',
-      title: 'wmcyn monogram hoodie (sample)',
-      description: 'premium hoodie with wmcyn monogram design',
-      printDate: '2025-12-22',
-      printLocation: 'raleigh, nc',
-      quantity: 1,
-      price: {
-        amount: 'priceless',
-        currencyCode: 'USD'
-      },
-      isClaimed: false
-    }
-  },
-
-  // wmcyn hq office banner - active
+  // wmcyn hq office banner - the only active scan target
   {
     name: 'wmcyn-hq-banner',
     modelUrl: '/models/wmcyn_3d_logo.glb',
@@ -98,27 +54,4 @@ export const markerConfigs: MarkerConfig[] = [
       isClaimed: false
     }
   },
-
-  // wmcyn holographic tote - commented out for later
-  // {
-  //   name: 'wmcyn-tote',
-  //   modelUrl: '/models/wmcyn_3d_logo.glb',
-  //   scale: 0.4,
-  //   markerType: 'nft',
-  //   mindTargetSrc: '/patterns/wmcyn-tote.mind',
-  //   label: 'wmcyn ar experience',
-  //   metadata: {
-  //     id: 'wmcyn-tote-001',
-  //     title: 'wmcyn holographic tote',
-  //     description: 'premium canvas tote bag with embroidered wmcyn logo',
-  //     printDate: '2025-04-18',
-  //     printLocation: 'atlanta, ga',
-  //     quantity: 1,
-  //     price: {
-  //       amount: 'priceless',
-  //       currencyCode: 'USD'
-  //     },
-  //     isClaimed: false
-  //   }
-  // },
 ]; 

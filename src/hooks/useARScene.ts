@@ -50,13 +50,22 @@ const waitForMindAR = (): Promise<any> => {
   });
 };
 
+// shape exposed to consumers (e.g. ARCamera) so share capture can re-render on demand
+export interface ThreeContext {
+  renderer: any;
+  scene: any;
+  camera: any;
+  model?: any;
+  spinRotation?: number;
+}
+
 export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const animationIdRef = useRef<number | null>(null);
   const isInitializedRef = useRef(false);
   const isCancelledRef = useRef(false);
-  const threeRef = useRef<any>(null);
+  const threeRef = useRef<ThreeContext | null>(null);
   const mindARRef = useRef<any>(null);
 
   useEffect(() => {
@@ -536,7 +545,8 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
         const width = window.innerWidth;
         const height = window.innerHeight;
 
-        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        // preserveDrawingBuffer lets canvas.toBlob/drawImage read back a frame for share export
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
         renderer.setSize(width, height);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.setClearColor(0x000000, 0);
@@ -622,4 +632,7 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // empty deps - only run once on mount
+
+  // expose for share capture — caller can read renderer/scene/camera to re-render on demand
+  return { threeRef };
 };

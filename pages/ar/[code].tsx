@@ -175,6 +175,13 @@ export default function ARByCode() {
       );
     }
     
+    // build the canonical share url for this experience so the story card and
+    // copy-link fallback both point to the same public address
+    const experienceShareUrl =
+      typeof window !== 'undefined'
+        ? `${window.location.origin}/ar/${encodeURIComponent(code)}`
+        : `https://wmcyn.online/ar/${encodeURIComponent(code)}`;
+
     return (
       <ARCameraQR
         markerType={config?.markerType || 'custom'}
@@ -184,6 +191,8 @@ export default function ARByCode() {
         onMarkerLost={handleMarkerLost}
         onClose={handleCloseAR}
         qrCode={code}
+        meta={config?.meta}
+        shareUrl={experienceShareUrl}
       />
     );
   }

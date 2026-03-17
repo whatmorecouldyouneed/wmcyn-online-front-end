@@ -20,6 +20,7 @@
     "@yudiel/react-qr-scanner": "^2.0.8",
     "arjs-fork-fix-threejs-imports": "^3.4.5",
     "firebase": "^11.0.1",
+    "html-to-image": "^1.11.13",
     "jszip": "^3.10.1",
     "next": "15.0.2",
     "qrcode": "^1.5.4",

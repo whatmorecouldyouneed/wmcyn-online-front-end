@@ -56,8 +56,13 @@ const ARMetadataOverlay: React.FC<ARMetadataOverlayProps> = ({
   });
 
   const handleAction = (action: { type: string; label: string; url?: string }) => {
+    if (action.type === 'share') {
+      // route share actions to the dedicated share handler, not the generic url opener
+      onShare?.();
+      return;
+    }
+    // url opening lives here only — ARCamera.handleAction does NOT open urls to avoid double-open
     if (action.url) {
-      // open url in new tab
       window.open(action.url, '_blank');
     }
     onAction?.(action);

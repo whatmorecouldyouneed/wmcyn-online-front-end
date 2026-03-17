@@ -125,6 +125,17 @@ export interface ARSessionMetadata {
   }>;
 }
 
+// normalized share metadata - derived from overlay data, works for both
+// product metadata and ar session / qr code flows
+export interface ARShareMetadata {
+  title: string;
+  description?: string;
+  campaign?: string;
+  createdAt?: string;
+  shareUrl: string;
+  ctaLabel?: string;
+}
+
 // api request types
 export interface CreateARSessionRequest {
   name: string;
