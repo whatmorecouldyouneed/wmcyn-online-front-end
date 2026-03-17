@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { GetServerSideProps } from 'next';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { arSessions as arSessionsAPI } from '@/lib/apiClient';
 import { ARSessionData, UpdateARSessionRequest } from '@/types/arSessions';
@@ -11,13 +10,14 @@ import styles from '@/styles/Admin.module.scss';
 
 const WMCYNLOGO = '/wmcyn_logo_white.png';
 
-interface ARSessionEditPageProps {
-  sessionId: string;
-}
+// static export: no pre-rendered paths — admin routes are client-side only
+export function getStaticPaths() { return { paths: [], fallback: false }; }
+export function getStaticProps() { return { props: {} }; }
 
-export default function ARSessionEditPage({ sessionId }: ARSessionEditPageProps) {
+export default function ARSessionEditPage() {
   const { isAuthenticated, loading: authLoading } = useAdminAuth();
   const router = useRouter();
+  const sessionId = router.query.id as string | undefined;
   const [sessionData, setSessionData] = useState<ARSessionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -296,12 +296,3 @@ export default function ARSessionEditPage({ sessionId }: ARSessionEditPageProps)
   );
 }
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  const { id } = context.params!;
-  
-  return {
-    props: {
-      sessionId: id as string
-    }
-  };
-};

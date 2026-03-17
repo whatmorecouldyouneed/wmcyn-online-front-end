@@ -1,3 +1,7 @@
+// static export stub
+export function getStaticPaths() { return { paths: [], fallback: false }; }
+export function getStaticProps() { return { props: {} }; }
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';

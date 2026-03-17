@@ -32,6 +32,21 @@ export default function Document() {
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         
+        {/* github pages spa routing: restore url from ?p= query param set by 404.html */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                var s = window.location.search;
+                if (s.length > 1 && s.indexOf('?p=') === 0) {
+                  var decoded = decodeURIComponent(s.slice(3));
+                  window.history.replaceState(null, '', '/' + decoded);
+                }
+              })();
+            `,
+          }}
+        />
+
         {/* MindAR 1.2.x is ESM-only for three.js integration, so bootstrap it with importmap + module. */}
         <script
           type="importmap"

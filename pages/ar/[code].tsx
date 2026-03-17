@@ -6,6 +6,17 @@ import type { ResolvedArConfig } from '@/types/arSessions';
 import ARCameraQR from '@/components/ARCameraQR';
 import dynamic from 'next/dynamic';
 
+// static export: no pre-rendered paths.
+// github pages spa redirect (404 → /?p=… → index → restore url)
+// handles client-side routing to this page for any real ar code.
+export function getStaticPaths() {
+  return { paths: [], fallback: false };
+}
+
+export function getStaticProps() {
+  return { props: {} };
+}
+
 export default function ARByCode() {
   const { query } = useRouter();
   const code = (query.code as string) || '';
