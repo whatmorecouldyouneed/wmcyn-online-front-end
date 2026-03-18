@@ -41,6 +41,10 @@ export async function compositeARFrame(
   const ctx = exportCanvas.getContext('2d');
   if (!ctx) return null;
 
+  // highest-quality downscaling for all layers
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
   // black base
   ctx.fillStyle = '#000000';
   ctx.fillRect(0, 0, EXPORT_W, EXPORT_H);
@@ -51,16 +55,40 @@ export async function compositeARFrame(
     try { ctx.drawImage(video!, r.drawX, r.drawY, r.drawW, r.drawH); } catch { /* skip */ }
   }
 
-  // layer 2: webgl render
-  // force one render call to ensure the back-buffer has the current frame
+  // layer 2: webgl render — boost pixel ratio to native DPR for the capture frame so the
+  // exported image is drawn from the highest-resolution framebuffer the device supports.
   if (threeContext) {
     try {
       const { renderer, scene, camera } = threeContext;
-      if (renderer && scene && camera) renderer.render(scene, camera);
-    } catch { /* renderer may be disposed */ }
-  }
+      if (renderer && scene && camera) {
+        const origPR = renderer.getPixelRatio();
+        const nativePR = Math.min(window.devicePixelRatio || 2, 3);
+        const clientW = renderer.domElement.clientWidth || window.innerWidth;
+        const clientH = renderer.domElement.clientHeight || window.innerHeight;
+        const boosted = nativePR > origPR + 0.01;
 
-  if (hasCanvas) {
+        if (boosted) {
+          renderer.setPixelRatio(nativePR);
+          // false = don't update CSS style, only the drawingBuffer
+          renderer.setSize(clientW, clientH, false);
+        }
+
+        renderer.render(scene, camera);
+
+        if (glCanvas) {
+          const r = coverRect(glCanvas.width, glCanvas.height, EXPORT_W, EXPORT_H);
+          ctx.globalCompositeOperation = 'source-over';
+          try { ctx.drawImage(glCanvas, r.drawX, r.drawY, r.drawW, r.drawH); } catch { /* tainted */ }
+        }
+
+        // restore so live tracking continues at original resolution
+        if (boosted) {
+          renderer.setPixelRatio(origPR);
+          renderer.setSize(clientW, clientH, false);
+        }
+      }
+    } catch { /* renderer may be disposed */ }
+  } else if (hasCanvas) {
     const r = coverRect(glCanvas!.width, glCanvas!.height, EXPORT_W, EXPORT_H);
     try {
       ctx.globalCompositeOperation = 'source-over';
@@ -75,7 +103,7 @@ export async function compositeARFrame(
   }
 
   return new Promise<Blob | null>((resolve) => {
-    exportCanvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.92);
+    exportCanvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.95);
   });
 }
 

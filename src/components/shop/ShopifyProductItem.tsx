@@ -59,6 +59,7 @@ export default function ShopifyProductItem({ product }: ShopifyProductItemProps)
   } = useShopifyCheckout();
   
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [quantity, setQuantity] = useState(1);
 
   // validate product id early for the hook
   const productId = product.id;
@@ -108,7 +109,7 @@ export default function ShopifyProductItem({ product }: ShopifyProductItemProps)
     if (product.variants && product.variants.length > 0) {
       setIsAddingToCart(true);
       const variant = product.variants[0];
-      addToCart(product, variant, 1);
+      addToCart(product, variant, quantity);
       setTimeout(() => setIsAddingToCart(false), 1000);
     } else {
       console.error("No product variants available to add to cart.");
@@ -118,7 +119,7 @@ export default function ShopifyProductItem({ product }: ShopifyProductItemProps)
   const handleBuyNow = async () => {
     if (product.variants && product.variants.length > 0) {
       const variantId = product.variants[0].id;
-      const lineItems: LineItemToAdd[] = [{ variantId, quantity: 1 }];
+      const lineItems: LineItemToAdd[] = [{ variantId, quantity }];
       try {
         await createShopifyCheckout(lineItems);
       } catch (e) {
@@ -212,6 +213,24 @@ export default function ShopifyProductItem({ product }: ShopifyProductItemProps)
         />
       )}
       <div ref={buyButtonRef}></div>
+
+      <div className={styles.quantitySelector}>
+        <button
+          className={styles.quantityBtn}
+          onClick={() => setQuantity(q => Math.max(1, q - 1))}
+          aria-label="decrease quantity"
+        >
+          −
+        </button>
+        <span className={styles.quantityValue}>{quantity}</span>
+        <button
+          className={styles.quantityBtn}
+          onClick={() => setQuantity(q => q + 1)}
+          aria-label="increase quantity"
+        >
+          +
+        </button>
+      </div>
 
       <div className={styles.buttonContainer}>
         <button 

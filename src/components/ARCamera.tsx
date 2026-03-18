@@ -29,6 +29,8 @@ const ARCamera = ({ onClose, configs, meta, shareUrl }: ARCameraProps): JSX.Elem
   const [detectedMarker, setDetectedMarker] = useState<MarkerConfig | null>(null);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
+  const [showInteractHint, setShowInteractHint] = useState(false);
+  const hasShownHintRef = useRef(false);
 
   // use provided configs or default marker configs
   const effectiveConfigs = configs || defaultMarkerConfigs;
@@ -163,6 +165,13 @@ const ARCamera = ({ onClose, configs, meta, shareUrl }: ARCameraProps): JSX.Elem
     return () => clearTimeout(timer);
   }, [shareStatus]);
 
+  // show the hint once, the first time a marker (or model) becomes visible
+  useEffect(() => {
+    if (!detectedMarker || hasShownHintRef.current) return;
+    hasShownHintRef.current = true;
+    setShowInteractHint(true);
+  }, [detectedMarker]);
+
   // single share handler — used by both the legacy 📸 path and dynamic share actions.
   // primary path: composite the live ar view (video + webgl canvas + overlay strip).
   // fallback: export the hidden branded story card if live capture produces nothing.
@@ -264,6 +273,16 @@ const ARCamera = ({ onClose, configs, meta, shareUrl }: ARCameraProps): JSX.Elem
           onShare={handleShare}
           onAction={handleAction}
         />
+      )}
+
+      {/* one-time interactable hint — fades in then out via CSS animation */}
+      {showInteractHint && (
+        <div
+          className={styles.interactHint}
+          onAnimationEnd={() => setShowInteractHint(false)}
+        >
+          swipe to spin · pinch to scale
+        </div>
       )}
 
       {/* share status toast */}

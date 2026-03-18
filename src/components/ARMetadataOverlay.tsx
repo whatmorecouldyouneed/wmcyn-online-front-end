@@ -2,6 +2,17 @@ import React from 'react';
 import { ProductMetadata } from '../config/markers';
 import { ARSessionMetadata } from '../types/arSessions';
 import styles from './ARMetadataOverlay.module.scss';
+import { WebHaptics, defaultPatterns } from 'web-haptics';
+
+// module-level singleton — created once, lazily, only in the browser
+let _haptics: WebHaptics | null = null;
+const getHaptics = (): WebHaptics | null => {
+  if (typeof window === 'undefined') return null;
+  if (!_haptics) {
+    try { _haptics = new WebHaptics(); } catch { return null; }
+  }
+  return _haptics;
+};
 
 interface ARMetadataOverlayProps {
   metadata: ProductMetadata | ARSessionMetadata;
@@ -57,9 +68,11 @@ const ARMetadataOverlay: React.FC<ARMetadataOverlayProps> = ({
 
   const handleAction = (action: { type: string; label: string; url?: string }) => {
     if (action.type === 'share') {
-      // route share actions to the dedicated share handler, not the generic url opener
       onShare?.();
       return;
+    }
+    if (action.type === 'claim') {
+      getHaptics()?.trigger(defaultPatterns.error);
     }
     // url opening lives here only — ARCamera.handleAction does NOT open urls to avoid double-open
     if (action.url) {
@@ -76,9 +89,9 @@ const ARMetadataOverlay: React.FC<ARMetadataOverlayProps> = ({
           {productMetadata && (
             <div className={styles.status}>
               {productMetadata.isClaimed ? (
-                <span className={styles.claimed}>✓ claimed</span>
+                <><span>✓</span><span className={styles.claimed}>claimed</span></>
               ) : (
-                <span className={styles.available}>● available</span>
+                <><span className={styles.availableDot}>●</span><span className={styles.available}>available</span></>
               )}
             </div>
           )}
@@ -97,8 +110,12 @@ const ARMetadataOverlay: React.FC<ARMetadataOverlayProps> = ({
             </div>
             
             <div className={styles.metadataRow}>
-              <span className={styles.label}>edition:</span>
-              <span className={styles.value}>{productMetadata.quantity} pieces</span>
+              <span className={styles.label}>quantity:</span>
+              <span className={styles.value}>
+                {productMetadata.editionNumber != null
+                  ? `${productMetadata.editionNumber} of ${productMetadata.quantity}`
+                  : `${productMetadata.quantity}`}
+              </span>
             </div>
             
             <div className={styles.metadataRow}>
@@ -156,7 +173,13 @@ const ARMetadataOverlay: React.FC<ARMetadataOverlayProps> = ({
             // legacy product metadata actions
             <>
               {!productMetadata.isClaimed && onClaim && (
-                <button className={styles.claimButton} onClick={onClaim}>
+                <button
+                  className={styles.claimButton}
+                  onClick={() => {
+                    getHaptics()?.trigger(defaultPatterns.error);
+                    onClaim();
+                  }}
+                >
                   claim
                 </button>
               )}

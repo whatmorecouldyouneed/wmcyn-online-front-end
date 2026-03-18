@@ -5,6 +5,7 @@ export interface ProductMetadata {
   printDate: string;
   printLocation: string;
   quantity: number;
+  editionNumber?: number; // which piece this is, e.g. 1 of 3 → editionNumber: 1, quantity: 3
   price: {
     amount: string;
     currencyCode: string;
@@ -47,6 +48,7 @@ export const markerConfigs: MarkerConfig[] = [
       printDate: '2025-12-19',
       printLocation: 'atlanta, ga',
       quantity: 1,
+      editionNumber: 1,
       price: {
         amount: 'priceless',
         currencyCode: 'USD'

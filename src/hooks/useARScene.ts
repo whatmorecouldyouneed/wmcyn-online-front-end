@@ -8,8 +8,10 @@ interface UseARSceneProps {
 }
 
 // animation configuration
-const ROTATION_SPEED = 0.005; // slower, more elegant rotation
-const MODEL_Y_OFFSET = -0.6; // move model down below the marker (negative = down)
+const ROTATION_SPEED = 0.005;   // auto-spin speed (radians per normalised frame)
+const DRAG_SENSITIVITY = 0.011; // radians per pixel for single-finger drag-to-spin
+const SPIN_FRICTION = 0.92;     // momentum decay per normalised 60fps frame (frame-rate independent via Math.pow)
+const MODEL_Y_OFFSET = -0.6;    // move model down below the marker (negative = down)
 
 // get MindARThree from window global (loaded via script tags in _document.tsx Head)
 const getMindARThree = (): any => {
@@ -68,6 +70,21 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
   const threeRef = useRef<ThreeContext | null>(null);
   const mindARRef = useRef<any>(null);
 
+  // pinch-to-scale state
+  const userScaleRef = useRef(1.0);         // multiplier driven by pinch gesture
+  const baseScaleRef = useRef(1.0);         // model's computed scale at load time
+  const lastPinchDistRef = useRef<number | null>(null); // finger distance on previous frame
+
+  // drag-to-spin state
+  const spinRotationRef = useRef(0);                    // shared accumulator for both auto and user spin
+  const lastDragXRef = useRef<number | null>(null);     // x position of single finger on previous frame
+  const dragVelocityRef = useRef(0);                    // angular momentum (radians/frame) — coasts after finger lifts
+
+  // interaction highlight — yellow 3d outline that glows on touch
+  const outlineMeshesRef = useRef<any[]>([]);
+  const outlineOpacityRef = useRef(0);   // current animated opacity
+  const outlineTargetRef = useRef(0);    // target: 1 while touching, 0 when released
+
   useEffect(() => {
     if (!configs || configs.length === 0) return;
 
@@ -80,6 +97,52 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
     if (isInitializedRef.current) return;
 
     isCancelledRef.current = false;
+
+    // light up the outline the moment any finger touches the model
+    const handleTouchStart = () => {
+      outlineTargetRef.current = 1;
+    };
+
+    // handles both single-finger drag-to-spin and two-finger pinch-to-scale
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        // two-finger pinch — scale the model
+        e.preventDefault(); // blocks browser zoom
+
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (lastPinchDistRef.current !== null) {
+          const ratio = dist / lastPinchDistRef.current;
+          userScaleRef.current = Math.min(3.0, Math.max(0.3, userScaleRef.current * ratio));
+        }
+        lastPinchDistRef.current = dist;
+        lastDragXRef.current = null; // reset drag tracking while pinching
+      } else if (e.touches.length === 1) {
+        // single-finger drag — apply immediately and capture as momentum for coasting
+        const x = e.touches[0].clientX;
+        if (lastDragXRef.current !== null) {
+          const dragDelta = (x - lastDragXRef.current) * DRAG_SENSITIVITY;
+          dragVelocityRef.current = dragDelta; // overwrite (not accumulate) — tracks current swipe speed
+          spinRotationRef.current += dragDelta;
+        }
+        lastDragXRef.current = x;
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) lastPinchDistRef.current = null;
+      if (e.touches.length < 1) {
+        lastDragXRef.current = null;
+        outlineTargetRef.current = 0; // begin fading the outline once all fingers lift
+      }
+    };
+
+    // passive: false is required on ios safari to allow preventDefault()
+    container.addEventListener('touchstart', handleTouchStart);
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd);
     
     // filter to only nft markers with .mind files for dynamic multi-marker support
     const nftConfigs = configs.filter(c => c?.markerType === 'nft' && c?.mindTargetSrc);
@@ -110,6 +173,11 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
     // cleanup
     return () => {
       isCancelledRef.current = true;
+
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+      outlineMeshesRef.current = [];
       
       if (animationIdRef.current) {
         cancelAnimationFrame(animationIdRef.current);
@@ -249,6 +317,12 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
             uiError: 'no',
             filterMinCF: 0.0001, // very smooth tracking
             filterBeta: 0.01, // low responsiveness for stability
+            video: {
+              facingMode: { ideal: 'environment' },
+              width: { min: 1280, ideal: 1920 },
+              height: { min: 720, ideal: 1080 },
+              frameRate: { ideal: 30, max: 60 },
+            },
           });
           console.log('[useARScene] MindAR instance created successfully');
           
@@ -278,8 +352,16 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
           throw new Error(`Failed to create MindAR instance. Target file: ${config.mindTargetSrc}. Error: ${initErr?.message || initErr}`);
         }
         
-        mindARRef.current = mindar;
-        const { renderer, scene, camera } = mindar;
+          mindARRef.current = mindar;
+
+          // push renderer to native device pixel ratio for sharper live view and captures
+          if (mindar.renderer) {
+            try {
+              mindar.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
+            } catch { /* ok if mindar doesn't expose renderer yet */ }
+          }
+
+          const { renderer, scene, camera } = mindar;
 
         if (!renderer || !scene || !camera) {
           throw new Error('MindAR missing components');
@@ -335,10 +417,32 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
             const maxDim = Math.max(size.x, size.y, size.z);
             const scale = (config.scale || 0.8) / maxDim;
             model.scale.setScalar(scale);
+            baseScaleRef.current = scale;
             
             // center the model and offset below the marker
             const center = box.getCenter(new THREE.Vector3());
             model.position.set(-center.x * scale, MODEL_Y_OFFSET, -center.z * scale);
+
+            // build the interaction highlight: a slightly-scaled BackSide mesh on every surface
+            // collect meshes first, then add outlines — avoids traverse visiting newly-added children
+            outlineMeshesRef.current = [];
+            const nftMeshesToOutline: any[] = [];
+            model.traverse((child: any) => {
+              if (child.isMesh) nftMeshesToOutline.push(child);
+            });
+            const nftOutlineMat = new THREE.MeshBasicMaterial({
+              color: 0xffd700,
+              side: THREE.BackSide,
+              transparent: true,
+              opacity: 0,
+              depthWrite: false,
+            });
+            for (const child of nftMeshesToOutline) {
+              const om = new THREE.Mesh(child.geometry, nftOutlineMat.clone());
+              om.scale.setScalar(1.08);
+              child.add(om);
+              outlineMeshesRef.current.push(om);
+            }
             
           } catch (err: any) {
             console.error('[useARScene] Model load failed:', err?.message || err);
@@ -354,8 +458,6 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
           console.error('[useARScene] No model loaded - check model path:', modelUrl);
         }
         
-        // track spin rotation separately
-        let spinRotation = 0;
         threeRef.current = { renderer, scene, camera, model };
 
         // target callbacks
@@ -466,10 +568,26 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
           const delta = Math.min((now - lastTime) / 1000, 0.1);
           lastTime = now;
           
-          // smooth spin animation (frame-rate independent)
           if (threeRef.current?.model) {
-            spinRotation += ROTATION_SPEED * delta * 60;
-            threeRef.current.model.rotation.y = spinRotation;
+            // when not touching, decay drag momentum and coast — frame-rate independent friction
+            if (lastDragXRef.current === null) {
+              dragVelocityRef.current *= Math.pow(SPIN_FRICTION, delta * 60);
+              spinRotationRef.current += dragVelocityRef.current;
+            }
+            // auto-spin always underlies the rotation
+            spinRotationRef.current += ROTATION_SPEED * delta * 60;
+            threeRef.current.model.rotation.y = spinRotationRef.current;
+            threeRef.current.model.scale.setScalar(baseScaleRef.current * userScaleRef.current);
+
+            // animate gold highlight outline: fast appear, slow linger-fade
+            const oTarget = outlineTargetRef.current;
+            const lerpRate = oTarget > outlineOpacityRef.current ? 0.2 : 0.06;
+            outlineOpacityRef.current += (oTarget - outlineOpacityRef.current) *
+              Math.min(lerpRate * delta * 60, 1);
+            if (outlineMeshesRef.current.length > 0) {
+              const op = outlineOpacityRef.current;
+              outlineMeshesRef.current.forEach((m: any) => { m.material.opacity = op; });
+            }
           }
           
           renderer.render(scene, camera);
@@ -512,7 +630,12 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
     async function initPatternAR(container: HTMLDivElement, config: MarkerConfig) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { min: 1280, ideal: 1920 },
+            height: { min: 720, ideal: 1080 },
+            frameRate: { ideal: 30, max: 60 },
+          },
           audio: false
         });
 
@@ -548,7 +671,7 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
         // preserveDrawingBuffer lets canvas.toBlob/drawImage read back a frame for share export
         const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
         renderer.setSize(width, height);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
         renderer.setClearColor(0x000000, 0);
         renderer.domElement.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:2;pointer-events:none';
         container.appendChild(renderer.domElement);
@@ -581,9 +704,31 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
           
           const size = box.getSize(new THREE.Vector3());
           const maxDim = Math.max(size.x, size.y, size.z);
-          model.scale.setScalar(1.5 / maxDim);
+          const patternScale = 1.5 / maxDim;
+          model.scale.setScalar(patternScale);
+          baseScaleRef.current = patternScale;
           model.position.y += 0.25;
           scene.add(model);
+
+          // build the interaction highlight — collect meshes first, then add outlines
+          outlineMeshesRef.current = [];
+          const patternMeshesToOutline: any[] = [];
+          model.traverse((child: any) => {
+            if (child.isMesh) patternMeshesToOutline.push(child);
+          });
+          const patternOutlineMat = new THREE.MeshBasicMaterial({
+            color: 0xffd700,
+            side: THREE.BackSide,
+            transparent: true,
+            opacity: 0,
+            depthWrite: false,
+          });
+          for (const child of patternMeshesToOutline) {
+            const om = new THREE.Mesh(child.geometry, patternOutlineMat.clone());
+            om.scale.setScalar(1.08);
+            child.add(om);
+            outlineMeshesRef.current.push(om);
+          }
           
         } catch (modelErr: any) {
           console.error('[useARScene] Pattern AR model load failed:', modelErr?.message || modelErr);
@@ -603,9 +748,25 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
           lastTime = now;
           
           if (model && threeRef.current) {
-            // smooth frame-rate independent rotation
-            threeRef.current.spinRotation += ROTATION_SPEED * delta * 60;
-            model.rotation.y = threeRef.current.spinRotation;
+            // when not touching, decay drag momentum and coast — frame-rate independent friction
+            if (lastDragXRef.current === null) {
+              dragVelocityRef.current *= Math.pow(SPIN_FRICTION, delta * 60);
+              spinRotationRef.current += dragVelocityRef.current;
+            }
+            // auto-spin always underlies the rotation
+            spinRotationRef.current += ROTATION_SPEED * delta * 60;
+            model.rotation.y = spinRotationRef.current;
+            model.scale.setScalar(baseScaleRef.current * userScaleRef.current);
+
+            // animate gold highlight outline: fast appear, slow linger-fade
+            const oTarget = outlineTargetRef.current;
+            const lerpRate = oTarget > outlineOpacityRef.current ? 0.2 : 0.06;
+            outlineOpacityRef.current += (oTarget - outlineOpacityRef.current) *
+              Math.min(lerpRate * delta * 60, 1);
+            if (outlineMeshesRef.current.length > 0) {
+              const op = outlineOpacityRef.current;
+              outlineMeshesRef.current.forEach((m: any) => { m.material.opacity = op; });
+            }
           }
           
           renderer.render(scene, camera);

@@ -34,7 +34,8 @@
     "slick-carousel": "^1.8.1",
     "swiper": "^11.2.6",
     "three": "^0.176.0",
-    "typewriter-effect": "^2.21.0"
+    "typewriter-effect": "^2.21.0",
+    "web-haptics": "^0.0.6"
   },
   "devDependencies": {
     "@types/node": "^20",

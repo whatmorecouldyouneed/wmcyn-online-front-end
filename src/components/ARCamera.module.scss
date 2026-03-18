@@ -30,16 +30,24 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: white;
-  font-size: 18px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 14px;
+  font-weight: 300;
+  text-transform: lowercase;
+  letter-spacing: 0.03em;
   z-index: 100;
-  background-color: rgba(0, 0, 0, 0.85);
-  padding: 20px 30px;
-  border-radius: 12px;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(8, 12, 24, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  padding: 18px 28px;
+  border-radius: 16px;
+  backdrop-filter: blur(24px) saturate(1.8);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  box-shadow:
+    0 1.5px 0 rgba(255, 255, 255, 0.09) inset,
+    0 8px 32px rgba(0, 0, 0, 0.4);
   pointer-events: none;
   text-align: center;
+  white-space: nowrap;
 }
 
 .mountPoint {
@@ -92,6 +100,61 @@
   transform-origin: top left;
 }
 
+// one-time interactable hint — appears when the 3d model first becomes visible
+.interactHint {
+  position: absolute;
+  top: 55%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(8, 12, 24, 0.52);
+  border: 1px solid rgba(255, 215, 0, 0.22); // subtle gold border to tie in with the 3d outline
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 12px;
+  font-weight: 300;
+  text-transform: lowercase;
+  letter-spacing: 0.05em;
+  padding: 10px 18px;
+  border-radius: 24px;
+  backdrop-filter: blur(24px) saturate(1.8);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  box-shadow:
+    0 1.5px 0 rgba(255, 255, 255, 0.09) inset,
+    0 0 16px rgba(255, 215, 0, 0.08),
+    0 4px 16px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: hintAppearFade 4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+
+  // gold dot matching the 3d outline color
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ffd700;
+    flex-shrink: 0;
+    box-shadow: 0 0 6px rgba(255, 215, 0, 0.7);
+    animation: dotPulse 1.5s ease-in-out infinite;
+  }
+}
+
+@keyframes hintAppearFade {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  15%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+  72%  { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.55; transform: scale(0.75); }
+}
+
 // status toast shown after share attempt
 .shareToast {
   position: absolute;
@@ -102,14 +165,20 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(0, 0, 0, 0.9);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 500;
+  background: rgba(8, 12, 24, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 13px;
+  font-weight: 300;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
   padding: 10px 18px;
   border-radius: 24px;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(24px) saturate(1.8);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  box-shadow:
+    0 1.5px 0 rgba(255, 255, 255, 0.09) inset,
+    0 4px 16px rgba(0, 0, 0, 0.35);
   white-space: nowrap;
   pointer-events: none;
   animation: fadeInUp 0.2s ease;
@@ -140,20 +209,33 @@
   top: calc(env(safe-area-inset-top, 0px) + 16px) !important;
   right: calc(env(safe-area-inset-right, 0px) + 16px) !important;
   z-index: 10000 !important;
-  padding: 12px 20px;
-  font-size: 15px;
-  font-weight: 600;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 300;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
   cursor: pointer;
-  background-color: rgba(0, 0, 0, 0.85);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(8, 12, 24, 0.52);
+  color: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 12px;
+  backdrop-filter: blur(24px) saturate(1.8);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  box-shadow:
+    0 1.5px 0 rgba(255, 255, 255, 0.09) inset,
+    0 4px 16px rgba(0, 0, 0, 0.3);
   pointer-events: auto !important;
-  
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 2.2);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.10);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
   &:active {
-    background-color: rgba(0, 0, 0, 0.95);
-    transform: scale(0.95);
+    transform: scale(0.96);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.06) inset,
+      0 2px 8px rgba(0, 0, 0, 0.25);
   }
 }
