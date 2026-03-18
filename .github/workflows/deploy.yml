@@ -1,4 +1,4 @@
-name: CI Build
+name: Deploy to GitHub Pages
 
 on:
   push:
@@ -7,8 +7,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -54,5 +56,13 @@ jobs:
           echo "NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN exists in .env.production: $(grep NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN .env.production | wc -l)"
           echo "NEXT_PUBLIC_API_BASE in .env.production: $(grep NEXT_PUBLIC_API_BASE .env.production)"
 
-      - name: Build
+      - name: Build Static Export
         run: yarn build
+        env:
+          NEXT_STATIC_EXPORT: 'true'
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: out
