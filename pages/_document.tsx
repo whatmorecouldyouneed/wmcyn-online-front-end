@@ -1,6 +1,7 @@
 import { Html, Head, Main, NextScript } from "next/document";
 
 export default function Document() {
+  // mind-ar@1.2.5 targets three r147; newer three in the import map breaks the module bootstrap (mindar never lands on window)
   const mindArImportMap = {
     imports: {
       three: 'https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.module.js',

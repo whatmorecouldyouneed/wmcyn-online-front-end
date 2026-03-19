@@ -46,6 +46,7 @@
     "@types/three": "^0.176.0",
     "autoprefixer": "^10.4.21",
     "css-loader": "^7.1.2",
+    "eruda": "^3.4.3",
     "eslint": "^8",
     "eslint-config-next": "15.0.2",
     "gh-pages": "^6.2.0",

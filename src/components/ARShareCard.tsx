@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { ARShareMetadata } from '@/types/arSessions';
+import { buildNarrativeLine, SHARE_CARD_EYEBROW } from '@/utils/shareNarrative';
 import styles from './ARShareCard.module.scss';
 
 interface ARShareCardProps {
@@ -7,66 +8,34 @@ interface ARShareCardProps {
 }
 
 // rendered at 1080×1920 (9:16) — matches instagram story dimensions.
-// this component is rendered offscreen then captured by html-to-image.
-// keep all text within the safe-zone (top/bottom 250px margins).
+// captured by html-to-image: faux glass (gradients) reads reliably without backdrop blur.
 const ARShareCard = React.forwardRef<HTMLDivElement, ARShareCardProps>(
   ({ shareMetadata }, ref) => {
-    const formatDate = (dateString: string) => {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
-    };
+    const narrative = useMemo(() => buildNarrativeLine(shareMetadata), [shareMetadata]);
 
     return (
       <div ref={ref} className={styles.card}>
-        {/* background gradient */}
         <div className={styles.bg} />
 
-        {/* safe zone wrapper — 250px top/bottom padding */}
         <div className={styles.safeZone}>
-          {/* top: brand wordmark */}
           <div className={styles.brand}>wmcyn</div>
 
-          {/* centre: content block matching the live overlay */}
           <div className={styles.content}>
-            <div className={styles.container}>
-              <div className={styles.header}>
+            <div className={styles.glassPanel}>
+              <div className={styles.shine} aria-hidden />
+              <div className={styles.glassInner}>
+                <p className={styles.eyebrow}>{SHARE_CARD_EYEBROW}</p>
                 <h2 className={styles.title}>{shareMetadata.title}</h2>
+                {narrative ? <p className={styles.narrative}>{narrative}</p> : null}
+                {shareMetadata.ctaLabel ? (
+                  <div className={styles.ctaPill}>{shareMetadata.ctaLabel}</div>
+                ) : null}
               </div>
-
-              {(shareMetadata.createdAt || shareMetadata.campaign) && (
-                <div className={styles.metadata}>
-                  {shareMetadata.createdAt && (
-                    <div className={styles.metadataRow}>
-                      <span className={styles.label}>printed:</span>
-                      <span className={styles.value}>{formatDate(shareMetadata.createdAt)}</span>
-                    </div>
-                  )}
-                  {shareMetadata.campaign && (
-                    <div className={styles.metadataRow}>
-                      <span className={styles.label}>campaign:</span>
-                      <span className={styles.value}>{shareMetadata.campaign}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {shareMetadata.description && shareMetadata.description.trim() && (
-                <p className={styles.description}>{shareMetadata.description}</p>
-              )}
-
-              {shareMetadata.ctaLabel && (
-                <div className={styles.cta}>{shareMetadata.ctaLabel}</div>
-              )}
             </div>
           </div>
 
-          {/* bottom: scan hint */}
           <div className={styles.footer}>
-            <p className={styles.scanHint}>scan to experience in AR</p>
+            <p className={styles.scanHint}>scan the link to open this moment in ar</p>
             <p className={styles.shareUrl}>{shareMetadata.shareUrl}</p>
           </div>
         </div>

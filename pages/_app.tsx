@@ -4,11 +4,31 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import type { AppProps } from "next/app";
 import Head from "next/head";
+import Script from "next/script";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { CartProvider } from '@/contexts/CartContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AdminAuthProvider } from '@/contexts/AdminAuthContext';
 import { Outfit } from 'next/font/google';
+
+declare global {
+  interface Window {
+    eruda?: { init: () => void };
+  }
+}
+
+function erudaShouldLoad(): boolean {
+  if (typeof window === "undefined") return false;
+  if (process.env.NEXT_PUBLIC_ERUDA === "true") return true;
+  try {
+    if (new URLSearchParams(window.location.search).get("eruda") === "1") return true;
+    if (window.localStorage?.getItem("eruda") === "1") return true;
+  } catch {
+    /* ok */
+  }
+  return false;
+}
 
 const outfit = Outfit({
   subsets: ['latin'],
@@ -18,9 +38,24 @@ const outfit = Outfit({
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
   const isAdminPage = router.pathname.startsWith('/admin');
+  const [loadEruda, setLoadEruda] = useState(false);
+
+  useEffect(() => {
+    setLoadEruda(erudaShouldLoad());
+  }, []);
 
   const AppContent = () => (
     <>
+      {loadEruda && (
+        <Script
+          src="https://cdn.jsdelivr.net/npm/eruda/eruda.js"
+          strategy="afterInteractive"
+          onLoad={() => {
+            // eruda shows "please call eruda init first" if plugins run before init — init immediately on script load
+            window.eruda?.init?.();
+          }}
+        />
+      )}
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

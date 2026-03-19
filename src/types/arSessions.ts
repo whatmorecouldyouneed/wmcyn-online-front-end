@@ -134,6 +134,15 @@ export interface ARShareMetadata {
   createdAt?: string;
   shareUrl: string;
   ctaLabel?: string;
+  /** product marker flow — woven into narrative copy on the share card */
+  kind?: 'product' | 'session';
+  printDate?: string;
+  printLocation?: string;
+  quantity?: number;
+  editionNumber?: number;
+  priceAmount?: string;
+  priceCurrency?: string;
+  isClaimed?: boolean;
 }
 
 // api request types

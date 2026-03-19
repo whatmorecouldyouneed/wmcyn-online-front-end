@@ -1,30 +1,21 @@
 import type { ARShareMetadata } from '@/types/arSessions';
 import type { ThreeContext } from '@/hooks/useARScene';
 import type { ShareResult } from './shareStoryCard';
+import { buildNarrativeLine, SHARE_CARD_EYEBROW } from './shareNarrative';
 
 // output dimensions — instagram story safe size (9:16)
 const EXPORT_W = 1080;
 const EXPORT_H = 1920;
-
-// overlay metadata passed directly — avoids DOM capture issues with backdrop-filter
-export interface OverlayData {
-  title?: string;
-  description?: string;
-  campaign?: string;
-  createdAt?: string;
-  actions?: Array<{ type: string; label: string; url?: string }>;
-}
 
 // ─── compositor ───────────────────────────────────────────────────────────────
 
 // composite the live ar viewport into a story-sized canvas.
 // - layer 1: camera video frame (cover-scaled)
 // - layer 2: webgl render (cover-scaled, forced re-render to flush back-buffer)
-// - layer 3: overlay card redrawn in canvas using exact SCSS values * scale
-// returns null if no usable pixels were produced.
+// - layer 3: liquid glass narrative dock (canvas — matches ARShareCard copy, not old black strip)
 export async function compositeARFrame(
   mountEl: HTMLElement,
-  overlayData: OverlayData | null,
+  shareMetadata: ARShareMetadata | null,
   threeContext: ThreeContext | null
 ): Promise<Blob | null> {
   const video = mountEl.querySelector('video') as HTMLVideoElement | null;
@@ -41,22 +32,17 @@ export async function compositeARFrame(
   const ctx = exportCanvas.getContext('2d');
   if (!ctx) return null;
 
-  // highest-quality downscaling for all layers
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
 
-  // black base
   ctx.fillStyle = '#000000';
   ctx.fillRect(0, 0, EXPORT_W, EXPORT_H);
 
-  // layer 1: camera frame (cover)
   if (hasVideo) {
     const r = coverRect(video!.videoWidth, video!.videoHeight, EXPORT_W, EXPORT_H);
     try { ctx.drawImage(video!, r.drawX, r.drawY, r.drawW, r.drawH); } catch { /* skip */ }
   }
 
-  // layer 2: webgl render — boost pixel ratio to native DPR for the capture frame so the
-  // exported image is drawn from the highest-resolution framebuffer the device supports.
   if (threeContext) {
     try {
       const { renderer, scene, camera } = threeContext;
@@ -69,7 +55,6 @@ export async function compositeARFrame(
 
         if (boosted) {
           renderer.setPixelRatio(nativePR);
-          // false = don't update CSS style, only the drawingBuffer
           renderer.setSize(clientW, clientH, false);
         }
 
@@ -81,7 +66,6 @@ export async function compositeARFrame(
           try { ctx.drawImage(glCanvas, r.drawX, r.drawY, r.drawW, r.drawH); } catch { /* tainted */ }
         }
 
-        // restore so live tracking continues at original resolution
         if (boosted) {
           renderer.setPixelRatio(origPR);
           renderer.setSize(clientW, clientH, false);
@@ -93,13 +77,12 @@ export async function compositeARFrame(
     try {
       ctx.globalCompositeOperation = 'source-over';
       ctx.drawImage(glCanvas!, r.drawX, r.drawY, r.drawW, r.drawH);
-    } catch { /* tainted canvas — skip gl layer */ }
+    } catch { /* tainted canvas */ }
   }
 
-  // layer 3: overlay card — drawn in canvas using exact SCSS values, scaled to export size
-  if (overlayData) {
+  if (shareMetadata) {
     await document.fonts.ready;
-    drawOverlayCard(ctx, overlayData);
+    drawLiquidGlassOverlay(ctx, shareMetadata);
   }
 
   return new Promise<Blob | null>((resolve) => {
@@ -107,194 +90,141 @@ export async function compositeARFrame(
   });
 }
 
-// ─── overlay card renderer ────────────────────────────────────────────────────
-// mirrors ARMetadataOverlay.module.scss exactly, scaled to 1080x1920.
-// the live viewport on phone is typically ~390px wide, so scale ≈ 2.77×.
+// ─── liquid glass dock (canvas) — same narrative as ARShareCard, bottom-aligned ─
 
-function drawOverlayCard(ctx: CanvasRenderingContext2D, data: OverlayData) {
-  // infer scale from export width vs a reference 390px phone viewport
+function drawLiquidGlassOverlay(ctx: CanvasRenderingContext2D, meta: ARShareMetadata) {
   const vpW = window.innerWidth || 390;
-  const vpH = window.innerHeight || 844;
-  const scaleX = EXPORT_W / vpW;
-  const scaleY = EXPORT_H / vpH;
-
-  // match SCSS overlay positioning:
-  // bottom: 16px, left: 16px, right: 16px (safe-area ignored for simplicity)
-  const overlayPad = 16 * scaleX;
-  const innerPad = 18 * scaleX;           // .container padding: 18px
-  const cardX = overlayPad;
-  const cardW = EXPORT_W - overlayPad * 2;
-  const scale = scaleX;
-
-  // font sizes from SCSS
-  const titleFs = 16 * scale;
-  const metaFs = 13 * scale;
-  const descFs = 12 * scale;
-  const actionFs = 12 * scale;
+  const scale = EXPORT_W / vpW;
+  const overlayPad = 16 * scale;
+  const innerPad = 20 * scale;
+  const borderW = Math.max(2, 2 * scale);
+  const radiusOuter = 22 * scale;
+  const radiusInner = 20 * scale;
   const font = 'Outfit, sans-serif';
 
-  // measure content height
-  let contentH = innerPad; // top padding
+  const eyebrowFs = Math.round(11 * scale);
+  const titleFs = Math.round(15 * scale);
+  const narrativeFs = Math.round(12 * scale);
+  const ctaFs = Math.round(11 * scale);
 
-  // header: title
-  contentH += titleFs * 1.2; // line height
-  contentH += 12 * scale;    // .header margin-bottom
+  const narrative = buildNarrativeLine(meta);
+  const title = (meta.title || 'wmcyn ar experience').toLowerCase();
 
-  // metadata rows
-  const hasCreatedAt = !!data.createdAt;
-  const hasCampaign = !!data.campaign;
-  const metaRowH = metaFs + 6 * scale; // font + 6px margin-bottom
-  if (hasCreatedAt) contentH += metaRowH;
-  if (hasCampaign) contentH += metaRowH;
-  if (hasCreatedAt || hasCampaign) contentH += 12 * scale; // .metadata margin-bottom
+  const cardX = overlayPad;
+  const cardW = EXPORT_W - overlayPad * 2;
+  const innerW = cardW - borderW * 2;
+  const textMaxW = innerW - innerPad * 2;
 
-  // description (max 2 lines, font-size 12 * scale, line-height 1.4)
-  const descLineH = descFs * 1.4;
-  if (data.description?.trim()) {
-    contentH += descLineH * 2;
-    contentH += 12 * scale; // margin-bottom
+  let contentH = innerPad;
+  contentH += eyebrowFs * 1.1 + 8 * scale;
+  contentH += titleFs * 1.25 + 10 * scale;
+
+  if (narrative) {
+    ctx.save();
+    ctx.font = `300 ${narrativeFs}px ${font}`;
+    const lines = wrapText(ctx, narrative.toLowerCase(), textMaxW, 6);
+    contentH += lines.length * narrativeFs * 1.45 + 6 * scale;
+    ctx.restore();
   }
 
-  // actions row — approximate button height
-  const actions = data.actions || [];
-  if (actions.length > 0) {
-    contentH += (actionFs + 8 * scale * 2); // padding-y: 8px each side
+  if (meta.ctaLabel) {
+    contentH += 8 * scale + ctaFs + 18 * scale;
   }
 
-  contentH += innerPad; // bottom padding
+  contentH += innerPad;
 
-  const cardH = Math.ceil(contentH);
+  const cardH = Math.ceil(contentH + borderW * 2);
   const cardY = EXPORT_H - cardH - overlayPad;
 
-  // card background: rgba(0,0,0,0.9), border-radius 16px
+  const innerX = cardX + borderW;
+  const innerY = cardY + borderW;
+  const innerH = cardH - borderW * 2;
+
   ctx.save();
-  roundRect(ctx, cardX, cardY, cardW, cardH, 16 * scale);
-  ctx.fillStyle = 'rgba(0,0,0,0.9)';
+  roundRect(ctx, cardX, cardY, cardW, cardH, radiusOuter);
+  const borderGrad = ctx.createLinearGradient(cardX, cardY, cardX + cardW, cardY + cardH);
+  borderGrad.addColorStop(0, 'rgba(255,215,0,0.45)');
+  borderGrad.addColorStop(0.45, 'rgba(255,255,255,0.28)');
+  borderGrad.addColorStop(1, 'rgba(140,180,255,0.38)');
+  ctx.strokeStyle = borderGrad;
+  ctx.lineWidth = borderW;
+  ctx.stroke();
+  ctx.restore();
+
+  roundRect(ctx, innerX, innerY, innerW, innerH, radiusInner);
+  ctx.fillStyle = 'rgba(8,12,24,0.88)';
   ctx.fill();
-  ctx.restore();
 
-  // draw content top-to-bottom
-  let y = cardY + innerPad;
-  const textX = cardX + innerPad;
-  const textRight = cardX + cardW - innerPad;
-  const textMaxW = cardW - innerPad * 2;
-
-  // ── title ──
   ctx.save();
-  ctx.font = `600 ${titleFs}px ${font}`;
-  ctx.fillStyle = '#ffffff';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
-  ctx.fillText(
-    truncate((data.title || 'wmcyn ar experience').toLowerCase(), textMaxW, ctx),
-    textX, y
-  );
-  y += titleFs * 1.2 + 12 * scale;
+  roundRect(ctx, innerX, innerY, innerW, innerH, radiusInner);
+  ctx.clip();
+  const shine = ctx.createLinearGradient(innerX, innerY, innerX + innerW, innerY + innerH);
+  shine.addColorStop(0, 'rgba(200,230,255,0.14)');
+  shine.addColorStop(0.5, 'rgba(255,255,255,0.05)');
+  shine.addColorStop(1, 'rgba(255,215,0,0.08)');
+  ctx.fillStyle = shine;
+  ctx.globalAlpha = 0.9;
+  ctx.fillRect(innerX, innerY, innerW, innerH);
   ctx.restore();
 
-  // ── metadata rows ──
-  if (hasCreatedAt || hasCampaign) {
+  let ty = innerY + innerPad;
+  const tx = innerX + innerPad;
+
+  ctx.textBaseline = 'top';
+
+  ctx.save();
+  ctx.font = `300 ${eyebrowFs}px ${font}`;
+  ctx.fillStyle = 'rgba(255,215,0,0.68)';
+  ctx.textAlign = 'left';
+  ctx.fillText(SHARE_CARD_EYEBROW, tx, ty);
+  ty += eyebrowFs * 1.1 + 8 * scale;
+  ctx.restore();
+
+  ctx.save();
+  ctx.font = `500 ${titleFs}px ${font}`;
+  ctx.fillStyle = 'rgba(255,255,255,0.96)';
+  ctx.fillText(truncate(title, textMaxW, ctx), tx, ty);
+  ty += titleFs * 1.25 + 10 * scale;
+  ctx.restore();
+
+  if (narrative) {
     ctx.save();
-    ctx.font = `400 ${metaFs}px ${font}`;
-    ctx.textBaseline = 'top';
-
-    if (hasCreatedAt) {
-      const formatted = new Date(data.createdAt!).toLocaleDateString('en-US', {
-        month: 'short', day: 'numeric', year: 'numeric'
-      });
-      ctx.fillStyle = 'rgba(255,255,255,0.6)';
-      ctx.textAlign = 'left';
-      ctx.fillText('printed:', textX, y);
-      ctx.fillStyle = '#ffffff';
-      ctx.font = `500 ${metaFs}px ${font}`;
-      ctx.textAlign = 'right';
-      ctx.fillText(formatted, textRight, y);
-      y += metaRowH;
-    }
-
-    if (hasCampaign) {
-      ctx.fillStyle = 'rgba(255,255,255,0.6)';
-      ctx.textAlign = 'left';
-      ctx.fillText('campaign:', textX, y);
-      ctx.fillStyle = '#ffffff';
-      ctx.textAlign = 'right';
-      ctx.fillText(data.campaign!, textRight, y);
-      y += metaRowH;
-    }
-
-    ctx.restore();
-    y += 12 * scale;
-  }
-
-  // ── description ──
-  if (data.description?.trim()) {
-    ctx.save();
-    ctx.font = `400 ${descFs}px ${font}`;
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.textBaseline = 'top';
-    ctx.textAlign = 'left';
-
-    const desc = data.description.toLowerCase();
-    const lines = wrapText(ctx, desc, textMaxW, 2);
+    ctx.font = `300 ${narrativeFs}px ${font}`;
+    ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    const lines = wrapText(ctx, narrative.toLowerCase(), textMaxW, 6);
     for (const line of lines) {
-      ctx.fillText(line, textX, y);
-      y += descLineH;
+      ctx.fillText(line, tx, ty);
+      ty += narrativeFs * 1.45;
     }
-
+    ty += 6 * scale;
     ctx.restore();
-    y += 12 * scale;
   }
 
-  // ── action buttons ──
-  if (actions.length > 0) {
-    const btnPadX = 12 * scale;
-    const btnPadY = 8 * scale;
-    const btnRadius = 6 * scale;
-    let btnX = textX;
-    const btnH = actionFs + btnPadY * 2;
-
+  if (meta.ctaLabel) {
     ctx.save();
-    ctx.textBaseline = 'middle';
+    ctx.font = `400 ${ctaFs}px ${font}`;
+    const label = meta.ctaLabel.toLowerCase();
+    const tw = ctx.measureText(label).width;
+    const pillW = tw + 28 * scale;
+    const pillH = ctaFs + 16 * scale;
+    const pillX = tx;
+    const pillY = ty + 4 * scale;
+    roundRect(ctx, pillX, pillY, pillW, pillH, pillH / 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+    ctx.lineWidth = Math.max(1, scale);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
     ctx.textAlign = 'center';
-
-    for (const action of actions) {
-      ctx.font = `600 ${actionFs}px ${font}`;
-      const labelW = ctx.measureText(action.label).width;
-      const btnW = labelW + btnPadX * 2;
-
-      const grad = ctx.createLinearGradient(btnX, y, btnX + btnW, y + btnH);
-      if (action.type === 'claim') {
-        grad.addColorStop(0, '#667eea');
-        grad.addColorStop(1, '#764ba2');
-      } else if (action.type === 'share') {
-        grad.addColorStop(0, '#8b5cf6');
-        grad.addColorStop(1, '#7c3aed');
-      } else {
-        // purchase / info — muted
-        grad.addColorStop(0, '#6b7280');
-        grad.addColorStop(1, '#4b5563');
-      }
-
-      roundRect(ctx, btnX, y, btnW, btnH, btnRadius);
-      ctx.fillStyle = grad;
-      ctx.fill();
-
-      ctx.fillStyle = action.type === 'purchase' ? '#9ca3af' : '#ffffff';
-      ctx.fillText(action.label, btnX + btnW / 2, y + btnH / 2);
-
-      btnX += btnW + 8 * scale;
-      if (btnX + 60 * scale > textRight) break; // don't overflow
-    }
-
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, pillX + pillW / 2, pillY + pillH / 2);
     ctx.restore();
   }
 }
 
-// ─── helpers ──────────────────────────────────────────────────────────────────
-
-// wrap text into at most maxLines lines, truncating the last with '…'
 function wrapText(ctx: CanvasRenderingContext2D, text: string, maxW: number, maxLines: number): string[] {
-  const words = text.split(' ');
+  const words = text.split(/\s+/);
   const lines: string[] = [];
   let line = '';
 
@@ -311,41 +241,43 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxW: number, max
 
   if (line && lines.length < maxLines) {
     if (ctx.measureText(line).width > maxW) {
-      // truncate last line
-      while (line.length > 1 && ctx.measureText(line + '…').width > maxW) {
+      while (line.length > 1 && ctx.measureText(`${line}…`).width > maxW) {
         line = line.slice(0, -1);
       }
-      lines.push(line + '…');
+      lines.push(`${line}…`);
     } else {
       lines.push(line);
     }
   } else if (lines.length === maxLines && lines[maxLines - 1]) {
-    // truncate last line
     let last = lines[maxLines - 1];
-    while (last.length > 1 && ctx.measureText(last + '…').width > maxW) {
+    while (last.length > 1 && ctx.measureText(`${last}…`).width > maxW) {
       last = last.slice(0, -1);
     }
-    lines[maxLines - 1] = last + '…';
+    lines[maxLines - 1] = `${last}…`;
   }
 
   return lines;
 }
 
-// truncate string to fit within maxW pixels
 function truncate(s: string, maxW: number, ctx: CanvasRenderingContext2D): string {
   if (ctx.measureText(s).width <= maxW) return s;
-  while (s.length > 1 && ctx.measureText(s + '…').width > maxW) {
-    s = s.slice(0, -1);
+  let t = s;
+  while (t.length > 1 && ctx.measureText(`${t}…`).width > maxW) {
+    t = t.slice(0, -1);
   }
-  return s + '…';
+  return `${t}…`;
 }
 
 function coverRect(
-  srcW: number, srcH: number, dstW: number, dstH: number
+  srcW: number,
+  srcH: number,
+  dstW: number,
+  dstH: number
 ): { drawX: number; drawY: number; drawW: number; drawH: number } {
   const srcRatio = srcW / srcH;
   const dstRatio = dstW / dstH;
-  let drawW: number, drawH: number;
+  let drawW: number;
+  let drawH: number;
   if (srcRatio > dstRatio) {
     drawH = dstH;
     drawW = drawH * srcRatio;
@@ -374,7 +306,6 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 
 export async function shareARCapture(
   mountEl: HTMLElement | null,
-  overlayData: OverlayData | null,
   threeContext: ThreeContext | null,
   shareMetadata: ARShareMetadata,
   fallbackBlob: () => Promise<Blob>
@@ -383,9 +314,9 @@ export async function shareARCapture(
 
   if (mountEl) {
     try {
-      blob = await compositeARFrame(mountEl, overlayData, threeContext);
+      blob = await compositeARFrame(mountEl, shareMetadata, threeContext);
     } catch (err: any) {
-      console.warn('[shareARCapture] live capture failed, using fallback:', err?.message);
+      console.warn('[shareARCapture] live composite failed, trying story card:', err?.message);
     }
   }
 
@@ -393,7 +324,7 @@ export async function shareARCapture(
     try {
       blob = await fallbackBlob();
     } catch (err: any) {
-      console.error('[shareARCapture] fallback capture also failed:', err?.message);
+      console.error('[shareARCapture] story card capture also failed:', err?.message);
     }
   }
 
@@ -405,7 +336,6 @@ export async function shareARCapture(
   const filename = blob.type === 'image/jpeg' ? 'wmcyn-ar-moment.jpg' : 'wmcyn-ar-moment.png';
   const file = new File([blob], filename, { type: blob.type, lastModified: Date.now() });
 
-  // path 1: native file share
   if (
     typeof navigator.share === 'function' &&
     typeof navigator.canShare === 'function' &&
@@ -420,7 +350,6 @@ export async function shareARCapture(
     }
   }
 
-  // path 2: download + copy link
   try {
     const objectUrl = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
@@ -436,7 +365,6 @@ export async function shareARCapture(
     console.error('[shareARCapture] download failed:', err?.message);
   }
 
-  // path 3: copy link only
   try {
     await navigator.clipboard.writeText(shareMetadata.shareUrl);
     return { success: true, method: 'copy-link' };

@@ -1,5 +1,19 @@
 import { useEffect, useRef } from 'react';
 import { type MarkerConfig } from '../config/markers';
+import {
+  buildARVideoConstraints,
+  getMindArEnvironmentDeviceId,
+  sharpenVideoElementTrack,
+} from '../utils/cameraConstraints';
+import { applyLinearTextureFiltersForWebGL1 } from '../utils/threeTextureFilters';
+import {
+  logActiveVideoResolutionSoon,
+  logWebGLDrawBuffer,
+} from '../utils/cameraResolutionLog';
+import {
+  popArGetUserMediaResolutionPatch,
+  pushArGetUserMediaResolutionPatch,
+} from '../utils/getUserMediaArPatch';
 
 interface UseARSceneProps {
   mountRef: React.RefObject<HTMLDivElement>;
@@ -61,6 +75,9 @@ export interface ThreeContext {
   spinRotation?: number;
 }
 
+/** silent abort path when user leaves ar during init — not a real failure */
+const MINDAR_INIT_CANCELLED = 'MINDAR_INIT_CANCELLED';
+
 export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -69,6 +86,10 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
   const isCancelledRef = useRef(false);
   const threeRef = useRef<ThreeContext | null>(null);
   const mindARRef = useRef<any>(null);
+  /** cleared on mindar start settle + on unmount — avoids orphaned timeout logging after success/cleanup */
+  const mindArStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** abort preflight .mind fetch when leaving ar (stops “load failed” noise from cancelled requests) */
+  const mindPrefetchAbortRef = useRef<AbortController | null>(null);
 
   // pinch-to-scale state
   const userScaleRef = useRef(1.0);         // multiplier driven by pinch gesture
@@ -174,6 +195,13 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
     return () => {
       isCancelledRef.current = true;
 
+      mindPrefetchAbortRef.current?.abort();
+      mindPrefetchAbortRef.current = null;
+      if (mindArStartTimeoutRef.current) {
+        clearTimeout(mindArStartTimeoutRef.current);
+        mindArStartTimeoutRef.current = null;
+      }
+
       container.removeEventListener('touchstart', handleTouchStart);
       container.removeEventListener('touchmove', handleTouchMove);
       container.removeEventListener('touchend', handleTouchEnd);
@@ -229,6 +257,9 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
           console.log('[useARScene] Successfully initialized with marker:', config.name);
           break;
         } catch (err: any) {
+          if (err?.message === MINDAR_INIT_CANCELLED || isCancelledRef.current) {
+            break;
+          }
           console.error(`[useARScene] Failed to initialize with marker ${config.name}:`, err);
           // if this is the last marker, throw the error
           if (i === configs.length - 1) {
@@ -260,9 +291,11 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
         }
         console.log('[useARScene] Checking .mind file accessibility:', mindFileUrl);
         let fileAccessible = false;
+        mindPrefetchAbortRef.current = new AbortController();
+        const prefetchSignal = mindPrefetchAbortRef.current.signal;
         try {
           // try GET instead of HEAD to better simulate what MindAR will do
-          const response = await fetch(mindFileUrl!, { method: 'GET' });
+          const response = await fetch(mindFileUrl!, { method: 'GET', signal: prefetchSignal });
           if (!response.ok) {
             throw new Error(`.mind file not accessible: ${response.status} ${response.statusText}`);
           }
@@ -282,6 +315,9 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
           }
           fileAccessible = true;
         } catch (fetchErr: any) {
+          if (fetchErr?.name === 'AbortError' || prefetchSignal.aborted) {
+            throw new Error(MINDAR_INIT_CANCELLED);
+          }
           console.error('[useARScene] .mind file fetch failed:', fetchErr.message);
           console.error('[useARScene] .mind file URL:', mindFileUrl);
           console.error('[useARScene] Full fetch error:', fetchErr);
@@ -300,6 +336,9 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
 
         if (isCancelledRef.current) return;
 
+        // mind-ar@1.2.5 ignores a custom `video` object; it only uses environmentDeviceId + facingMode.
+        const mindArEnvDeviceId = await getMindArEnvironmentDeviceId();
+
         // create mindar instance with built-in stabilization
         // filterMinCF: lower = smoother but more delay (default: 0.001)
         // filterBeta: higher = more responsive but more jitter (default: 1000)
@@ -317,18 +356,14 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
             uiError: 'no',
             filterMinCF: 0.0001, // very smooth tracking
             filterBeta: 0.01, // low responsiveness for stability
-            video: {
-              facingMode: { ideal: 'environment' },
-              width: { min: 1280, ideal: 1920 },
-              height: { min: 720, ideal: 1080 },
-              frameRate: { ideal: 30, max: 60 },
-            },
+            ...(mindArEnvDeviceId ? { environmentDeviceId: mindArEnvDeviceId } : {}),
           });
           console.log('[useARScene] MindAR instance created successfully');
           
           // add error listeners to catch MindAR internal errors
           if (mindar.on && typeof mindar.on === 'function') {
             mindar.on('error', (error: any) => {
+              if (isCancelledRef.current) return;
               console.error('[useARScene] MindAR error event:', error);
               console.error('[useARScene] MindAR error details:', {
                 error,
@@ -410,6 +445,7 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
             });
             
             model = gltf.scene;
+            applyLinearTextureFiltersForWebGL1(model, THREE);
             
             // scale and position the model
             const box = new THREE.Box3().setFromObject(model);
@@ -488,6 +524,9 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
           imageTargetSrc: config.mindTargetSrc
         });
         
+        // mindar’s internal getusermedia omits width/height — patch merges 1280×720 so webkit does not pick vga
+        pushArGetUserMediaResolutionPatch();
+
         // wrap start() in a promise to catch errors
         const startPromise = new Promise<void>((resolve, reject) => {
           try {
@@ -515,7 +554,12 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
         });
         
         const timeoutPromise = new Promise<void>((_, reject) => {
-          setTimeout(() => {
+          mindArStartTimeoutRef.current = setTimeout(() => {
+            mindArStartTimeoutRef.current = null;
+            if (isCancelledRef.current) {
+              reject(new Error(MINDAR_INIT_CANCELLED));
+              return;
+            }
             console.error('[useARScene] Timeout reached - MindAR.start() did not complete');
             reject(new Error(`MindAR start timed out after 12 seconds. Check camera permissions and .mind file: ${config.mindTargetSrc}`));
           }, 12000);
@@ -523,6 +567,7 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
         
         // log progress every 5 seconds
         const progressInterval = setInterval(() => {
+          if (isCancelledRef.current) return;
           console.log('[useARScene] Still waiting for MindAR.start()...', {
             targetFile: config.mindTargetSrc,
             configName: config.name
@@ -531,10 +576,11 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
         
         try {
           await Promise.race([startPromise, timeoutPromise]);
-          clearInterval(progressInterval);
         } catch (startError: any) {
-          clearInterval(progressInterval);
           const errorMsg = startError?.message || String(startError);
+          if (errorMsg === MINDAR_INIT_CANCELLED || isCancelledRef.current) {
+            throw new Error(MINDAR_INIT_CANCELLED);
+          }
           console.error('[useARScene] MindAR start failed:', errorMsg);
           console.error('[useARScene] Error details:', {
             message: errorMsg,
@@ -549,6 +595,13 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
           }
           
           throw startError;
+        } finally {
+          if (mindArStartTimeoutRef.current) {
+            clearTimeout(mindArStartTimeoutRef.current);
+            mindArStartTimeoutRef.current = null;
+          }
+          clearInterval(progressInterval);
+          popArGetUserMediaResolutionPatch();
         }
         
         console.log('[useARScene] MindAR started successfully');
@@ -557,6 +610,17 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
           mindar.stop();
           return;
         }
+
+        // mindar.resize() sets renderer buffer from container; refresh pixel ratio after internal setup
+        try {
+          mindar.resize?.();
+          if (mindar.renderer?.setPixelRatio) {
+            mindar.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
+          }
+        } catch { /* ok */ }
+
+        logActiveVideoResolutionSoon('nft/mindar', mindar.video);
+        logWebGLDrawBuffer('nft/mindar', mindar.renderer);
 
         // animation loop - mindar handles position smoothing via filterMinCF/filterBeta
         let lastTime = performance.now();
@@ -597,6 +661,9 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
         setIsLoading(false);
 
       } catch (err: any) {
+        if (err?.message === MINDAR_INIT_CANCELLED) {
+          return;
+        }
         console.error('[useARScene] NFT AR failed:', err?.message || err);
         console.error('[useARScene] Full error:', err);
         
@@ -629,13 +696,9 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
     // pattern ar fallback (camera + 3d model overlay)
     async function initPatternAR(container: HTMLDivElement, config: MarkerConfig) {
       try {
+        const videoConstraints = await buildARVideoConstraints();
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: 'environment' },
-            width: { min: 1280, ideal: 1920 },
-            height: { min: 720, ideal: 1080 },
-            frameRate: { ideal: 30, max: 60 },
-          },
+          video: videoConstraints,
           audio: false
         });
 
@@ -660,6 +723,9 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
         await video.play();
         if (isCancelledRef.current) return;
 
+        await sharpenVideoElementTrack(video);
+        logActiveVideoResolutionSoon('pattern-ar (after sharpen)', video);
+
         // set up three.js
         const THREE = await import('three');
         const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
@@ -675,6 +741,7 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
         renderer.setClearColor(0x000000, 0);
         renderer.domElement.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:2;pointer-events:none';
         container.appendChild(renderer.domElement);
+        logWebGLDrawBuffer('pattern-ar', renderer);
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
@@ -698,6 +765,7 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
           if (isCancelledRef.current) return;
 
           model = gltf.scene;
+          applyLinearTextureFiltersForWebGL1(model, THREE);
           const box = new THREE.Box3().setFromObject(model);
           const center = box.getCenter(new THREE.Vector3());
           model.position.sub(center);

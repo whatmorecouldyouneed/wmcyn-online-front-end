@@ -173,8 +173,8 @@ const ARCamera = ({ onClose, configs, meta, shareUrl }: ARCameraProps): JSX.Elem
   }, [detectedMarker]);
 
   // single share handler — used by both the legacy 📸 path and dynamic share actions.
-  // primary path: composite the live ar view (video + webgl canvas + overlay strip).
-  // fallback: export the hidden branded story card if live capture produces nothing.
+  // primary path: live camera + webgl + liquid glass narrative dock (canvas).
+  // fallback: full-bleed ARShareCard via html-to-image if composite fails.
   const handleShare = useCallback(async () => {
     if (isSharing) return;
     setIsSharing(true);
@@ -183,7 +183,6 @@ const ARCamera = ({ onClose, configs, meta, shareUrl }: ARCameraProps): JSX.Elem
     try {
       const result = await shareARCapture(
         mountRef.current,
-        overlayMetadata as any,
         threeRef.current,
         shareMetadata,
         // fallback: render the static story card via html-to-image
@@ -226,7 +225,7 @@ const ARCamera = ({ onClose, configs, meta, shareUrl }: ARCameraProps): JSX.Elem
     } finally {
       setIsSharing(false);
     }
-  }, [isSharing, mountRef, overlayMetadata, threeRef, shareCardRef, shareMetadata]);
+  }, [isSharing, mountRef, threeRef, shareCardRef, shareMetadata]);
 
   // action handler passed to ARMetadataOverlay for non-share / non-url actions.
   // url opening is handled inside ARMetadataOverlay.handleAction itself so we

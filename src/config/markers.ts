@@ -43,7 +43,7 @@ export const markerConfigs: MarkerConfig[] = [
     label: 'wmcyn ar experience',
     metadata: {
       id: 'wmcyn-banner-001',
-      title: 'wmcyn hq office banner',
+      title: 'wmcyn headquarters office banner',
       description: 'official wmcyn headquarters office banner',
       printDate: '2025-12-19',
       printLocation: 'atlanta, ga',
@@ -53,7 +53,7 @@ export const markerConfigs: MarkerConfig[] = [
         amount: 'priceless',
         currencyCode: 'USD'
       },
-      isClaimed: false
+      isClaimed: true,
     }
   },
 ]; 

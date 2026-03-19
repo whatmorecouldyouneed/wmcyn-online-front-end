@@ -14,6 +14,12 @@ export function buildShareMetadata(
     description?: string;
     campaign?: string;
     createdAt?: string;
+    printDate?: string;
+    printLocation?: string;
+    quantity?: number;
+    editionNumber?: number;
+    price?: { amount: string; currencyCode: string };
+    isClaimed?: boolean;
     actions?: Array<{ type: string; label: string; url?: string }>;
   } | null,
   shareUrl: string
@@ -22,7 +28,7 @@ export function buildShareMetadata(
     (a) => a.type === 'purchase' || a.type === 'claim' || a.type === 'info'
   );
 
-  return {
+  const base: ARShareMetadata = {
     title: overlayMetadata?.title || 'wmcyn ar experience',
     description: overlayMetadata?.description,
     campaign: overlayMetadata?.campaign,
@@ -30,6 +36,23 @@ export function buildShareMetadata(
     shareUrl,
     ctaLabel: firstCta?.label,
   };
+
+  const om = overlayMetadata;
+  if (om?.printDate != null) {
+    return {
+      ...base,
+      kind: 'product',
+      printDate: om.printDate,
+      printLocation: om.printLocation,
+      quantity: om.quantity,
+      editionNumber: om.editionNumber,
+      priceAmount: om.price?.amount,
+      priceCurrency: om.price?.currencyCode,
+      isClaimed: om.isClaimed,
+    };
+  }
+
+  return { ...base, kind: 'session' };
 }
 
 // capture the hidden share card element to a png blob using html-to-image.

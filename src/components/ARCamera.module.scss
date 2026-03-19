@@ -64,13 +64,9 @@
   padding: 0 !important;
   background: #000 !important;
   
+  // mindar sets video width/height in px to match camera fov — do not force 100%/cover !important (blurry + misaligned)
   video {
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover !important;
     position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
     z-index: 1 !important;
     background: #000 !important;
   }
@@ -86,6 +82,7 @@
 // hidden container that holds the 1080×1920 share card offscreen.
 // position: fixed + offscreen so it doesn't affect layout or scrolling.
 // the card needs to be mounted (visible in the DOM) so html-to-image can render it.
+// do not use transform: scale(0) — html-to-image captures empty pixels; off-screen + no pointer is enough
 .shareCardOffscreen {
   position: fixed;
   top: 0;
@@ -95,9 +92,6 @@
   overflow: hidden;
   pointer-events: none;
   z-index: -1;
-  // scaled down so it's invisible but renderable
-  transform: scale(0);
-  transform-origin: top left;
 }
 
 // one-time interactable hint — appears when the 3d model first becomes visible
