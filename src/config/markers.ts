@@ -22,6 +22,7 @@ export interface MarkerConfig {
   patternUrl?: string; // optional for nft markers, can be a local path or a special identifier
   modelUrl: string;
   scale?: number;
+  yOffset?: number; // per-marker y position override; falls back to MODEL_Y_OFFSET in useARScene
   label?: string;
   metadata?: ProductMetadata | ARSessionMetadata;
   onFound?: () => void;
@@ -56,4 +57,51 @@ export const markerConfigs: MarkerConfig[] = [
       isClaimed: true,
     }
   },
-]; 
+];
+
+// og apparel markers — not in default markerConfigs; product pages load these individually
+export const wmcynOgTeeMarker: MarkerConfig = {
+  name: 'wmcyn-og-tee',
+  modelUrl: '/models/wmcyn_3d_logo.glb',
+  scale: 1.2,
+  yOffset: -1.5,
+  markerType: 'nft',
+  mindTargetSrc: '/patterns/wmcyn-og-tee.mind',
+  label: 'wmcyn ar experience',
+  metadata: {
+    id: 'wmcyn-og-tee-001',
+    title: 'wmcyn og long sleeve tee',
+    description: 'white long sleeve with black wmcyn logo',
+    printDate: '2026-03-27',
+    printLocation: 'atlanta, ga',
+    quantity: 1,
+    price: {
+      amount: '$20.00',
+      currencyCode: 'USD',
+    },
+    isClaimed: true,
+  },
+};
+
+export const wmcynOgHoodieMarker: MarkerConfig = {
+  name: 'wmcyn-og-hoodie',
+  modelUrl: '/models/wmcyn_3d_logo.glb',
+  scale: 1.2,
+  yOffset: -1.5,
+  markerType: 'nft',
+  mindTargetSrc: '/patterns/wmcyn-og-hoodie.mind',
+  label: 'wmcyn ar experience',
+  metadata: {
+    id: 'wmcyn-og-hoodie-001',
+    title: 'wmcyn og hoodie',
+    description: 'heather grey hoodie with black accent wmcyn branding final sample',
+    printDate: '2026-03-27',
+    printLocation: 'atlanta, ga',
+    quantity: 1,
+    price: {
+      amount: '$30.00',
+      currencyCode: 'USD',
+    },
+    isClaimed: true,
+  },
+};

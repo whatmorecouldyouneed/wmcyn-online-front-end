@@ -457,7 +457,8 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
             
             // center the model and offset below the marker
             const center = box.getCenter(new THREE.Vector3());
-            model.position.set(-center.x * scale, MODEL_Y_OFFSET, -center.z * scale);
+            const yPos = config.yOffset ?? MODEL_Y_OFFSET;
+            model.position.set(-center.x * scale, yPos, -center.z * scale);
 
             // build the interaction highlight: a slightly-scaled BackSide mesh on every surface
             // collect meshes first, then add outlines — avoids traverse visiting newly-added children
