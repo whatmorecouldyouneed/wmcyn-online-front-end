@@ -27,13 +27,13 @@ function ordinalDay(n: number): string {
   return `${n}th`;
 }
 
-/** e.g. december 18th 2025 */
+/** e.g. december 18th, 2025 */
 export function formatShareDateLong(dateString: string): string {
   const date = new Date(dateString);
   const m = MONTHS[date.getMonth()];
   const d = ordinalDay(date.getDate());
   const y = date.getFullYear();
-  return `${m} ${d} ${y}`;
+  return `${m} ${d}, ${y}`;
 }
 
 // expand trailing ", ga" style to ", georgia" for share copy

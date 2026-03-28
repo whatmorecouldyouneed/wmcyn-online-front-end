@@ -113,8 +113,8 @@ const ARMetadataOverlay: React.FC<ARMetadataOverlayProps> = ({
               <span className={styles.label}>quantity:</span>
               <span className={styles.value}>
                 {productMetadata.editionNumber != null
-                  ? `${productMetadata.editionNumber} of ${productMetadata.quantity}`
-                  : `${productMetadata.quantity}`}
+                  ? `${productMetadata.editionNumber} of ${productMetadata.quantity} made`
+                  : `${productMetadata.quantity} made`}
               </span>
             </div>
             

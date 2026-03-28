@@ -70,11 +70,12 @@ export const wmcynOgTeeMarker: MarkerConfig = {
   label: 'wmcyn ar experience',
   metadata: {
     id: 'wmcyn-og-tee-001',
-    title: 'wmcyn og long sleeve tee',
-    description: 'white long sleeve with black wmcyn logo final sample',
+    title: 'wmcyn og long sleeve tee (final sample)',
+    description: 'white long sleeve with black wmcyn logo final sample, testing marker flow',
     printDate: '2026-03-27',
     printLocation: 'atlanta, ga',
     quantity: 1,
+    editionNumber: 1,
     price: {
       amount: '20.00',
       currencyCode: 'USD',
@@ -93,11 +94,12 @@ export const wmcynOgHoodieMarker: MarkerConfig = {
   label: 'wmcyn ar experience',
   metadata: {
     id: 'wmcyn-og-hoodie-001',
-    title: 'wmcyn og hoodie',
-    description: 'heather grey hoodie with black accent wmcyn branding final sample',
+    title: 'wmcyn og hoodie (final sample)',
+    description: 'heather grey hoodie with black accent wmcyn branding final sample, testing marker flow',
     printDate: '2026-03-27',
     printLocation: 'atlanta, ga',
     quantity: 1,
+    editionNumber: 1,
     price: {
       amount: '30.00',
       currencyCode: 'USD',
