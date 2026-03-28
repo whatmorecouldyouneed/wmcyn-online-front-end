@@ -121,10 +121,10 @@ export function buildNarrativeLine(meta: ARShareMetadata): string {
     const head =
       meta.printDate != null
         ? meta.printLocation?.trim()
-          ? `this banner was printed ${formatShareDateLong(meta.printDate)} in ${formatLocationForShare(meta.printLocation)}`
-          : `this banner was printed ${formatShareDateLong(meta.printDate)}`
+          ? `this piece was printed ${formatShareDateLong(meta.printDate)} in ${formatLocationForShare(meta.printLocation)}`
+          : `this piece was printed ${formatShareDateLong(meta.printDate)}`
         : meta.printLocation?.trim()
-          ? `this banner was printed in ${formatLocationForShare(meta.printLocation)}`
+          ? `this piece was printed in ${formatLocationForShare(meta.printLocation)}`
           : '';
 
     const mid: string[] = [];
