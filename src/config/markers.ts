@@ -71,12 +71,12 @@ export const wmcynOgTeeMarker: MarkerConfig = {
   metadata: {
     id: 'wmcyn-og-tee-001',
     title: 'wmcyn og long sleeve tee',
-    description: 'white long sleeve with black wmcyn logo',
+    description: 'white long sleeve with black wmcyn logo final sample',
     printDate: '2026-03-27',
     printLocation: 'atlanta, ga',
     quantity: 1,
     price: {
-      amount: '$20.00',
+      amount: '20.00',
       currencyCode: 'USD',
     },
     isClaimed: true,
@@ -99,7 +99,7 @@ export const wmcynOgHoodieMarker: MarkerConfig = {
     printLocation: 'atlanta, ga',
     quantity: 1,
     price: {
-      amount: '$30.00',
+      amount: '30.00',
       currencyCode: 'USD',
     },
     isClaimed: true,
