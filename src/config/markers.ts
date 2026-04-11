@@ -59,6 +59,30 @@ export const markerConfigs: MarkerConfig[] = [
   },
 ];
 
+// dyvsco star tee — not in default markerConfigs; product page loads this individually
+export const dyvscoStarTeeMarker: MarkerConfig = {
+  name: 'dyvsco-star-tee',
+  modelUrl: '/models/wmcyn_3d_logo.glb',
+  scale: 1.2,
+  yOffset: -1.5,
+  markerType: 'nft',
+  mindTargetSrc: '/patterns/dyvsco-star-tee.mind',
+  label: 'wmcyn ar experience',
+  metadata: {
+    id: 'dyvsco-star-tee-001',
+    title: 'dyvsco star tee',
+    printDate: '2026-04-10',
+    printLocation: 'atlanta, ga',
+    quantity: 1,
+    editionNumber: 1,
+    price: {
+      amount: 'priceless',
+      currencyCode: 'USD',
+    },
+    isClaimed: false,
+  },
+};
+
 // og apparel markers — not in default markerConfigs; product pages load these individually
 export const wmcynOgTeeMarker: MarkerConfig = {
   name: 'wmcyn-og-tee',
