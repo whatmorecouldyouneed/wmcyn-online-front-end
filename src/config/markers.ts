@@ -66,7 +66,7 @@ export const dyvscoStarTeeMarker: MarkerConfig = {
   scale: 1.2,
   yOffset: -1.5,
   markerType: 'nft',
-  mindTargetSrc: '/patterns/dyvsco-star-tee.mind',
+  mindTargetSrc: '/patterns/dyvsco.mind',
   label: 'wmcyn ar experience',
   metadata: {
     id: 'dyvsco-star-tee-001',
