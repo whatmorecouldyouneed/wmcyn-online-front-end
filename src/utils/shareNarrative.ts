@@ -29,10 +29,11 @@ function ordinalDay(n: number): string {
 
 /** e.g. december 18th, 2025 */
 export function formatShareDateLong(dateString: string): string {
+  // use utc methods to avoid date shifting in local timezones
   const date = new Date(dateString);
-  const m = MONTHS[date.getMonth()];
-  const d = ordinalDay(date.getDate());
-  const y = date.getFullYear();
+  const m = MONTHS[date.getUTCMonth()];
+  const d = ordinalDay(date.getUTCDate());
+  const y = date.getUTCFullYear();
   return `${m} ${d}, ${y}`;
 }
 

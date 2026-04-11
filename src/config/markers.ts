@@ -70,7 +70,7 @@ export const dyvscoStarTeeMarker: MarkerConfig = {
   label: 'wmcyn ar experience',
   metadata: {
     id: 'dyvsco-star-tee-001',
-    title: 'dyvsco star tee',
+    title: 'dxsco star tee',
     printDate: '2026-04-10',
     printLocation: 'atlanta, ga',
     quantity: 1,
