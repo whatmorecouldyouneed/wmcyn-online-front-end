@@ -83,6 +83,30 @@ export const dyvscoStarTeeMarker: MarkerConfig = {
   },
 };
 
+// wmcyn x dxsco collab tee — not in default markerConfigs; product page loads this individually
+export const wmcynXDxscoTeeMarker: MarkerConfig = {
+  name: 'wmcyn-x-dxsco-tee',
+  modelUrl: '/models/wmcyn_3d_logo.glb',
+  scale: 1.2,
+  yOffset: 0,
+  markerType: 'nft',
+  mindTargetSrc: '/patterns/dxsco-wmcyn.mind',
+  label: 'wmcyn ar experience',
+  metadata: {
+    id: 'wmcyn-x-dxsco-tee-001',
+    title: 'wmcyn x dxsco collab tee (sample)',
+    printDate: '2026-04-10',
+    printLocation: 'atlanta, ga',
+    quantity: 1,
+    editionNumber: 1,
+    price: {
+      amount: 'priceless',
+      currencyCode: 'USD',
+    },
+    isClaimed: false,
+  },
+};
+
 // og apparel markers — not in default markerConfigs; product pages load these individually
 export const wmcynOgTeeMarker: MarkerConfig = {
   name: 'wmcyn-og-tee',
