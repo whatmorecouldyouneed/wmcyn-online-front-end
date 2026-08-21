@@ -147,10 +147,8 @@ function NewsletterModal({ open, onClose, onSubmit, email, setEmail, error, hasS
         </form>
         {error && <p style={{ color: '#ff6b6b', fontSize: 14, textAlign: 'center', margin: 8 }}>{error}</p>}
         {hasSubscribed && <p style={{ color: '#51cf66', fontSize: 16, textAlign: 'center', margin: 8 }}>subscribed.</p>}
-        <p style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'var(--font-outfit), sans-serif', fontSize: 11.5, textAlign: 'center', margin: 0, lineHeight: 1.4 }}>
-          by subscribing, you agree to receive WMCYN updates. to opt out later, use{' '}
-          <Link href="/privacy-choices" style={{ color: 'rgba(255,255,255,0.75)', textDecoration: 'underline' }}>privacy choices</Link>
-          {' '}— see our <Link href="/privacy" style={{ color: 'rgba(255,255,255,0.75)', textDecoration: 'underline' }}>privacy policy</Link>.
+        <p style={{ color: 'rgba(255,255,255,0.45)', fontFamily: 'var(--font-outfit), sans-serif', fontSize: 10.5, textAlign: 'center', margin: 0, lineHeight: 1.3 }}>
+          see our <Link href="/privacy" style={{ color: 'rgba(255,255,255,0.65)', textDecoration: 'underline' }}>privacy policy</Link>
         </p>
       </div>
     </div>
