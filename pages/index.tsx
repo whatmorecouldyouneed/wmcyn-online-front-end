@@ -70,10 +70,7 @@ function NewsletterModal({ open, onClose, onSubmit, email, setEmail, error, hasS
   return (
     <div style={{
       position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100vw',
-      height: '100vh',
+      inset: 0,
       background: 'rgba(20, 20, 30, 0.85)',
       zIndex: 1000,
       display: 'flex',
@@ -165,10 +162,7 @@ function LoginPromptModal({ open, onClose, onLogin, onSignup }: {
   return (
     <div style={{
       position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100vw',
-      height: '100vh',
+      inset: 0,
       background: 'rgba(20, 20, 30, 0.85)',
       zIndex: 1000,
       display: 'flex',
