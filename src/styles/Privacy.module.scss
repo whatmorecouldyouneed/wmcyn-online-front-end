@@ -1,0 +1,157 @@
+.banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2000;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: rgba(15, 15, 20, 0.92);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  font-family: var(--font-outfit), sans-serif;
+}
+
+body.cameraActive .banner {
+  display: none;
+}
+
+.bannerText {
+  flex: 1 1 320px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  max-width: 640px;
+}
+
+.bannerLink {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.bannerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.bannerButtonPrimary,
+.bannerButtonSecondary {
+  font-family: inherit;
+  font-size: 0.8rem;
+  padding: 0.55rem 1rem;
+  border-radius: 0.7rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.bannerButtonPrimary {
+  background: #fff;
+  color: #000;
+  border: 1px solid #fff;
+}
+
+.bannerButtonSecondary {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.bannerButtonPrimary:focus-visible,
+.bannerButtonSecondary:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 14, 0.72);
+  backdrop-filter: blur(4px);
+  padding: 1rem;
+}
+
+.dialog {
+  width: 100%;
+  max-width: 440px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: rgba(24, 24, 30, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 1.1rem;
+  padding: 1.5rem;
+  font-family: var(--font-outfit), sans-serif;
+  color: #fff;
+}
+
+.dialogTitle {
+  margin: 0 0 1rem;
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.category {
+  padding: 0.85rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.categoryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  cursor: default;
+}
+
+.categoryName {
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.categoryState {
+  font-size: 0.72rem;
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.categoryDescription {
+  margin: 0.4rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  opacity: 0.75;
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .banner {
+    animation: privacyBannerSlideIn 0.3s ease-out;
+  }
+}
+
+@keyframes privacyBannerSlideIn {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}

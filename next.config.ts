@@ -25,9 +25,34 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // headers() is incompatible with output: 'export' — only apply for next dev/start
+  // headers() is incompatible with output: 'export' — only apply for next dev/start.
+  // production (GitHub Pages) uses output: 'export', so these do NOT apply there yet —
+  // see docs/legal-review-required.md for the plan to enforce them on the live site.
   ...(!isStaticExport ? {
     headers: async () => [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
+          // camera is needed for AR marker scanning; everything else stays locked down
+          { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=()' },
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob: https:",
+              "media-src 'self' blob:",
+              "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.myshopify.com https://cdn.shopify.com https://cdn.jsdelivr.net",
+              "worker-src 'self' blob:",
+              "frame-ancestors 'self'",
+            ].join('; '),
+          },
+        ],
+      },
       {
         source: '/:all*.glb',
         headers: [

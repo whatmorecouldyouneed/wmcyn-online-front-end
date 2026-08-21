@@ -10,6 +10,11 @@ import { useRouter } from "next/router";
 import { CartProvider } from '@/contexts/CartContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AdminAuthProvider } from '@/contexts/AdminAuthContext';
+import { PrivacyProvider } from '@/components/privacy/PrivacyProvider';
+import CookieBanner from '@/components/privacy/CookieBanner';
+import CookiePreferencesModal from '@/components/privacy/CookiePreferencesModal';
+import SkipLink from '@/components/SkipLink';
+import Footer from '@/components/Footer';
 import { Outfit } from 'next/font/google';
 
 declare global {
@@ -74,7 +79,10 @@ export default function App({ Component, pageProps }: AppProps) {
         <meta property="og:type" content="website" />
         <link rel="canonical" href="https://wmcyn.online/" />
       </Head>
-      <Component {...pageProps} />
+      <SkipLink />
+      <main id="main-content">
+        <Component {...pageProps} />
+      </main>
     </>
   );
 
@@ -89,7 +97,12 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <AuthProvider>
       <CartProvider>
-        <AppContent />
+        <PrivacyProvider>
+          <AppContent />
+          <Footer />
+          <CookieBanner />
+          <CookiePreferencesModal />
+        </PrivacyProvider>
       </CartProvider>
     </AuthProvider>
   );

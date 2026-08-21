@@ -38,17 +38,23 @@ if (typeof window !== 'undefined') {
     db = getDatabase(app);
     auth = getAuth(app);
     firestore = getFirestore(app);
-    
-    // Only initialize analytics if supported by the current environment
-    isAnalyticsSupported().then((supported) => {
-      if (supported) {
-        analytics = getAnalytics(app);
-      }
-    }).catch((error) => {
-      console.warn('Firebase Analytics initialization failed:', error);
-    });
   } catch (error) {
     console.error('Firebase initialization error:', error);
+  }
+}
+
+// Analytics is a passive tracking technology, so it does NOT auto-initialize on load.
+// It's only started once the visitor has granted analytics consent — see
+// src/components/privacy/PrivacyProvider.tsx, which calls this when consent.analytics is true.
+export async function initAnalytics(): Promise<void> {
+  if (analytics || typeof window === 'undefined' || !app) return;
+  try {
+    const supported = await isAnalyticsSupported();
+    if (supported) {
+      analytics = getAnalytics(app);
+    }
+  } catch (error) {
+    console.warn('Firebase Analytics initialization failed:', error);
   }
 }
 

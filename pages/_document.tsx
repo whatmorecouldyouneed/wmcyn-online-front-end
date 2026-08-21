@@ -32,6 +32,13 @@ export default function Document() {
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+        {/* production deploys as a static export (GitHub Pages), where next.config.ts's
+            headers() never runs — this is the one security header with a safe, well-supported
+            meta-tag equivalent, so it's set here to actually apply on the live site. The rest
+            of the security headers (CSP, Permissions-Policy, etc.) are defined in next.config.ts
+            for non-static deploys; see docs/legal-review-required.md for enforcing them in prod. */}
+        <meta name="referrer" content="strict-origin-when-cross-origin" />
         
         {/* github pages spa routing: restore url from ?p= query param set by 404.html */}
         <script

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-namespace */
 import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { db, ref, push, set } from '@/utils/lib/firebase';
 import { query, get, orderByChild, equalTo } from 'firebase/database';
 import Typewriter from 'typewriter-effect';
@@ -8,6 +9,7 @@ import NextImage from '@/components/NextImage';
 import styles from '@/styles/Index.module.scss';
 import { useAuth } from '@/contexts/AuthContext';
 import LiquidGlassEffect from '@/components/ui/LiquidGlassEffect';
+import { CONSENT_VERSION } from '@/lib/privacy/consent-types';
 import React from 'react';
 import { useRouter } from 'next/router';
 
@@ -37,10 +39,12 @@ function writeUserData(emailID: string) {
   
   const emailListRef = ref(db, 'emailList');
   const newEmailRef = push(emailListRef);
-  const emailData = { 
+  const emailData = {
     email: emailID,
     timestamp: Date.now(),
-    userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown'
+    userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown',
+    consentVersion: CONSENT_VERSION,
+    source: 'newsletter_modal'
   };
   
   return set(newEmailRef, emailData).catch((error) => {
@@ -143,6 +147,11 @@ function NewsletterModal({ open, onClose, onSubmit, email, setEmail, error, hasS
         </form>
         {error && <p style={{ color: '#ff6b6b', fontSize: 14, textAlign: 'center', margin: 8 }}>{error}</p>}
         {hasSubscribed && <p style={{ color: '#51cf66', fontSize: 16, textAlign: 'center', margin: 8 }}>subscribed.</p>}
+        <p style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'var(--font-outfit), sans-serif', fontSize: 11.5, textAlign: 'center', margin: 0, lineHeight: 1.4 }}>
+          by subscribing, you agree to receive WMCYN updates. to opt out later, use{' '}
+          <Link href="/privacy-choices" style={{ color: 'rgba(255,255,255,0.75)', textDecoration: 'underline' }}>privacy choices</Link>
+          {' '}— see our <Link href="/privacy" style={{ color: 'rgba(255,255,255,0.75)', textDecoration: 'underline' }}>privacy policy</Link>.
+        </p>
       </div>
     </div>
   );
@@ -391,7 +400,7 @@ function NewsletterSection() {
           return;
         }
         
-        existingEmails.push({ email, timestamp: Date.now(), fallback: true });
+        existingEmails.push({ email, timestamp: Date.now(), fallback: true, consentVersion: CONSENT_VERSION, source: 'newsletter_modal' });
         localStorage.setItem('wmcyn-emails', JSON.stringify(existingEmails));
         
         setHasSubscribed(true);
@@ -580,6 +589,9 @@ function ScannerSection({ onCameraOpen }: { onCameraOpen: () => void }) {
         </div>
         <p className={styles.scannerText}>
           tap to open camera scanner
+        </p>
+        <p className={styles.scannerText} style={{ fontSize: '0.72rem', opacity: 0.5, fontWeight: 400 }}>
+          WMCYN needs camera access to recognize the marker and display the AR experience.
         </p>
       </div>
     </div>
