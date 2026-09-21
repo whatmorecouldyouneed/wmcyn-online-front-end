@@ -465,7 +465,7 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
             );
           });
 
-          let loadedModel = gltf.scene;
+          const loadedModel = gltf.scene;
           applyLinearTextureFiltersForWebGL1(loadedModel, THREE);
 
           const box = new THREE.Box3().setFromObject(loadedModel);
@@ -482,21 +482,22 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
             THREE.MathUtils.degToRad(ry),
             THREE.MathUtils.degToRad(rz),
           );
-          loadedModel.rotation.copy(orientation);
 
-          // compensate for the rotated glb origin so the visible logo stays centered
-          const orientedCenter = center.clone().applyEuler(orientation);
-          loadedModel.position.set(-orientedCenter.x, 0, -orientedCenter.z);
+          // center the glb first, then keep orientation correction outside the spinner
+          loadedModel.position.set(-center.x, 0, -center.z);
 
           const spinRoot = new THREE.Group();
           spinRoot.scale.setScalar(scale);
-          spinRoot.position.set(0, yPos, 0);
           spinRoot.add(loadedModel);
-          loadedModel = spinRoot;
+
+          const orientationRoot = new THREE.Group();
+          orientationRoot.position.set(0, yPos, 0);
+          orientationRoot.rotation.copy(orientation);
+          orientationRoot.add(spinRoot);
 
           outlineMeshesRef.current = [];
           const nftMeshesToOutline: any[] = [];
-          loadedModel.traverse((child: any) => {
+          spinRoot.traverse((child: any) => {
             if (child.isMesh) nftMeshesToOutline.push(child);
           });
           const nftOutlineMat = new THREE.MeshBasicMaterial({
@@ -512,7 +513,7 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
             child.add(om);
             outlineMeshesRef.current.push(om);
           }
-          return loadedModel;
+          return { root: orientationRoot, spinner: spinRoot };
         })().catch((err: any) => {
           console.error('[useARScene] Model load failed:', err?.message || err);
           return null;
@@ -638,14 +639,14 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
         // mindar.start() rebuilds video/canvas; fit again so retina css size is correct
         fitMindArViewport(mindar, container);
 
-        const model = await modelPromise;
+        const markerModel = await modelPromise;
         if (isCancelledRef.current) {
           mindar.stop();
           return;
         }
-        if (model) {
-          anchor.group.add(model);
-          if (threeRef.current) threeRef.current.model = model;
+        if (markerModel) {
+          anchor.group.add(markerModel.root);
+          if (threeRef.current) threeRef.current.model = markerModel.spinner;
         } else {
           console.error('[useARScene] No model loaded - check model path:', modelUrl);
         }

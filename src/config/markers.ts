@@ -23,7 +23,7 @@ export interface MarkerConfig {
   modelUrl: string;
   scale?: number;
   yOffset?: number; // per-marker y position override; falls back to MODEL_Y_OFFSET in useARScene
-  rotationOffset?: [number, number, number]; // euler degrees applied under auto-spin; e.g. [0, 0, -90] for counterclockwise 90°
+  rotationOffset?: [number, number, number]; // euler degrees applied to the marker frame outside auto-spin
   label?: string;
   metadata?: ProductMetadata | ARSessionMetadata;
   onFound?: () => void;
@@ -162,7 +162,7 @@ export const wmcynSchoolBagMarker: MarkerConfig = {
   name: 'wmcyn-school-bag',
   modelUrl: '/models/wmcyn_3d_logo.glb',
   scale: 1.2,
-  yOffset: -1.5,
+  yOffset: 0,
   rotationOffset: [0, 0, 90],
   markerType: 'nft',
   mindTargetSrc: '/patterns/wmcyn-school-bag.mind',
@@ -187,8 +187,8 @@ export const wmcynShoulderBagMarker: MarkerConfig = {
   name: 'wmcyn-shoulder-bag',
   modelUrl: '/models/wmcyn_3d_logo.glb',
   scale: 1.2,
-  yOffset: -1.5,
-  rotationOffset: [0, 0, 90],
+  yOffset: 0,
+  rotationOffset: [0, 0, 0],
   markerType: 'nft',
   mindTargetSrc: '/patterns/wmcyn-shoulder-bag.mind',
   label: 'wmcyn ar experience',
