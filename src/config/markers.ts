@@ -155,3 +155,52 @@ export const wmcynOgHoodieMarker: MarkerConfig = {
     isClaimed: true,
   },
 };
+
+// bag markers — not in default markerConfigs; product pages load these individually
+export const wmcynSchoolBagMarker: MarkerConfig = {
+  name: 'wmcyn-school-bag',
+  modelUrl: '/models/wmcyn_3d_logo.glb',
+  scale: 1.2,
+  yOffset: -1.5,
+  markerType: 'nft',
+  mindTargetSrc: '/patterns/wmcyn-school-bag.mind',
+  label: 'wmcyn ar experience',
+  metadata: {
+    id: 'wmcyn-school-bag-001',
+    title: 'wmcyn school bag',
+    description: 'wmcyn school bag',
+    printDate: '2026-09-19',
+    printLocation: 'atlanta, ga',
+    quantity: 1,
+    editionNumber: 1,
+    price: {
+      amount: '40.00',
+      currencyCode: 'USD',
+    },
+    isClaimed: false,
+  },
+};
+
+export const wmcynShoulderBagMarker: MarkerConfig = {
+  name: 'wmcyn-shoulder-bag',
+  modelUrl: '/models/wmcyn_3d_logo.glb',
+  scale: 1.2,
+  yOffset: -1.5,
+  markerType: 'nft',
+  mindTargetSrc: '/patterns/wmcyn-cross-body-bag.mind',
+  label: 'wmcyn ar experience',
+  metadata: {
+    id: 'wmcyn-shoulder-bag-001',
+    title: 'wmcyn shoulder bag',
+    description: 'wmcyn shoulder bag',
+    printDate: '2026-09-19',
+    printLocation: 'atlanta, ga',
+    quantity: 1,
+    editionNumber: 1,
+    price: {
+      amount: '40.00',
+      currencyCode: 'USD',
+    },
+    isClaimed: false,
+  },
+};
