@@ -258,7 +258,7 @@ const ARCamera = ({ onClose, configs, meta, shareUrl }: ARCameraProps): JSX.Elem
 
       {isLoading && (
         <div className={styles.loadingOverlay}>
-          Initializing AR...
+          <div className={styles.loadingPill}>Initializing AR...</div>
         </div>
       )}
 

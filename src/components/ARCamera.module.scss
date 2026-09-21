@@ -27,15 +27,21 @@
 
 .loadingOverlay {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  pointer-events: none;
+}
+
+.loadingPill {
   color: rgba(255, 255, 255, 0.88);
   font-size: 14px;
   font-weight: 300;
   text-transform: lowercase;
   letter-spacing: 0.03em;
-  z-index: 100;
   background: rgba(8, 12, 24, 0.52);
   border: 1px solid rgba(255, 255, 255, 0.13);
   padding: 18px 28px;
@@ -45,7 +51,6 @@
   box-shadow:
     0 1.5px 0 rgba(255, 255, 255, 0.09) inset,
     0 8px 32px rgba(0, 0, 0, 0.4);
-  pointer-events: none;
   text-align: center;
   white-space: nowrap;
 }

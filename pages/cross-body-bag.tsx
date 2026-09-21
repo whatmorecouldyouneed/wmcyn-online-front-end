@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 
-export default function ShoulderBagRedirect() {
+export default function CrossBodyBagRedirect() {
   const router = useRouter();
 
   useEffect(() => {

@@ -66,6 +66,32 @@ const waitForMindAR = (): Promise<any> => {
   });
 };
 
+// mindar sizes the canvas drawing buffer in css pixels and omits style width/height.
+// on a 2x display that paints at half width × half height (1/4 area) in the top-left
+// until a later resize. always set css size + pixel ratio together.
+const fitMindArViewport = (mindar: any, container: HTMLDivElement) => {
+  const w = container.clientWidth || window.innerWidth;
+  const h = container.clientHeight || window.innerHeight;
+  try {
+    mindar.resize?.();
+  } catch { /* ok */ }
+  const renderer = mindar.renderer;
+  if (renderer?.setSize) {
+    renderer.setSize(w, h, true);
+  }
+  if (renderer?.setPixelRatio) {
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 3));
+  }
+  const canvas = renderer?.domElement as HTMLCanvasElement | undefined;
+  if (canvas) {
+    canvas.style.position = 'absolute';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
+  }
+};
+
 // shape exposed to consumers (e.g. ARCamera) so share capture can re-render on demand
 export interface ThreeContext {
   renderer: any;
@@ -307,12 +333,8 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
             url: mindFileUrl,
             status: response.status
           });
-          // verify it's actually a .mind file by checking the response
-          const blob = await response.blob();
-          console.log('[useARScene] .mind file blob size:', blob.size, 'bytes');
-          if (blob.size === 0) {
-            throw new Error('.mind file is empty');
-          }
+          // drop the body — mindar will fetch the file itself; reading it here delayed init
+          await response.body?.cancel();
           fileAccessible = true;
         } catch (fetchErr: any) {
           if (fetchErr?.name === 'AbortError' || prefetchSignal.aborted) {
@@ -389,12 +411,10 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
         
           mindARRef.current = mindar;
 
-          // push renderer to native device pixel ratio for sharper live view and captures
-          if (mindar.renderer) {
-            try {
-              mindar.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
-            } catch { /* ok if mindar doesn't expose renderer yet */ }
-          }
+          // size canvas to the container immediately. mindar's first buffer is css pixels
+          // with no style, so on 2x/3x screens it sits at 1/4–1/9 size in the top-left
+          // until start() finishes — which waits on the glb and .mind download.
+          fitMindArViewport(mindar, container);
 
           const { renderer, scene, camera } = mindar;
 
@@ -415,87 +435,84 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
           scene.add(anchor.group);
         }
 
-        // load 3d model
+        // load the glb in parallel with mindar.start() — do not block the first
+        // viewport fit on this download (that is what held the 1/4-size canvas on screen)
         const modelUrl = config?.modelUrl || '/models/wmcyn_3d_logo.glb';
-        let model: any = null;
-
         console.log('[useARScene] Loading 3D model from:', modelUrl);
-        const GLTFLoader = THREE.GLTFLoader || (window as any).THREE?.GLTFLoader;
-        
-        if (GLTFLoader) {
-          try {
-            const loader = new GLTFLoader();
-            const gltf = await new Promise<any>((resolve, reject) => {
-              loader.load(
-                modelUrl, 
-                (loaded: any) => {
-                  console.log('[useARScene] Model loaded successfully');
-                  resolve(loaded);
-                }, 
-                (progress: any) => {
-                  if (progress.lengthComputable) {
-                    console.log('[useARScene] Model loading:', Math.round(progress.loaded / progress.total * 100) + '%');
-                  }
-                }, 
-                (error: any) => {
-                  console.error('[useARScene] Model load error:', error);
-                  reject(error);
-                }
-              );
-            });
-            
-            model = gltf.scene;
-            applyLinearTextureFiltersForWebGL1(model, THREE);
-            
-            // scale and position the model
-            const box = new THREE.Box3().setFromObject(model);
-            const size = box.getSize(new THREE.Vector3());
-            const maxDim = Math.max(size.x, size.y, size.z);
-            const scale = (config.scale || 0.8) / maxDim;
-            model.scale.setScalar(scale);
-            baseScaleRef.current = scale;
-            
-            // center the model and offset below the marker
-            const center = box.getCenter(new THREE.Vector3());
-            const yPos = config.yOffset ?? MODEL_Y_OFFSET;
-            model.position.set(-center.x * scale, yPos, -center.z * scale);
-
-            // build the interaction highlight: a slightly-scaled BackSide mesh on every surface
-            // collect meshes first, then add outlines — avoids traverse visiting newly-added children
-            outlineMeshesRef.current = [];
-            const nftMeshesToOutline: any[] = [];
-            model.traverse((child: any) => {
-              if (child.isMesh) nftMeshesToOutline.push(child);
-            });
-            const nftOutlineMat = new THREE.MeshBasicMaterial({
-              color: 0xffd700,
-              side: THREE.BackSide,
-              transparent: true,
-              opacity: 0,
-              depthWrite: false,
-            });
-            for (const child of nftMeshesToOutline) {
-              const om = new THREE.Mesh(child.geometry, nftOutlineMat.clone());
-              om.scale.setScalar(1.08);
-              child.add(om);
-              outlineMeshesRef.current.push(om);
-            }
-            
-          } catch (err: any) {
-            console.error('[useARScene] Model load failed:', err?.message || err);
+        const modelPromise = (async () => {
+          const GLTFLoader = THREE.GLTFLoader || (window as any).THREE?.GLTFLoader;
+          if (!GLTFLoader) {
+            console.warn('[useARScene] GLTFLoader not available');
+            return null;
           }
-        } else {
-          console.warn('[useARScene] GLTFLoader not available');
-        }
-        
-        // only add model if it loaded successfully - no fallback cube
-        if (model) {
-          anchor.group.add(model);
-        } else {
-          console.error('[useARScene] No model loaded - check model path:', modelUrl);
-        }
-        
-        threeRef.current = { renderer, scene, camera, model };
+          const loader = new GLTFLoader();
+          const gltf = await new Promise<any>((resolve, reject) => {
+            loader.load(
+              modelUrl,
+              (loaded: any) => {
+                console.log('[useARScene] Model loaded successfully');
+                resolve(loaded);
+              },
+              (progress: any) => {
+                if (progress.lengthComputable) {
+                  console.log('[useARScene] Model loading:', Math.round(progress.loaded / progress.total * 100) + '%');
+                }
+              },
+              (error: any) => {
+                console.error('[useARScene] Model load error:', error);
+                reject(error);
+              }
+            );
+          });
+
+          let loadedModel = gltf.scene;
+          applyLinearTextureFiltersForWebGL1(loadedModel, THREE);
+
+          const box = new THREE.Box3().setFromObject(loadedModel);
+          const size = box.getSize(new THREE.Vector3());
+          const maxDim = Math.max(size.x, size.y, size.z);
+          const scale = (config.scale || 0.8) / maxDim;
+          baseScaleRef.current = scale;
+
+          const center = box.getCenter(new THREE.Vector3());
+          const yPos = config.yOffset ?? MODEL_Y_OFFSET;
+          const [rx, ry, rz] = config.rotationOffset ?? [0, 0, 0];
+          loadedModel.rotation.set(
+            THREE.MathUtils.degToRad(rx),
+            THREE.MathUtils.degToRad(ry),
+            THREE.MathUtils.degToRad(rz),
+          );
+          const spinRoot = new THREE.Group();
+          spinRoot.scale.setScalar(scale);
+          spinRoot.position.set(-center.x * scale, yPos, -center.z * scale);
+          spinRoot.add(loadedModel);
+          loadedModel = spinRoot;
+
+          outlineMeshesRef.current = [];
+          const nftMeshesToOutline: any[] = [];
+          loadedModel.traverse((child: any) => {
+            if (child.isMesh) nftMeshesToOutline.push(child);
+          });
+          const nftOutlineMat = new THREE.MeshBasicMaterial({
+            color: 0xffd700,
+            side: THREE.BackSide,
+            transparent: true,
+            opacity: 0,
+            depthWrite: false,
+          });
+          for (const child of nftMeshesToOutline) {
+            const om = new THREE.Mesh(child.geometry, nftOutlineMat.clone());
+            om.scale.setScalar(1.08);
+            child.add(om);
+            outlineMeshesRef.current.push(om);
+          }
+          return loadedModel;
+        })().catch((err: any) => {
+          console.error('[useARScene] Model load failed:', err?.message || err);
+          return null;
+        });
+
+        threeRef.current = { renderer, scene, camera };
 
         // target callbacks
         anchor.onTargetFound = () => {
@@ -612,13 +629,20 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
           return;
         }
 
-        // mindar.resize() sets renderer buffer from container; refresh pixel ratio after internal setup
-        try {
-          mindar.resize?.();
-          if (mindar.renderer?.setPixelRatio) {
-            mindar.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
-          }
-        } catch { /* ok */ }
+        // mindar.start() rebuilds video/canvas; fit again so retina css size is correct
+        fitMindArViewport(mindar, container);
+
+        const model = await modelPromise;
+        if (isCancelledRef.current) {
+          mindar.stop();
+          return;
+        }
+        if (model) {
+          anchor.group.add(model);
+          if (threeRef.current) threeRef.current.model = model;
+        } else {
+          console.error('[useARScene] No model loaded - check model path:', modelUrl);
+        }
 
         logActiveVideoResolutionSoon('nft/mindar', mindar.video);
         logWebGLDrawBuffer('nft/mindar', mindar.renderer);
