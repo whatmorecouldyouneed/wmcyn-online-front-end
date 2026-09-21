@@ -477,14 +477,20 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
           const center = box.getCenter(new THREE.Vector3());
           const yPos = config.yOffset ?? MODEL_Y_OFFSET;
           const [rx, ry, rz] = config.rotationOffset ?? [0, 0, 0];
-          loadedModel.rotation.set(
+          const orientation = new THREE.Euler(
             THREE.MathUtils.degToRad(rx),
             THREE.MathUtils.degToRad(ry),
             THREE.MathUtils.degToRad(rz),
           );
+          loadedModel.rotation.copy(orientation);
+
+          // compensate for the rotated glb origin so the visible logo stays centered
+          const orientedCenter = center.clone().applyEuler(orientation);
+          loadedModel.position.set(-orientedCenter.x, 0, -orientedCenter.z);
+
           const spinRoot = new THREE.Group();
           spinRoot.scale.setScalar(scale);
-          spinRoot.position.set(-center.x * scale, yPos, -center.z * scale);
+          spinRoot.position.set(0, yPos, 0);
           spinRoot.add(loadedModel);
           loadedModel = spinRoot;
 
