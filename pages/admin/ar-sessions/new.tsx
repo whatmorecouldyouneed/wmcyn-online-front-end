@@ -24,13 +24,12 @@ export default function CreateARSession() {
   const handleSubmit = async (data: CreateARSessionRequest | UpdateARSessionRequest) => {
     try {
       setLoading(true);
-      
-      // AR session creation is not supported by the backend
-      throw new Error('AR session creation is not currently supported. Please use the product set creation flow instead.');
-      
+      const session = await arSessionsAPI.create(data as CreateARSessionRequest);
+      router.push(`/admin/ar-sessions/${session.sessionId}`);
     } catch (error: any) {
       console.error('failed to create ar session:', error);
-      throw error; // let the form handle the error display
+      alert('failed to create ar session: ' + (error.message || 'unknown error'));
+      throw error;
     } finally {
       setLoading(false);
     }

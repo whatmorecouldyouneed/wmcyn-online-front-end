@@ -35,32 +35,10 @@ export default function ARSessionsList() {
     try {
       setLoading(true);
       const response = await arSessionsAPI.list();
-      console.log('[ARSessionsList] Raw response:', response);
-      
-      // handle different response structures
-      let sessions: ARSessionData[] = [];
-      if (response && response.arSessions) {
-        sessions = response.arSessions;
-        console.log('[ARSessionsList] Using arSessions field:', sessions.length);
-      } else if (response && Array.isArray(response)) {
-        sessions = response;
-        console.log('[ARSessionsList] Using direct array response:', sessions.length);
-      } else {
-        console.warn('[ARSessionsList] Unexpected response structure:', response);
-        sessions = [];
-      }
-      
-      setSessions(sessions);
+      setSessions(response.arSessions);
     } catch (error: any) {
       console.error('failed to load ar sessions:', error);
-      // provide more helpful error messages
-      let errorMessage = error.message || 'failed to load ar sessions';
-      if (error.message?.includes('NEXT_PUBLIC_ADMIN_API_TOKEN')) {
-        errorMessage = 'AR sessions require admin authentication. Please configure NEXT_PUBLIC_ADMIN_API_TOKEN in your environment variables.';
-      } else if (error.message?.includes('Forbidden')) {
-        errorMessage = 'Access denied. AR sessions require admin privileges. Please check your authentication configuration.';
-      }
-      setError(errorMessage);
+      setError(error.message || 'failed to load ar sessions');
       setSessions([]); // ensure sessions is always an array
     } finally {
       setLoading(false);

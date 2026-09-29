@@ -1,13 +1,27 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
 import { useRouter } from 'next/router';
-import { auth } from '@/utils/lib/firebase';
-import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import {
+  User,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  signOut,
+} from 'firebase/auth';
+import { backendAuth } from '@/utils/lib/firebase';
+import { getAdminProfile } from '@/lib/apiClient';
+
+const ADMIN_ROLES = ['founder', 'admin'];
 
 type AdminAuthContextType = {
+  user: User | null;
+  roles: string[];
+  // true only for a signed-in founder or admin; the api enforces the same check on every write
   isAuthenticated: boolean;
-  login: (username: string, password: string) => Promise<boolean>;
-  logout: () => void;
   loading: boolean;
+  error: string | null;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
 };
 
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
@@ -20,159 +34,115 @@ export function useAdminAuth() {
   return context;
 }
 
+function signInErrorMessage(error: any): string {
+  switch (error?.code) {
+    case 'auth/invalid-credential':
+    case 'auth/wrong-password':
+    case 'auth/user-not-found':
+    case 'auth/invalid-email':
+      return 'incorrect email or password';
+    case 'auth/too-many-requests':
+      return 'too many failed attempts, try again later';
+    case 'auth/network-request-failed':
+      return 'network error, check your connection';
+    default:
+      return error?.message || 'sign in failed, please try again';
+  }
+}
+
+async function loadAdminRoles(user: User): Promise<string[]> {
+  const claims = (await user.getIdTokenResult()).claims;
+  const profile = await getAdminProfile();
+  if (profile.hasAccess === false) return [];
+  const roles = new Set<string>(Array.isArray(profile.roles) ? profile.roles : []);
+  if (typeof claims.role === 'string') roles.add(claims.role);
+  return Array.from(roles);
+}
+
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [roles, setRoles] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // check for existing session on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      if (typeof window !== 'undefined') {
-        const session = sessionStorage.getItem('admin_session');
-        if (session) {
-          try {
-            const sessionData = JSON.parse(session);
-            // check if session is still valid (not expired)
-            if (sessionData.expiresAt && new Date(sessionData.expiresAt) > new Date()) {
-              // also check if Firebase user is authenticated
-              if (auth?.currentUser) {
-                console.log('[AdminAuth] Valid session and Firebase user found');
-                setIsAuthenticated(true);
-              } else {
-                console.log('[AdminAuth] Valid session but no Firebase user, signing in anonymously...');
-                try {
-                  if (auth) await signInAnonymously(auth);
-                  console.log('[AdminAuth] Firebase anonymous sign-in successful');
-                  setIsAuthenticated(true);
-                } catch (error) {
-                  console.error('[AdminAuth] Failed to restore Firebase auth:', error);
-                  // clear invalid session
-                  sessionStorage.removeItem('admin_session');
-                  setIsAuthenticated(false);
-                }
-              }
-            } else {
-              // session expired, clear it
-              console.log('[AdminAuth] Session expired, clearing...');
-              sessionStorage.removeItem('admin_session');
-              setIsAuthenticated(false);
-            }
-          } catch (error) {
-            // invalid session data, clear it
-            console.error('[AdminAuth] Invalid session data:', error);
-            sessionStorage.removeItem('admin_session');
-            setIsAuthenticated(false);
-          }
-        } else {
-          console.log('[AdminAuth] No admin session found');
-          setIsAuthenticated(false);
-        }
+  const resolveUser = useCallback(async (next: User | null) => {
+    if (!next) {
+      setUser(null);
+      setRoles([]);
+      return;
+    }
+    try {
+      const nextRoles = await loadAdminRoles(next);
+      if (!nextRoles.some((role) => ADMIN_ROLES.includes(role))) {
+        setError('this account does not have admin access');
+        setUser(null);
+        setRoles([]);
+        if (backendAuth) await signOut(backendAuth);
+        return;
       }
-      setLoading(false);
-    };
-
-    checkAuth();
+      setError(null);
+      setUser(next);
+      setRoles(nextRoles);
+    } catch (err: any) {
+      setError(err?.message || 'could not verify admin access');
+      setUser(null);
+      setRoles([]);
+    }
   }, []);
 
-  // listen for Firebase auth state changes
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const unsubscribe = auth ? onAuthStateChanged(auth, (user) => {
-      console.log('[AdminAuth] Firebase auth state changed:', user ? 'signed in' : 'signed out');
-      
-      // if user is signed out but we have a valid admin session, try to restore Firebase auth
-      if (!user && isAuthenticated) {
-        const session = sessionStorage.getItem('admin_session');
-        if (session) {
-          try {
-            const sessionData = JSON.parse(session);
-            if (sessionData.expiresAt && new Date(sessionData.expiresAt) > new Date()) {
-              console.log('[AdminAuth] Restoring Firebase auth for valid admin session...');
-              if (auth) signInAnonymously(auth).catch((error) => {
-                console.error('[AdminAuth] Failed to restore Firebase auth:', error);
-                // if we can't restore Firebase auth, clear the admin session
-                sessionStorage.removeItem('admin_session');
-                setIsAuthenticated(false);
-              });
-            } else {
-              console.log('[AdminAuth] Admin session expired, clearing...');
-              sessionStorage.removeItem('admin_session');
-              setIsAuthenticated(false);
-            }
-          } catch (error) {
-            console.error('[AdminAuth] Invalid session data during auth state change:', error);
-            sessionStorage.removeItem('admin_session');
-            setIsAuthenticated(false);
-          }
-        }
-      }
-    }) : () => {};
-
-    return () => unsubscribe();
-  }, [isAuthenticated]);
-
-  const login = async (username: string, password: string): Promise<boolean> => {
-    const adminUsername = process.env.NEXT_PUBLIC_ADMIN_USERNAME;
-    const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
-
-    if (!adminUsername || !adminPassword) {
-      console.error('admin credentials not configured');
-      return false;
+    if (!backendAuth) {
+      setError('admin sign-in is not configured');
+      setLoading(false);
+      return;
     }
+    return onAuthStateChanged(backendAuth, async (next) => {
+      setLoading(true);
+      await resolveUser(next);
+      setLoading(false);
+    });
+  }, [resolveUser]);
 
-    if (username === adminUsername && password === adminPassword) {
-      try {
-        // sign in to Firebase anonymously for API access
-        console.log('[AdminAuth] Attempting Firebase anonymous sign-in...');
-        if (!auth) throw new Error('Firebase auth not initialized');
-        const userCredential = await signInAnonymously(auth);
-        console.log('[AdminAuth] Firebase anonymous sign-in successful:', userCredential.user?.uid);
-        
-        // verify we can get a token
-        const token = await userCredential.user.getIdToken();
-        console.log('[AdminAuth] Got Firebase token:', token ? 'present' : 'missing');
-        
-        // create session that expires in 24 hours
-        const sessionData = {
-          username,
-          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-          loginTime: new Date().toISOString()
-        };
-
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('admin_session', JSON.stringify(sessionData));
-        }
-
-        setIsAuthenticated(true);
-        return true;
-      } catch (error) {
-        console.error('[AdminAuth] Failed to sign in to Firebase:', error);
-        return false;
-      }
+  const login = async (email: string, password: string) => {
+    if (!backendAuth) throw new Error('admin sign-in is not configured');
+    setError(null);
+    try {
+      await signInWithEmailAndPassword(backendAuth, email.trim(), password);
+    } catch (err: any) {
+      throw new Error(signInErrorMessage(err));
     }
-
-    return false;
+    // onAuthStateChanged resolves roles; surface a refusal to the caller too
+    const current = backendAuth.currentUser;
+    const nextRoles = current ? await loadAdminRoles(current).catch(() => []) : [];
+    if (!nextRoles.some((role) => ADMIN_ROLES.includes(role))) {
+      throw new Error('this account does not have admin access');
+    }
   };
 
-  const logout = () => {
-    if (typeof window !== 'undefined') {
-      sessionStorage.removeItem('admin_session');
-    }
-    // sign out of Firebase
-    if (auth?.currentUser) {
-      auth.signOut();
-    }
-    setIsAuthenticated(false);
+  const logout = async () => {
+    if (backendAuth) await signOut(backendAuth);
     router.push('/admin/login');
   };
 
-  const value = {
-    isAuthenticated,
+  const resetPassword = async (email: string) => {
+    if (!backendAuth) throw new Error('admin sign-in is not configured');
+    try {
+      await sendPasswordResetEmail(backendAuth, email.trim());
+    } catch (err: any) {
+      throw new Error(signInErrorMessage(err));
+    }
+  };
+
+  const value: AdminAuthContextType = {
+    user,
+    roles,
+    isAuthenticated: !!user,
+    loading,
+    error,
     login,
     logout,
-    loading
+    resetPassword,
   };
 
   return (
@@ -180,19 +150,4 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AdminAuthContext.Provider>
   );
-}
-
-// helper function to check auth status outside of React context
-export function isAdminAuthenticated(): boolean {
-  if (typeof window === 'undefined') return false;
-  
-  const session = sessionStorage.getItem('admin_session');
-  if (!session) return false;
-
-  try {
-    const sessionData = JSON.parse(session);
-    return sessionData.expiresAt && new Date(sessionData.expiresAt) > new Date();
-  } catch {
-    return false;
-  }
 }

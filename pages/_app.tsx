@@ -42,7 +42,7 @@ const outfit = Outfit({
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
-  const isAdminPage = router.pathname.startsWith('/admin');
+  const isAdminPage = router.pathname.startsWith('/admin') || router.pathname.startsWith('/debug/admin-auth-test');
   const [loadEruda, setLoadEruda] = useState(false);
 
   useEffect(() => {
@@ -69,15 +69,16 @@ export default function App({ Component, pageProps }: AppProps) {
         <link rel="apple-touch-icon" href="/logo-512x512.png"></link>
         <meta name="theme-color" content="#000000" />
         <link rel="icon" href="/wmcyn_logo_condensed.png" type="image/png" />
-        <title>WMCYN</title>
-        <meta name="description" content="WMCYN - A future-forward startup combining modern technology with everyday lifestyle." />
+        {/* keyed so a page's own head tags replace these instead of duplicating them */}
+        <title key="title">WMCYN</title>
+        <meta key="description" name="description" content="WMCYN - A future-forward startup combining modern technology with everyday lifestyle." />
         <meta name="keywords" content="WMCYN, technology, lifestyle, newsletter, shop, VR, AR" />
-        <meta property="og:title" content="WMCYN" />
-        <meta property="og:description" content="A future-forward startup combining modern technology with lifestyle essentials." />
-        <meta property="og:image" content="/wmcyn_logo_condensed.png" />
-        <meta property="og:url" content="https://wmcyn.online/" />
-        <meta property="og:type" content="website" />
-        <link rel="canonical" href="https://wmcyn.online/" />
+        <meta key="og:title" property="og:title" content="WMCYN" />
+        <meta key="og:description" property="og:description" content="A future-forward startup combining modern technology with lifestyle essentials." />
+        <meta key="og:image" property="og:image" content="/wmcyn_logo_condensed.png" />
+        <meta key="og:url" property="og:url" content="https://wmcyn.online/" />
+        <meta key="og:type" property="og:type" content="website" />
+        <link key="canonical" rel="canonical" href="https://wmcyn.online/" />
       </Head>
       <SkipLink />
       <main id="main-content">

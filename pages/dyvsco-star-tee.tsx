@@ -77,12 +77,12 @@ export default function DyvscoStarTeePage() {
       <Head>
         <title>dxsco — AR experience</title>
         <meta name="description" content="scan your dxsco shirt to unlock the AR experience." />
-        <meta property="og:title" content="dxsco — AR experience" />
-        <meta property="og:description" content="scan your dxsco shirt to unlock the AR experience." />
-        <meta property="og:url" content="https://wmcyn.online/dyvsco-star-tee" />
-        <meta property="og:type" content="website" />
-        <meta property="og:image" content="/wmcyn_logo_condensed.png" />
-        <link rel="canonical" href="https://wmcyn.online/dyvsco-star-tee" />
+        <meta key="og:title" property="og:title" content="dxsco — AR experience" />
+        <meta key="og:description" property="og:description" content="scan your dxsco shirt to unlock the AR experience." />
+        <meta key="og:url" property="og:url" content="https://wmcyn.online/dyvsco-star-tee" />
+        <meta key="og:type" property="og:type" content="website" />
+        <meta key="og:image" property="og:image" content="/wmcyn_logo_condensed.png" />
+        <link key="canonical" rel="canonical" href="https://wmcyn.online/dyvsco-star-tee" />
       </Head>
 
       <div className={styles.pageContainer}>

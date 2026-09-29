@@ -46,7 +46,8 @@ is either left blank in config or written as honest, hedged copy pending your in
 - **No transactional/marketing email provider exists** — see `docs/email-compliance.md`.
 - **Pre-existing security issue, found during this audit, not caused by it**: `.env.example`/
   `.env.local` contain real plaintext secrets (Firebase keys, Shopify storefront token, and a
-  plaintext admin username/password gating `/admin/*`). This should be rotated and moved out of
+  plaintext admin username/password that used to gate `/admin/*`; `/admin` now uses per-founder
+  Firebase accounts and that password is no longer read). This should be rotated and moved out of
   version control — flagging here since it's adjacent to this ticket's data-security concerns,
   but the actual fix (rotating credentials, moving to a secrets manager) is a decision for
   whoever owns infra/security, not something this change touches.

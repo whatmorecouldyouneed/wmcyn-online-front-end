@@ -64,9 +64,17 @@ export default function ProductSetCard({ productSet, onDelete, onGenerateQR }: P
               <strong>campaign:</strong> {productSet.campaign}
             </p>
           )}
-          {productSet.linkedARSessionId && (
+          {productSet.nftMarker && (
             <p className={styles.productSetCardDescription}>
               <strong>AR experience:</strong> <span style={{ color: '#60a5fa' }}>enabled</span>
+            </p>
+          )}
+          {productSet.slug && (
+            <p className={styles.productSetCardDescription}>
+              <strong>page:</strong>{' '}
+              <a href={`/${productSet.slug}`} target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa' }}>
+                wmcyn.online/{productSet.slug}
+              </a>
             </p>
           )}
         </div>

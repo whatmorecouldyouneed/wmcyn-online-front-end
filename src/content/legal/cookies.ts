@@ -22,8 +22,7 @@ export const cookiesDocument: LegalDocument = {
           list: [
             'wmcyn_privacy_preferences (cookie, ~12 months) — remembers your cookie consent choices.',
             'shopify_cart (browser local storage) — remembers items in your cart between visits.',
-            'Firebase Authentication session data (browser storage) — keeps you signed in to your account.',
-            'admin_session (session storage) — internal admin login session; only relevant to WMCYN staff on admin pages.',
+            'Firebase Authentication session data (browser storage) — keeps you signed in to your account. WMCYN staff signed in on admin pages have a separate Firebase Authentication session.',
           ],
         },
       ],

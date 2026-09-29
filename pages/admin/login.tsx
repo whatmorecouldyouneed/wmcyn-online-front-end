@@ -8,12 +8,13 @@ import styles from '@/styles/Index.module.scss';
 const WMCYNLOGO = '/wmcyn_logo_white.png';
 
 export default function AdminLogin() {
-  const { login, isAuthenticated, loading } = useAdminAuth();
+  const { login, resetPassword, isAuthenticated, loading, error: authError } = useAdminAuth();
   const router = useRouter();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
 
   // redirect if already authenticated
   useEffect(() => {
@@ -24,27 +25,40 @@ export default function AdminLogin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !password) {
-      setError('please enter both username and password');
+    if (!email || !password) {
+      setError('please enter both email and password');
       return;
     }
 
     setLoginLoading(true);
     setError('');
+    setNotice('');
 
     try {
-      const success = await login(username, password);
-      if (success) {
-        router.push('/admin');
-      } else {
-        setError('invalid username or password');
-      }
-    } catch (err) {
-      setError('login failed, please try again');
+      await login(email, password);
+      router.push('/admin');
+    } catch (err: any) {
+      setError(err?.message || 'login failed, please try again');
     } finally {
       setLoginLoading(false);
     }
   };
+
+  const handleResetPassword = async () => {
+    if (!email) {
+      setError('enter your email first, then choose forgot password');
+      return;
+    }
+    setError('');
+    try {
+      await resetPassword(email);
+      setNotice('if that email has an account, a password reset link is on its way');
+    } catch (err: any) {
+      setError(err?.message || 'could not send reset email');
+    }
+  };
+
+  const shownError = error || authError;
 
   if (loading) {
     return (
@@ -91,16 +105,16 @@ export default function AdminLogin() {
             marginBottom: '32px',
             textAlign: 'center'
           }}>
-            access the product sets management interface
+            founders sign in with their own wmcyn account
           </p>
 
           {/* login form */}
           <form onSubmit={handleSubmit} className={styles.authForm}>
             <input
-              type="text"
-              placeholder="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              type="email"
+              placeholder="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className={styles.inputField}
               disabled={loginLoading}
               autoComplete="username"
@@ -116,23 +130,51 @@ export default function AdminLogin() {
               autoComplete="current-password"
             />
 
-            {error && (
+            {shownError && (
               <div style={{ 
                 color: '#ff6b6b', 
                 fontSize: '0.9rem', 
                 textAlign: 'center',
                 marginBottom: '16px'
               }}>
-                {error}
+                {shownError}
+              </div>
+            )}
+
+            {notice && (
+              <div style={{
+                color: 'rgba(255, 255, 255, 0.8)',
+                fontSize: '0.9rem',
+                textAlign: 'center',
+                marginBottom: '16px'
+              }}>
+                {notice}
               </div>
             )}
 
             <button
               type="submit"
               className={styles.submitButton}
-              disabled={loginLoading || !username || !password}
+              disabled={loginLoading || !email || !password}
             >
               {loginLoading ? 'signing in...' : 'sign in'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleResetPassword}
+              disabled={loginLoading}
+              style={{
+                marginTop: '12px',
+                background: 'none',
+                border: 'none',
+                color: 'rgba(255, 255, 255, 0.7)',
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                textDecoration: 'underline'
+              }}
+            >
+              forgot password
             </button>
           </form>
 

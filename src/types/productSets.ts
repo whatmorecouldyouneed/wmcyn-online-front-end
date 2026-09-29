@@ -3,13 +3,30 @@ export interface ProductSetItem {
   productId: string;
   variantId?: string;  // required for inventory tracking
   qty: number;
+  maxPerUser?: number;
+  metadata?: Record<string, any>;
 }
 
-// checkout configuration
-export interface CheckoutConfig {
-  cartLink?: string;
-  discountCode?: string;
-  type: 'cart' | 'checkout' | 'product';
+// checkout behaviour stored by the backend
+export type CheckoutMode = 'NONE' | 'SHOPIFY_CART_LINK' | 'DISCOUNT_CODE';
+
+// compiled mindar target uploaded for a product set
+export interface NFTMarker {
+  mindFileUrl: string;
+  sourceImageUrl: string;
+  compiledAt: string;
+  quality?: number;
+}
+
+// public landing page fields; a product with a slug is served at /{slug}
+export interface ProductLanding {
+  slug?: string;
+  description?: string;
+  garmentWord?: string;
+  modelUrl?: string;
+  scale?: number;
+  yOffset?: number;
+  rotationOffset?: [number, number, number];
 }
 
 // geofence configuration
@@ -25,12 +42,23 @@ export interface TimeWindow {
   endTime: string;   // ISO string
 }
 
-// redeem policy for QR codes
+// redeem policy as edited in the admin form
 export interface RedeemPolicy {
   geofence?: Geofence;
   timeWindow?: TimeWindow;
   perUserLimit: number;
   maxClaims: number;
+}
+
+// redeem policy as stored on a qr code and enforced by the claim endpoint
+export interface BackendRedeemPolicy {
+  mode: 'VIEW_ONLY' | 'CLAIMABLE';
+  requireAuth: boolean;
+  oneClaimPerUser?: boolean;
+  maxTotalClaims?: number;
+  startAt?: string;
+  endAt?: string;
+  geoFence?: { lat: number; lng: number; radiusMeters: number } | null;
 }
 
 // product set statistics
@@ -41,17 +69,31 @@ export interface ProductSetStats {
 }
 
 // main product set interface
-export interface ProductSet {
+export interface ProductSet extends ProductLanding {
   id: string;
   name: string;
-  description?: string;
   campaign?: string;
+  tags?: string[];
   items: ProductSetItem[];
-  checkout: CheckoutConfig;
+  checkoutMode: CheckoutMode;
+  discountCode?: string;
+  nftMarker?: NFTMarker;
   stats: ProductSetStats;
-  linkedARSessionId?: string; // optional link to AR session
+  version?: number;
+  createdBy?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+// what GET /v1/productSets/by-slug/:slug returns
+export interface PublicProductSet extends ProductLanding {
+  id: string;
+  name: string;
+  slug: string;
+  campaign?: string;
+  checkoutMode?: CheckoutMode;
+  discountCode?: string;
+  nftMarker?: NFTMarker;
 }
 
 // QR code data with new structure
@@ -76,7 +118,7 @@ export interface QRCodeData {
   createdBy: string;
   createdAt: string;
   expiresAt?: string;
-  redeemPolicy?: RedeemPolicy;
+  redeemPolicy?: BackendRedeemPolicy;
   stats?: {
     claimsUsed: number;
     remainingClaims: number;
@@ -84,14 +126,13 @@ export interface QRCodeData {
 }
 
 // API request/response types
-export interface CreateProductSetRequest {
+export interface CreateProductSetRequest extends ProductLanding {
   name: string;
-  description?: string;
   campaign?: string;
+  tags?: string[];
   items: ProductSetItem[];
-  checkout: CheckoutConfig;
-  remainingInventory?: number;
-  linkedARSessionId?: string; // optional link to AR session
+  checkoutMode?: CheckoutMode;
+  discountCode?: string;
 }
 
 export type UpdateProductSetRequest = Partial<CreateProductSetRequest>;
@@ -127,8 +168,6 @@ export interface ARScene {
 }
 
 export interface GenerateQRCodeRequest {
-  productSetId?: string;
-  sessionId?: string;
   target: {
     type: "PRODUCT_SET";
     productSetId: string;
@@ -136,7 +175,7 @@ export interface GenerateQRCodeRequest {
     type: "AR_SESSION";
     sessionId: string;
   };
-  policy?: RedeemPolicy;
+  redeemPolicy?: BackendRedeemPolicy;
   expiresAt?: string;
   label?: string;
   campaign?: string;

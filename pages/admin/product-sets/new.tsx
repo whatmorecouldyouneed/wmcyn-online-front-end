@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { createProductSet, arSessions } from '@/lib/apiClient';
-import { CreateProductSetRequest, UpdateProductSetRequest } from '@/types/productSets';
-import ARProductBuilder from '@/components/admin/ARProductBuilder';
+import { CreateProductSetRequest } from '@/types/productSets';
+import ARProductBuilder, { ARProductFormData } from '@/components/admin/ARProductBuilder';
+import { landingPayload } from '@/components/admin/LandingFields';
 import NextImage from '@/components/NextImage';
 import styles from '@/styles/Admin.module.scss';
 
@@ -21,53 +22,54 @@ export default function CreateProductSet() {
     }
   }, [isAuthenticated, authLoading, router]);
 
-  const handleSubmit = async (data: {
-    name: string;
-    description: string;
-    campaign: string;
-    markerPatternId: string;
-    arTitle: string;
-    arDescription: string;
-    arActions: Array<{ type: string; label: string; url?: string }>;
-  }) => {
+  const handleSubmit = async (data: ARProductFormData) => {
     try {
       setLoading(true);
-      
-      // Create the product set directly (AR session creation is not supported by backend)
-      console.log('[AR Product] Creating product set with marker pattern:', data.markerPatternId);
-      
-      // Validate marker pattern ID
-      if (!data.markerPatternId || data.markerPatternId.trim() === '') {
-        throw new Error('Please select a marker pattern');
-      }
-      
-      // Create the product set without linking to AR session (since backend doesn't support AR session creation)
+
       const productSetData: CreateProductSetRequest = {
-        name: data.name,
-        description: data.description,
-        campaign: data.campaign,
-        items: [{ 
+        name: data.name.trim(),
+        description: data.description.trim() || undefined,
+        campaign: data.campaign.trim() || undefined,
+        ...landingPayload(data, false),
+        // the backend requires at least one item to track inventory against
+        items: [{
           productId: 'ar-product',
-          variantId: 'ar-product-variant', // required for inventory tracking
-          qty: 1 
-        }], // AR products need at least one item
-        checkout: {
-          type: 'product',
-          cartLink: '',
-          discountCode: ''
-        }
-        // Note: linkedARSessionId is omitted since AR session creation is not supported
+          variantId: 'ar-product-variant',
+          qty: 1
+        }],
+        checkoutMode: 'NONE'
       };
 
-      
-      console.log('[AR Product] Sending product set data:', productSetData);
-      
       const productSet = await createProductSet(productSetData);
-      
+
+      if (data.markerPatternId.trim()) {
+        try {
+          await arSessions.create({
+            name: data.name.trim(),
+            productId: 'ar-product',
+            productSetId: productSet.id,
+            campaign: productSetData.campaign,
+            markerPattern: { patternId: data.markerPatternId.trim(), type: 'mind' },
+            metadata: {
+              title: data.arTitle.trim(),
+              description: data.arDescription.trim(),
+              actions: data.arActions.map((action) => ({
+                ...action,
+                type: action.type as 'purchase' | 'share' | 'claim' | 'info'
+              }))
+            }
+          });
+        } catch (sessionError: any) {
+          // the product set already exists, so continue to it and let the founder retry the session
+          alert(`product saved, but the AR session failed: ${sessionError.message || 'unknown error'}`);
+        }
+      }
+
       router.push(`/admin/product-sets/${productSet.id}/details`);
     } catch (error: any) {
       console.error('failed to create AR product:', error);
-      throw error; // let the form handle the error display
+      alert('failed to create product: ' + (error.message || 'unknown error'));
+      throw error;
     } finally {
       setLoading(false);
     }

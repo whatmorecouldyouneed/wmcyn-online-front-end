@@ -40,15 +40,15 @@ export default function Document() {
             for non-static deploys; see docs/legal-review-required.md for enforcing them in prod. */}
         <meta name="referrer" content="strict-origin-when-cross-origin" />
         
-        {/* github pages spa routing: restore url from ?p= query param set by 404.html */}
+        {/* older links used /?p=<path>; send them to the real path, which pages/404.tsx routes */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
                 var s = window.location.search;
                 if (s.length > 1 && s.indexOf('?p=') === 0) {
-                  var decoded = decodeURIComponent(s.slice(3));
-                  window.history.replaceState(null, '', '/' + decoded);
+                  // strip leading slashes so a crafted value can't become a //other-host redirect
+                  window.location.replace('/' + decodeURIComponent(s.slice(3)).replace(/^[\\\\/]+/, ''));
                 }
               })();
             `,

@@ -73,10 +73,10 @@ export default function ARSessionForm({
       name: formData.name.trim(),
       description: formData.description.trim() || undefined,
       campaign: formData.campaign.trim() || undefined,
-      productId: formData.productId.trim() || 'ar-product', // ensure productId is always present
+      productId: formData.productId.trim() || 'ar-product', // the backend requires a productId
       markerPattern: {
-        patternId: formData.selectedPatternId || 'default', // ensure markerPattern is always present
-        type: 'custom' // for now, all uploaded patterns are custom
+        patternId: formData.selectedPatternId,
+        type: 'mind'
       },
       metadata: {
         title: formData.metadata.title.trim(),

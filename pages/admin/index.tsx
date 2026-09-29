@@ -38,58 +38,28 @@ export default function AdminDashboard() {
   }, [isAuthenticated]);
 
   const loadProductSets = async () => {
-    // #region agent log
-    const isClient = typeof window !== 'undefined';
-    fetch('http://127.0.0.1:7242/ingest/e9ed64ca-e301-4d56-8a7f-1b8071ba48e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'pages/admin/index.tsx:40',message:'loadProductSets entry',data:{isClient,isAuthenticated},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-    // #endregion
     try {
       setError('');
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/e9ed64ca-e301-4d56-8a7f-1b8071ba48e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'pages/admin/index.tsx:43',message:'calling getProductSets',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
-      // #endregion
       const response = await getProductSets();
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/e9ed64ca-e301-4d56-8a7f-1b8071ba48e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'pages/admin/index.tsx:45',message:'getProductSets succeeded',data:{hasResponse:!!response},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
-      // #endregion
-      // handle different response structures
-      const productSetsData = response.productSets || response || [];
-      setProductSets(Array.isArray(productSetsData) ? productSetsData : []);
+      setProductSets(response.productSets);
     } catch (err: any) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/e9ed64ca-e301-4d56-8a7f-1b8071ba48e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'pages/admin/index.tsx:47',message:'loadProductSets error',data:{errorMessage:err?.message,errorName:err?.name,errorStack:err?.stack?.substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'J'})}).catch(()=>{});
-      // #endregion
       console.error('failed to load wmcyn products:', err);
       setError(err.message || 'failed to load wmcyn products');
-      setProductSets([]); // ensure productSets is always an array
+      setProductSets([]);
     }
   };
 
   const loadARSessions = async () => {
     try {
-      console.log('loading ar sessions, isAuthenticated:', isAuthenticated);
-      setArSessionsError(null); // clear any previous errors
+      setArSessionsError(null);
       const response = await arSessionsAPI.list();
-      setArSessions(response.arSessions || []);
-        } catch (err: any) {
-          console.error('failed to load ar sessions:', err);
-          // provide more helpful error messages based on the error type
-          if (err.message?.includes('NEXT_PUBLIC_ADMIN_API_TOKEN')) {
-            setArSessionsError('AR sessions require admin authentication. Please configure NEXT_PUBLIC_ADMIN_API_TOKEN in your environment variables.');
-          } else if (err.message?.includes('invalid token')) {
-            setArSessionsError('Authentication failed - the admin API token may be invalid or the backend needs to be updated');
-          } else if (err.message?.includes('Access denied') || err.message?.includes('Forbidden')) {
-            setArSessionsError('Access denied - admin privileges required for AR sessions. Please configure NEXT_PUBLIC_ADMIN_API_TOKEN.');
-          } else if (err.message?.includes('Authentication required')) {
-            setArSessionsError('Authentication required - check if NEXT_PUBLIC_ADMIN_API_TOKEN is configured correctly');
-          } else if (err.message === 'unauthorized' || err.message?.includes('401')) {
-            setArSessionsError('AR sessions API endpoint requires authentication - check backend deployment status');
-          } else {
-            setArSessionsError(`Failed to load AR sessions: ${err.message}`);
-          }
-          // don't set error for ar sessions, just log it
-          // this is optional data, so we don't want to break the page
-          setArSessions([]); // ensure it's an empty array
-        }
+      setArSessions(response.arSessions);
+    } catch (err: any) {
+      // ar sessions are optional on the dashboard, so show the error without blocking the page
+      console.error('failed to load ar sessions:', err);
+      setArSessionsError(`failed to load ar sessions: ${err.message}`);
+      setArSessions([]);
+    }
   };
 
   const loadAllData = async () => {
@@ -247,7 +217,7 @@ export default function AdminDashboard() {
             <strong>ar sessions:</strong> immersive AR experiences with custom markers and interactive overlays
           </p>
           <p style={{ margin: '0', fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.6)' }}>
-            <em>Note: AR sessions may require NEXT_PUBLIC_ADMIN_API_TOKEN for authentication. Frontend is ready!</em>
+            <em>products with a slug are live at wmcyn.online/&lt;slug&gt; as soon as they are saved.</em>
           </p>
         </div>
 
@@ -296,11 +266,8 @@ export default function AdminDashboard() {
             fontSize: '0.9rem',
             color: 'rgba(255, 193, 7, 0.9)'
           }}>
-            <p style={{ margin: '0 0 8px 0' }}>
+            <p style={{ margin: '0' }}>
               <strong>AR Sessions:</strong> {arSessionsError}
-            </p>
-            <p style={{ margin: '0', fontSize: '0.8rem', opacity: 0.8 }}>
-              The AR sessions API endpoint may require admin authentication. Set NEXT_PUBLIC_ADMIN_API_TOKEN in your environment variables to access this feature.
             </p>
           </div>
         )}

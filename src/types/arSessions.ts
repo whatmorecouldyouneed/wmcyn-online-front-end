@@ -21,7 +21,7 @@ export type ArConfigResponse = {
   code: string;
   targetType: string;
   targetId?: string;
-  markerType: 'custom' | 'hiro' | 'kanji';
+  markerType: 'custom' | 'hiro' | 'kanji' | 'mind';
   markerDataUrl: string;
   overlayConfig: OverlayConfig;
   metadata?: { title?: string; description?: string; actions?: any[] };
@@ -46,10 +46,13 @@ export type ResolvedArConfig = {
 // ar session data from backend api
 export interface ARSessionData {
   sessionId: string;
+  productId?: string;
+  productSetId?: string;
   markerPattern: {
-    url: string;        // direct url to .patt file
-    type: string;       // 'custom' | 'hiro' | 'kanji'
+    url: string;        // .mind file url
+    type: string;
     name: string;       // human-readable name
+    patternId?: string; // marker pattern id, present on admin list results
   };
   metadata: {
     title: string;
@@ -145,15 +148,16 @@ export interface ARShareMetadata {
   isClaimed?: boolean;
 }
 
-// api request types
+// api request types; the backend requires productId, markerPattern.patternId and metadata
 export interface CreateARSessionRequest {
   name: string;
   description?: string;
   campaign?: string;
-  productId?: string;
+  productId: string;
+  productSetId?: string;
   markerPattern: {
     patternId: string;
-    type: 'custom' | 'hiro' | 'kanji';
+    type?: 'mind';
   };
   metadata: ARSessionMetadata;
   asset3D?: {

@@ -1,9 +1,25 @@
 import React, { useState, useRef } from 'react';
-import { ProductSet, RedeemPolicy, GenerateQRCodeRequest } from '@/types/productSets';
+import { ProductSet, RedeemPolicy, BackendRedeemPolicy, GenerateQRCodeRequest } from '@/types/productSets';
 import { ARSessionData, MarkerPattern } from '@/types/arSessions';
 import { generateQRCode, markerPatterns, arSessions } from '@/lib/apiClient';
 import styles from '@/styles/Admin.module.scss';
 import markerLabStyles from '@/styles/MarkerLab.module.scss';
+
+// the backend claim flow reads this shape; it only supports one claim per person or no per-person limit
+function toBackendRedeemPolicy(policy: RedeemPolicy): BackendRedeemPolicy {
+  const geofence = policy.geofence;
+  return {
+    mode: 'CLAIMABLE',
+    requireAuth: true,
+    oneClaimPerUser: policy.perUserLimit <= 1,
+    maxTotalClaims: policy.maxClaims,
+    ...(policy.timeWindow?.startTime ? { startAt: policy.timeWindow.startTime } : {}),
+    ...(policy.timeWindow?.endTime ? { endAt: policy.timeWindow.endTime } : {}),
+    ...(geofence && (geofence.latitude || geofence.longitude)
+      ? { geoFence: { lat: geofence.latitude, lng: geofence.longitude, radiusMeters: geofence.radiusMeters || 100 } }
+      : {}),
+  };
+}
 
 interface QRCodeGeneratorProps {
   productSet?: ProductSet | null;
@@ -17,7 +33,6 @@ export default function QRCodeGenerator({ productSet, arSession, isOpen, onClose
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [generatedQR, setGeneratedQR] = useState<any>(null);
-  const [templateGenerated, setTemplateGenerated] = useState(false);
   
   // marker code state
   const [embedMarker, setEmbedMarker] = useState(false);
@@ -228,64 +243,18 @@ export default function QRCodeGenerator({ productSet, arSession, isOpen, onClose
         throw new Error('No product set or AR session available for QR code generation');
       }
       
-      const request = {
-        target: {
-          type: targetType,
-          ...(targetType === "PRODUCT_SET" ? { productSetId: targetId } : { sessionId: targetId })
-        },
+      const request: GenerateQRCodeRequest = {
+        target: targetType === "PRODUCT_SET"
+          ? { type: "PRODUCT_SET", productSetId: targetId }
+          : { type: "AR_SESSION", sessionId: targetId },
         label: productSet?.name || arSession?.metadata?.title || 'AR Session',
-        campaign: productSet?.campaign || arSession?.campaign
+        campaign: productSet?.campaign || arSession?.campaign,
+        redeemPolicy: toBackendRedeemPolicy(policy),
+        ...(expiresAt ? { expiresAt } : {})
       };
 
-      console.log('[QRCodeGenerator] Sending request:', JSON.stringify(request, null, 2));
-      
-      const response = await generateQRCode(request as any);
-      console.log('[QRCodeGenerator] Received response:', JSON.stringify(response, null, 2));
-      
-      // generate template files automatically via API
-      try {
-        const templateResponse = await fetch('/api/generate-template', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            code: response.code,
-            productName: request.label || 'Custom AR Experience',
-            campaign: request.campaign || 'default',
-            targetType: request.target.type,
-            targetId:
-              ('productSetId' in request.target
-                ? request.target.productSetId
-                : request.target.sessionId) || 'unknown',
-            metadata: {
-              title: request.label || 'Custom AR Experience',
-              description: productSet?.description || arSession?.metadata?.description || 'Generated AR experience',
-              effects: {
-                type: 'default',
-                intensity: 1.0,
-                theme: 'default'
-              }
-            }
-          })
-        });
-        
-        if (templateResponse.ok) {
-          const templateResult = await templateResponse.json();
-          if (templateResult.success) {
-            setTemplateGenerated(true);
-            console.log('✅ Template generated for QR code:', response.code);
-          } else {
-            console.warn('⚠️ Template generation failed:', templateResult.error);
-          }
-        } else {
-          console.warn('⚠️ Template generation failed:', templateResponse.status);
-        }
-      } catch (templateError) {
-        console.warn('⚠️ Template generation failed:', templateError);
-      }
-      
+      const response = await generateQRCode(request);
       setGeneratedQR(response);
-      console.log('[QRCodeGenerator] QR code generated successfully:', response.code);
-      console.log('[QRCodeGenerator] QR URL:', response.qrUrl);
       onSuccess(response);
     } catch (err: any) {
       setError(err.message || 'failed to generate QR code');
@@ -297,7 +266,6 @@ export default function QRCodeGenerator({ productSet, arSession, isOpen, onClose
   const handleClose = () => {
     setGeneratedQR(null);
     setError('');
-    setTemplateGenerated(false);
     setPolicy({
       perUserLimit: 1,
       maxClaims: 100,
@@ -431,29 +399,6 @@ export default function QRCodeGenerator({ productSet, arSession, isOpen, onClose
                 </div>
               )}
               
-              {/* Template generation status */}
-              {templateGenerated && (
-                <div style={{ 
-                  marginBottom: '16px', 
-                  padding: '12px', 
-                  background: 'rgba(16, 185, 129, 0.2)', 
-                  border: '1px solid #10b981',
-                  borderRadius: '6px',
-                  color: '#10b981'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '1.2rem' }}>🎨</span>
-                    <strong>Template Generated!</strong>
-                  </div>
-                  <p style={{ fontSize: '0.9rem', margin: 0, color: 'rgba(255, 255, 255, 0.8)' }}>
-                    AR template files created at: <code>src/ar/templates/{generatedQR.code}/</code>
-                  </p>
-                  <p style={{ fontSize: '0.8rem', margin: '4px 0 0 0', color: 'rgba(255, 255, 255, 0.6)' }}>
-                    Edit the files to customize your AR experience
-                  </p>
-                </div>
-              )}
-              
               {/* Download buttons */}
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', color: 'white', fontSize: '0.9rem', marginBottom: '8px' }}>
@@ -574,6 +519,9 @@ export default function QRCodeGenerator({ productSet, arSession, isOpen, onClose
                 <div className={styles.formRowItem}>
                   <label style={{ display: 'block', marginBottom: '8px', color: 'white' }}>
                     per user limit
+                    <span style={{ display: 'block', fontSize: '0.75rem', opacity: 0.6 }}>
+                      1 = one claim per person; higher = no per-person limit
+                    </span>
                   </label>
                   <input
                     type="number"

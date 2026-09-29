@@ -32,8 +32,6 @@ jobs:
           echo "Checking Shopify config variables..."
           echo "NEXT_PUBLIC_SHOPIFY_DOMAIN exists: ${{ secrets.NEXT_PUBLIC_SHOPIFY_DOMAIN != '' }}"
           echo "NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN exists: ${{ secrets.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN != '' }}"
-          echo "Checking API config variables..."
-          echo "NEXT_PUBLIC_API_BASE exists: ${{ secrets.NEXT_PUBLIC_API_BASE != '' }}"
 
       - name: Create .env.production
         run: |
@@ -47,7 +45,11 @@ jobs:
           NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }}
           NEXT_PUBLIC_SHOPIFY_DOMAIN=${{ secrets.NEXT_PUBLIC_SHOPIFY_DOMAIN }}
           NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN=${{ secrets.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN }}
-          NEXT_PUBLIC_API_BASE=${{ secrets.NEXT_PUBLIC_API_BASE }}
+          NEXT_PUBLIC_API_BASE=${{ vars.NEXT_PUBLIC_API_BASE || 'https://us-central1-wmcyn-online-mobile.cloudfunctions.net/api' }}
+          NEXT_PUBLIC_BACKEND_FIREBASE_API_KEY=${{ vars.NEXT_PUBLIC_BACKEND_FIREBASE_API_KEY || 'AIzaSyA3ZjvWAI4XjHjzjPixGuutdHzksx07eZE' }}
+          NEXT_PUBLIC_BACKEND_FIREBASE_AUTH_DOMAIN=${{ vars.NEXT_PUBLIC_BACKEND_FIREBASE_AUTH_DOMAIN || 'wmcyn-online-mobile.firebaseapp.com' }}
+          NEXT_PUBLIC_BACKEND_FIREBASE_PROJECT_ID=${{ vars.NEXT_PUBLIC_BACKEND_FIREBASE_PROJECT_ID || 'wmcyn-online-mobile' }}
+          NEXT_PUBLIC_BACKEND_FIREBASE_APP_ID=${{ vars.NEXT_PUBLIC_BACKEND_FIREBASE_APP_ID || '1:175313200240:web:63c748c1a2b15301a540b5' }}
           EOF
           
           # verify the .env.production file was created with the correct values

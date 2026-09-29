@@ -63,7 +63,7 @@ export default function PrivacyChoicesPage() {
         <title>privacy choices | WMCYN</title>
         <meta name="description" content="Submit a data access, correction, deletion, or opt-out request to WMCYN." />
         <meta name="robots" content="noindex" />
-        <link rel="canonical" href={canonical} />
+        <link key="canonical" rel="canonical" href={canonical} />
       </Head>
       <div className={styles.page}>
         <div className={styles.container}>

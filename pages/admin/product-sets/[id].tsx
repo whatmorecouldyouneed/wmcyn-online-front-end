@@ -1,7 +1,3 @@
-// static export stub
-export function getStaticPaths() { return { paths: [], fallback: false }; }
-export function getStaticProps() { return { props: {} }; }
-
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
@@ -59,7 +55,8 @@ export default function EditProductSet() {
       router.push(`/admin/product-sets/${productSet.id}/details`);
     } catch (error: any) {
       console.error('failed to update product set:', error);
-      throw error; // let the form handle the error display
+      alert('failed to update product: ' + (error.message || 'unknown error'));
+      throw error;
     } finally {
       setSaving(false);
     }

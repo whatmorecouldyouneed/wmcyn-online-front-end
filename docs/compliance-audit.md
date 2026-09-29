@@ -42,10 +42,9 @@ marketing platform, and any direct `document.cookie` writes by app code.
 | `shopify_cart` | localStorage | necessary | `src/contexts/CartContext.tsx` |
 | `wmcyn-emails` | localStorage | necessary (fallback) | `pages/index.tsx` newsletter fallback |
 | `instagram_share_data` | localStorage | necessary | `src/utils/instagramSharing.ts` |
-| `admin_session` | sessionStorage | necessary (staff only) | `src/contexts/AdminAuthContext.tsx` |
 | `googleSignInError` | sessionStorage | necessary | `src/contexts/AuthContext.tsx` |
 | `eruda` | localStorage (read) | necessary (debug flag) | `pages/_app.tsx` |
-| Firebase Auth session data | browser storage/IndexedDB | necessary | Firebase SDK |
+| Firebase Auth session data | browser storage/IndexedDB | necessary | Firebase SDK (site app, plus a separate `backend` app for staff on `/admin`) |
 | Google Analytics (`_ga`, `_ga_*`) | cookies | analytics — **consent-gated** | Firebase Analytics SDK, only after consent |
 
 ## Tracking behavior before/after consent
@@ -90,4 +89,6 @@ a live Firebase API key/measurement ID, a Shopify storefront access token, and a
 username/password (`NEXT_PUBLIC_ADMIN_USERNAME`/`NEXT_PUBLIC_ADMIN_PASSWORD`) used to gate
 `/admin/*`. This was not introduced by this change and rotating/removing these is a business
 decision outside this ticket's scope, but it's a real exposure if this repository is or becomes
-public — flagged in `docs/legal-review-required.md` for prompt follow-up.
+public — flagged in `docs/legal-review-required.md` for prompt follow-up. The admin
+username/password has since been removed from `.env.example`; `/admin` now uses per-founder
+Firebase accounts.

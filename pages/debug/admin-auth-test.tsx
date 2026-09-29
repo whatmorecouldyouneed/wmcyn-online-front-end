@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { getProductSets, arSessions as arSessionsAPI } from "@/lib/apiClient";
 
 export default function AdminAuthTest() {
-  const { isAuthenticated, loading: authLoading } = useAdminAuth();
+  const { isAuthenticated, loading: authLoading, user, roles } = useAdminAuth();
   const router = useRouter();
   const [testResults, setTestResults] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -23,8 +23,9 @@ export default function AdminAuthTest() {
       timestamp: new Date().toISOString(),
       environment: {
         apiBase: process.env.NEXT_PUBLIC_API_BASE,
-        hasAdminToken: !!process.env.NEXT_PUBLIC_ADMIN_API_TOKEN,
-        hasDevXUid: !!process.env.NEXT_PUBLIC_DEV_X_UID
+        backendProject: process.env.NEXT_PUBLIC_BACKEND_FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        email: user?.email,
+        roles
       }
     };
     
@@ -106,10 +107,10 @@ export default function AdminAuthTest() {
           <strong>API Base:</strong> {process.env.NEXT_PUBLIC_API_BASE || 'Not set'}
         </p>
         <p style={{ margin: '0 0 4px 0', fontSize: '0.9rem' }}>
-          <strong>Admin Token:</strong> {process.env.NEXT_PUBLIC_ADMIN_API_TOKEN ? 'Configured' : 'Not configured'}
+          <strong>Signed in as:</strong> {user?.email || 'unknown'}
         </p>
         <p style={{ margin: '0', fontSize: '0.9rem' }}>
-          <strong>Dev X-UID:</strong> {process.env.NEXT_PUBLIC_DEV_X_UID ? 'Configured' : 'Not configured'}
+          <strong>Roles:</strong> {roles.join(', ') || 'none'}
         </p>
       </div>
 

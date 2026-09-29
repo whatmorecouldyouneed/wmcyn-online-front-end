@@ -1,48 +1,53 @@
 import { useState } from 'react';
 import MarkerUpload from './MarkerUpload';
+import LandingFields, { LandingFormValues, landingErrors } from './LandingFields';
+import { slugify } from '@/config/productSlugs';
 import styles from '@/styles/Admin.module.scss';
 
+export type ARProductFormData = LandingFormValues & {
+  name: string;
+  description: string;
+  campaign: string;
+  markerPatternId: string;
+  arTitle: string;
+  arDescription: string;
+  arActions: Array<{ type: string; label: string; url?: string }>;
+};
+
 interface ARProductBuilderProps {
-  onSubmit: (data: {
-    name: string;
-    description: string;
-    campaign: string;
-    markerPatternId: string;
-    arTitle: string;
-    arDescription: string;
-    arActions: Array<{ type: string; label: string; url?: string }>;
-  }) => Promise<void>;
+  onSubmit: (data: ARProductFormData) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
 }
 
 export default function ARProductBuilder({ onSubmit, onCancel, loading = false }: ARProductBuilderProps) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ARProductFormData>({
     name: '',
     description: '',
     campaign: '',
+    slug: '',
+    garmentWord: '',
+    modelUrl: '',
     markerPatternId: '',
     arTitle: '',
     arDescription: '',
-    arActions: [] as Array<{ type: string; label: string; url?: string }>
+    arActions: []
   });
+  const [slugTouched, setSlugTouched] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
 
   const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
+    const newErrors: Record<string, string> = { ...landingErrors(formData) };
 
     if (!formData.name.trim()) {
       newErrors.name = 'product name is required';
     }
 
-    if (!formData.markerPatternId.trim()) {
-      newErrors.markerPattern = 'marker pattern is required for AR experience';
-    }
-
-    if (!formData.arTitle.trim()) {
-      newErrors.arTitle = 'AR overlay title is required';
+    // the marker pattern and overlay create a linked AR session; both are optional
+    if (formData.markerPatternId.trim() && !formData.arTitle.trim()) {
+      newErrors.arTitle = 'AR overlay title is required when a marker pattern is selected';
     }
 
     setErrors(newErrors);
@@ -110,7 +115,10 @@ export default function ARProductBuilder({ onSubmit, onCancel, loading = false }
             <input
               type="text"
               value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              onChange={(e) => {
+                const name = e.target.value;
+                setFormData(prev => ({ ...prev, name, ...(slugTouched ? {} : { slug: slugify(name) }) }));
+              }}
               className={`${styles.inputField} ${errors.name ? styles.error : ''}`}
               placeholder="e.g., WMCYN AR Experience"
               disabled={loading}
@@ -167,11 +175,22 @@ export default function ARProductBuilder({ onSubmit, onCancel, loading = false }
         </div>
       </div>
 
+      <LandingFields
+        values={formData}
+        errors={errors}
+        disabled={loading}
+        onChange={(field, value) => {
+          if (field === 'slug') setSlugTouched(true);
+          setFormData(prev => ({ ...prev, [field]: value }));
+        }}
+      />
+
       {/* AR marker pattern upload */}
       <div className={styles.formSection}>
-        <h3 className={styles.formSectionTitle}>AR marker pattern *</h3>
+        <h3 className={styles.formSectionTitle}>AR session marker (optional)</h3>
         <p style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.9rem', marginBottom: '16px' }}>
-          select existing marker or generate new one with validation
+          pick a marker to also create a linked AR session with the overlay below. the landing page uses the
+          image marker you compile on the details page after saving.
         </p>
         
         <MarkerUpload
@@ -200,7 +219,7 @@ export default function ARProductBuilder({ onSubmit, onCancel, loading = false }
         <div className={styles.formRow}>
           <div className={styles.formRowItem}>
             <label style={{ display: 'block', marginBottom: '8px', color: 'white' }}>
-              overlay title *
+              overlay title
             </label>
             <input
               type="text"

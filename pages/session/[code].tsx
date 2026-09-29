@@ -1,7 +1,3 @@
-// static export stub
-export function getStaticPaths() { return { paths: [], fallback: false }; }
-export function getStaticProps() { return { props: {} }; }
-
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';

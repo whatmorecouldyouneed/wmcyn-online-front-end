@@ -14,7 +14,7 @@ export default function LegalPage({ document }: { document: LegalDocument }) {
       <Head>
         <title>{document.title} | WMCYN</title>
         <meta name="description" content={document.description} />
-        <link rel="canonical" href={canonical} />
+        <link key="canonical" rel="canonical" href={canonical} />
         <meta property="og:title" content={`${document.title} | WMCYN`} />
         <meta property="og:description" content={document.description} />
         <meta property="og:url" content={canonical} />

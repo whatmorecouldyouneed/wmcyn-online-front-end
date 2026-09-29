@@ -10,10 +10,6 @@ import styles from '@/styles/Admin.module.scss';
 
 const WMCYNLOGO = '/wmcyn_logo_white.png';
 
-// static export: no pre-rendered paths — admin routes are client-side only
-export function getStaticPaths() { return { paths: [], fallback: false }; }
-export function getStaticProps() { return { props: {} }; }
-
 export default function ARSessionEditPage() {
   const { isAuthenticated, loading: authLoading } = useAdminAuth();
   const router = useRouter();
@@ -49,25 +45,7 @@ export default function ARSessionEditPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await arSessionsAPI.list();
-      console.log('[ARSessionDetail] Raw response:', response);
-      
-      // handle different response structures
-      let sessions: ARSessionData[] = [];
-      if (response && response.arSessions) {
-        sessions = response.arSessions;
-        console.log('[ARSessionDetail] Using arSessions field:', sessions.length);
-      } else if (response && Array.isArray(response)) {
-        sessions = response;
-        console.log('[ARSessionDetail] Using array response:', sessions.length);
-      } else if (response && Array.isArray(response)) {
-        sessions = response;
-        console.log('[ARSessionDetail] Using direct array response:', sessions.length);
-      } else {
-        console.warn('[ARSessionDetail] Unexpected response structure:', response);
-        sessions = [];
-      }
-      
+      const { arSessions: sessions } = await arSessionsAPI.list();
       const session = sessions.find(s => s.sessionId === sessionId);
       
       if (!session) {
@@ -87,11 +65,12 @@ export default function ARSessionEditPage() {
   const handleSubmit = async (data: UpdateARSessionRequest) => {
     try {
       setSaving(true);
-      const updatedSession = await arSessionsAPI.update(sessionId, data);
-      setSessionData(updatedSession);
+      await arSessionsAPI.update(sessionId, data);
+      await loadSessionData();
     } catch (error: any) {
       console.error('failed to update ar session:', error);
-      throw error; // let the form handle the error display
+      alert('failed to update ar session: ' + (error.message || 'unknown error'));
+      throw error;
     } finally {
       setSaving(false);
     }
@@ -259,10 +238,11 @@ export default function ARSessionEditPage() {
             name: sessionData.metadata?.title || '', // using title as name for now
             description: sessionData.campaign || '',
             campaign: sessionData.campaign || '',
-            productId: sessionData.product?.id,
+            productId: sessionData.productId || sessionData.product?.id || '',
+            productSetId: sessionData.productSetId,
             markerPattern: {
-              patternId: sessionData.markerPattern?.name || '', // this might need adjustment
-              type: (sessionData.markerPattern?.type as 'custom' | 'hiro' | 'kanji') || 'custom'
+              patternId: sessionData.markerPattern?.patternId || '',
+              type: 'mind'
             },
             metadata: {
               ...(sessionData.metadata || {}),

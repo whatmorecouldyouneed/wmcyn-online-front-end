@@ -1,12 +1,8 @@
-// static export stub
-export function getStaticPaths() { return { paths: [], fallback: false }; }
-export function getStaticProps() { return { props: {} }; }
-
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
-import { getProductSet, getQRCodes, deleteQRCode, arSessions } from '@/lib/apiClient';
-import { ProductSet, QRCodeData } from '@/types/productSets';
+import { getProductSet, getQRCodes, deleteQRCode, arSessions, uploadNftMarker } from '@/lib/apiClient';
+import { ProductSet, QRCodeData, BackendRedeemPolicy } from '@/types/productSets';
 import { ARSessionData } from '@/types/arSessions';
 import QRCodeGenerator from '@/components/admin/QRCodeGenerator';
 import NFTMarkerCompiler from '@/components/admin/NFTMarkerCompiler';
@@ -50,36 +46,24 @@ export default function ProductSetDetails() {
       
       const [productSetData, qrCodesData] = await Promise.all([
         getProductSet(productSetId),
-        getQRCodes(productSetId)
+        getQRCodes(productSetId).catch((qrError) => {
+          console.warn('failed to load QR codes:', qrError);
+          return { qrCodes: [] as QRCodeData[], total: 0 };
+        })
       ]);
       
       setProductSet(productSetData);
+      setQRCodes(qrCodesData.qrCodes);
       
-      // handle different response structures
-      let qrCodesArray: QRCodeData[] = [];
-      if (Array.isArray(qrCodesData)) {
-        qrCodesArray = qrCodesData;
-      } else if (qrCodesData?.qrCodes) {
-        qrCodesArray = qrCodesData.qrCodes;
-      }
-      setQRCodes(qrCodesArray);
-      
-      // fetch linked ar session if exists
-      if (productSetData.linkedARSessionId) {
-        try {
-          const sessionsResponse = await arSessions.list();
-          const sessions = Array.isArray(sessionsResponse) 
-            ? sessionsResponse 
-            : (sessionsResponse?.arSessions || []);
-          const session = sessions.find((s: ARSessionData) => 
-            s.sessionId === productSetData.linkedARSessionId
-          );
-          if (session) {
-            setLinkedARSession(session);
-          }
-        } catch (sessionError) {
-          console.warn('failed to load linked AR session:', sessionError);
+      // ar sessions link to a product set through their productSetId
+      try {
+        const { arSessions: sessions } = await arSessions.list();
+        const session = sessions.find((s: ARSessionData) => s.productSetId === productSetData.id);
+        if (session) {
+          setLinkedARSession(session);
         }
+      } catch (sessionError) {
+        console.warn('failed to load linked AR session:', sessionError);
       }
     } catch (err: any) {
       console.error('failed to load data:', err);
@@ -180,34 +164,12 @@ export default function ProductSetDetails() {
     setMarkerError(null);
 
     try {
-      // upload to backend
-      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://us-central1-wmcyn-online-mobile.cloudfunctions.net/api';
-      const url = `${API_BASE}/v1/productSets/${productSet.id}/nft-marker`;
-      
-      console.log('[handleMarkerCompiled] Uploading to:', url);
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': process.env.NEXT_PUBLIC_ADMIN_API_TOKEN || '',
-        },
-        body: JSON.stringify({
-          sourceImageData: data.sourceImageData,
-          mindFileData: data.mindFileData,
-          filename: data.filename,
-          quality: data.quality,
-        }),
+      const result = await uploadNftMarker(productSet.id, {
+        sourceImageData: data.sourceImageData,
+        mindFileData: data.mindFileData,
+        filename: data.filename,
+        quality: data.quality,
       });
-
-      if (!response.ok) {
-        const text = await response.text();
-        console.error('[handleMarkerCompiled] Upload failed:', { status: response.status, text });
-        throw new Error(`Upload failed: ${response.status} - ${text}`);
-      }
-
-      const result = await response.json();
-      console.log('[handleMarkerCompiled] Upload result:', result);
 
       // update product set with new marker info
       setProductSet(prev => prev ? {
@@ -242,21 +204,22 @@ export default function ProductSetDetails() {
     });
   };
 
-  const formatPolicy = (policy: any) => {
-    const parts = [];
+  const formatPolicy = (policy: Partial<BackendRedeemPolicy>) => {
+    if (!policy.mode) return 'view only';
+    const parts: string[] = [policy.mode === 'CLAIMABLE' ? 'claimable' : 'view only'];
     
-    if (policy.geofence) {
-      parts.push(`location: ${policy.geofence.latitude.toFixed(4)}, ${policy.geofence.longitude.toFixed(4)} (±${policy.geofence.radiusMeters}m)`);
+    if (policy.geoFence) {
+      parts.push(`location: ${policy.geoFence.lat.toFixed(4)}, ${policy.geoFence.lng.toFixed(4)} (±${policy.geoFence.radiusMeters}m)`);
     }
     
-    if (policy.timeWindow) {
-      const start = new Date(policy.timeWindow.startTime).toLocaleDateString();
-      const end = new Date(policy.timeWindow.endTime).toLocaleDateString();
+    if (policy.startAt || policy.endAt) {
+      const start = policy.startAt ? new Date(policy.startAt).toLocaleDateString() : 'now';
+      const end = policy.endAt ? new Date(policy.endAt).toLocaleDateString() : 'open';
       parts.push(`time: ${start} - ${end}`);
     }
     
-    parts.push(`per user: ${policy.perUserLimit}`);
-    parts.push(`max claims: ${policy.maxClaims}`);
+    parts.push(policy.oneClaimPerUser ? 'one per person' : 'no per-person limit');
+    if (policy.maxTotalClaims) parts.push(`max claims: ${policy.maxTotalClaims}`);
     
     return parts.join(' • ');
   };
@@ -434,7 +397,7 @@ export default function ProductSetDetails() {
         </div>
 
         {/* test ar experience section */}
-        {(productSet.linkedARSessionId || (qrCodes && qrCodes.length > 0)) && (
+        {(linkedARSession || (qrCodes && qrCodes.length > 0)) && (
           <div style={{ 
             background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15))',
             border: '1px solid rgba(102, 126, 234, 0.3)',
@@ -493,7 +456,7 @@ export default function ProductSetDetails() {
               {/* qr code test link (primary - this is what users should use) */}
               {qrCodes && qrCodes.length > 0 && (() => {
                 const qrCode = qrCodes[0].code;
-                const testUrl = `http://localhost:3000/ar/${encodeURIComponent(qrCode)}`;
+                const testUrl = `${window.location.origin}/ar/${encodeURIComponent(qrCode)}`;
                 return (
                   <div style={{
                     display: 'flex',
@@ -555,9 +518,9 @@ export default function ProductSetDetails() {
               })()}
 
               {/* ar session test link (fallback) */}
-              {productSet.linkedARSessionId && (() => {
-                const sessionId = productSet.linkedARSessionId;
-                const testUrl = `http://localhost:3000/ar/${encodeURIComponent(sessionId)}`;
+              {linkedARSession && (() => {
+                const sessionId = linkedARSession.sessionId;
+                const testUrl = `${window.location.origin}/ar-session/${encodeURIComponent(sessionId)}`;
                 return (
                   <div style={{
                     display: 'flex',
@@ -572,7 +535,7 @@ export default function ProductSetDetails() {
                   }}>
                     <div style={{ flex: 1, minWidth: '200px' }}>
                       <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.8rem', marginBottom: '4px' }}>
-                        AR session link (dev)
+                        AR session link
                       </div>
                       <code style={{ 
                         color: '#60a5fa', 
@@ -588,7 +551,7 @@ export default function ProductSetDetails() {
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <a
-                        href={`/ar/${encodeURIComponent(sessionId)}`}
+                        href={`/ar-session/${encodeURIComponent(sessionId)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className={styles.buttonPrimary}
@@ -717,10 +680,10 @@ export default function ProductSetDetails() {
               border: '1px solid rgba(255, 255, 255, 0.1)',
               borderRadius: '8px'
             }}>
-              <span style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.9rem' }}>type:</span>
-              <span style={{ color: 'white', fontWeight: '500' }}>{productSet.checkout?.type || 'N/A'}</span>
+              <span style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.9rem' }}>mode:</span>
+              <span style={{ color: 'white', fontWeight: '500' }}>{productSet.checkoutMode || 'NONE'}</span>
             </div>
-            {productSet.checkout?.cartLink && (
+            {productSet.slug && (
               <div style={{ 
                 display: 'flex', 
                 justifyContent: 'space-between',
@@ -730,9 +693,9 @@ export default function ProductSetDetails() {
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 borderRadius: '8px'
               }}>
-                <span style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.9rem' }}>cart link:</span>
+                <span style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.9rem' }}>public page:</span>
                 <a 
-                  href={productSet.checkout?.cartLink} 
+                  href={`/${productSet.slug}`} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   style={{ 
@@ -755,11 +718,11 @@ export default function ProductSetDetails() {
                     e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.2)';
                   }}
                 >
-                  view link
+                  wmcyn.online/{productSet.slug}
                 </a>
               </div>
             )}
-            {productSet.checkout?.discountCode && (
+            {productSet.discountCode && (
               <div style={{ 
                 display: 'flex', 
                 justifyContent: 'space-between',
@@ -770,7 +733,7 @@ export default function ProductSetDetails() {
                 borderRadius: '8px'
               }}>
                 <span style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.9rem' }}>discount code:</span>
-                <span style={{ color: 'white', fontWeight: '500' }}>{productSet.checkout?.discountCode}</span>
+                <span style={{ color: 'white', fontWeight: '500' }}>{productSet.discountCode}</span>
               </div>
             )}
           </div>
@@ -817,7 +780,7 @@ export default function ProductSetDetails() {
           <NFTMarkerCompiler
             productSetId={productSet.id}
             onCompiled={handleMarkerCompiled}
-            existingMarker={(productSet as any).nftMarker}
+            existingMarker={productSet.nftMarker}
             disabled={uploadingMarker}
           />
         </div>

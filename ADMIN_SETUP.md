@@ -1,120 +1,63 @@
 # Admin Interface Setup
 
-This document explains how to set up and use the Product Sets & Claims admin interface.
+`/admin` is for WMCYN founders and admins. Each person signs in with their own email and password. There is no shared admin password.
 
-## Environment Configuration
+## How access works
 
-Create a `.env.local` file in your project root with the following variables:
+1. Founders sign in on `/admin/login` with Firebase email/password on the backend project (`wmcyn-online-mobile`), not the project the public site uses for customer accounts.
+2. The admin UI calls `GET /v1/profile/me` and only continues if the account has the `founder` or `admin` role.
+3. Every admin API call sends `Authorization: Bearer <Firebase ID token>`. The backend (`requireFounderOrAdmin*` in `wmcyn-backend-infra/functions/src/middleware/adminAuth.ts`) checks the role again on every write.
+
+Roles are granted only from the backend repo:
 
 ```bash
-# Admin authentication credentials
-NEXT_PUBLIC_ADMIN_USERNAME=wmcyn_admin
-NEXT_PUBLIC_ADMIN_PASSWORD=your_secure_password_here
-
-# Admin API token for backend authentication (optional)
-NEXT_PUBLIC_ADMIN_API_TOKEN=your_admin_api_token_here
-
-# Backend API base URL - Your deployed Firebase Functions
-NEXT_PUBLIC_API_BASE=https://api-rrm3u3yaba-uc.a.run.app
+cd wmcyn-backend-infra/functions
+npm run grant-founder -- --project wmcyn-online-mobile founder@example.com
 ```
 
-## Security Notes
+That creates the account if needed and prints a one-time password setup link to send privately. Use `--revoke` to remove access. Founders can also use "forgot password" on the login page.
 
-- **Never commit `.env.local` to version control**
-- Use strong, unique passwords for production
-- Consider using environment-specific credentials
-- The admin interface uses session storage for authentication (expires in 24 hours)
+## Environment
 
-## Accessing the Admin Interface
+```bash
+NEXT_PUBLIC_API_BASE=https://us-central1-wmcyn-online-mobile.cloudfunctions.net/api
 
-1. Navigate to `/admin/login` in your browser
-2. Enter the username and password from your environment variables
-3. You'll be redirected to `/admin` upon successful login
+# firebase web config for the backend project (public values, not secrets)
+NEXT_PUBLIC_BACKEND_FIREBASE_API_KEY=...
+NEXT_PUBLIC_BACKEND_FIREBASE_AUTH_DOMAIN=wmcyn-online-mobile.firebaseapp.com
+NEXT_PUBLIC_BACKEND_FIREBASE_PROJECT_ID=wmcyn-online-mobile
+NEXT_PUBLIC_BACKEND_FIREBASE_APP_ID=...
+```
+
+If the `NEXT_PUBLIC_BACKEND_FIREBASE_*` values are omitted, admin sign-in reuses the site's `NEXT_PUBLIC_FIREBASE_*` config. The production deploy workflow sets them explicitly. Shared admin keys (`ADMIN_API_KEY`, `SYNC_CRON_KEY`) are server-to-server only and must never be put in a `NEXT_PUBLIC_*` variable.
 
 ## Features
 
-### Product Set Management
-- **Create** new product sets with items, quantities, and checkout configuration
-- **Edit** existing product sets
-- **Delete** product sets (with confirmation)
-- **View** detailed information and statistics
+- Product sets: create, edit, delete, view claims and remaining inventory.
+- Landing pages: each product set can have a `slug`, which is served at `https://wmcyn.online/{slug}` with no frontend deploy.
+- NFT markers: compile a `.mind` file in the browser and upload it for a product set.
+- QR codes: generate per product set or AR session; they resolve through `https://wmcyn.online/qr?code=...`.
+- AR sessions: create, edit, delete.
 
-### QR Code Generation
-- Generate QR codes for any product set
-- Configure redeem policies:
-  - **Geofence**: Restrict claims to specific locations
-  - **Time Window**: Set claim periods
-  - **Per-user Limits**: Control how many times a user can claim
-  - **Max Claims**: Set total claim limits
-  - **Expiration**: Set QR code expiration dates
+## API endpoints used
 
-### Dashboard
-- View all product sets with statistics
-- Search and filter product sets
-- Real-time claim and inventory tracking
-- Summary statistics
+Admin (founder or admin token required):
 
-## API Endpoints
+- `GET /v1/profile/me`
+- `POST /v1/productSets/create`, `PATCH /v1/productSets/:id`, `DELETE /v1/productSets/:id`
+- `POST /v1/productSets/:id/nft-marker`
+- `GET /v1/qrcodes?productSetId=`, `POST /v1/qrcodes/generate`, `DELETE /v1/qrcodes/:code`
+- `GET /v1/ar-sessions`, `POST /v1/ar-sessions/create`, `PUT /v1/ar-sessions/:id`, `DELETE /v1/ar-sessions/:id`
+- `GET|POST|PUT|DELETE /v1/marker-patterns`
 
-The admin interface uses the following deployed backend endpoints:
+Public:
 
-### Product Sets
-- `GET /v1/productSets` - List all product sets
-- `GET /v1/productSets/:id` - Get specific product set
-- `POST /v1/productSets/create` - Create new product set
-- `PUT /v1/productSets/:id` - Update product set
-- `DELETE /v1/productSets/:id` - Delete product set
-
-### QR Codes
-- `GET /v1/qrcodes` - List QR codes (optionally filtered by productSetId)
-- `GET /v1/qrcodes/:id` - Get specific QR code
-- `POST /v1/qrcodes/generate` - Generate new QR code
-- `DELETE /v1/qrcodes/:id` - Delete QR code
-
-## Authentication
-
-The admin interface uses Firebase authentication for API calls:
-
-1. Username/password are stored in environment variables for admin login
-2. Successful login creates a session stored in `sessionStorage`
-3. Sessions expire after 24 hours
-4. All admin API calls use Firebase Bearer tokens (same as regular user API calls)
-5. API calls go directly to the deployed Firebase Cloud Functions (no proxy needed)
+- `GET /v1/productSets`, `GET /v1/productSets/:id`, `GET /v1/productSets/:id/stats`, `GET /v1/productSets/by-slug/:slug`
+- `GET /v1/qrcodes/:code`, `GET /v1/qrcodes/:code/ar-config`
+- `GET /api/ar-sessions/:id/data`
 
 ## Troubleshooting
 
-### Login Issues
-- Verify environment variables are set correctly
-- Check browser console for errors
-- Ensure the admin interface is accessible at `/admin/login`
-
-### API Issues
-- Verify `NEXT_PUBLIC_API_BASE` is set correctly
-- Check that backend endpoints are implemented
-- Review browser network tab for failed requests
-
-### Styling Issues
-- Ensure `Admin.module.scss` is properly imported
-- Check that base styles from `Index.module.scss` are available
-- Verify responsive breakpoints work on your device
-
-## Development
-
-To extend the admin interface:
-
-1. **Add new types** in `src/types/productSets.ts`
-2. **Extend API client** in `src/lib/apiClient.ts`
-3. **Create components** in `src/components/admin/`
-4. **Add pages** in `pages/admin/`
-5. **Update styles** in `src/styles/Admin.module.scss`
-
-## Production Deployment
-
-Before deploying to production:
-
-1. Set secure environment variables
-2. Ensure backend API endpoints are implemented
-3. Test all functionality thoroughly
-4. Consider adding additional security measures (rate limiting, IP restrictions, etc.)
-5. Set up monitoring and logging for admin actions
- 
+- "this account does not have admin access": run `grant-founder` for that email, then sign in again.
+- "admin sign-in is not configured": the backend Firebase config is missing from the build.
+- A 401 on every call usually means the site is signed in to a different Firebase project than `NEXT_PUBLIC_API_BASE` verifies.

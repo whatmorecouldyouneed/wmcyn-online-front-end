@@ -79,14 +79,14 @@ export default function OgProductLanding({
   return (
     <>
       <Head>
-        <title>{pageTitle}</title>
-        <meta name="description" content={metaDescription} />
-        <meta property="og:title" content={pageTitle} />
-        <meta property="og:description" content={metaDescription} />
-        <meta property="og:url" content={canonicalUrl} />
-        <meta property="og:type" content="website" />
-        <meta property="og:image" content="/wmcyn_logo_condensed.png" />
-        <link rel="canonical" href={canonicalUrl} />
+        <title key="title">{pageTitle}</title>
+        <meta key="description" name="description" content={metaDescription} />
+        <meta key="og:title" property="og:title" content={pageTitle} />
+        <meta key="og:description" property="og:description" content={metaDescription} />
+        <meta key="og:url" property="og:url" content={canonicalUrl} />
+        <meta key="og:type" property="og:type" content="website" />
+        <meta key="og:image" property="og:image" content="/wmcyn_logo_condensed.png" />
+        <link key="canonical" rel="canonical" href={canonicalUrl} />
       </Head>
 
       <div className={`${styles.pageContainer}`}>

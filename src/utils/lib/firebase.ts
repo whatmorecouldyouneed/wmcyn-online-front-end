@@ -16,12 +16,23 @@ const firebaseConfig = {
   databaseURL: `https://${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}-default-rtdb.firebaseio.com/`
 };
 
+// the api (wmcyn-backend-infra) verifies id tokens for its own firebase project, which is
+// not the project the public site signs users into. admin sign-in uses this app instead.
+// falls back to the primary config when both point at the same project.
+const backendFirebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_BACKEND_FIREBASE_API_KEY || firebaseConfig.apiKey,
+  authDomain: process.env.NEXT_PUBLIC_BACKEND_FIREBASE_AUTH_DOMAIN || firebaseConfig.authDomain,
+  projectId: process.env.NEXT_PUBLIC_BACKEND_FIREBASE_PROJECT_ID || firebaseConfig.projectId,
+  appId: process.env.NEXT_PUBLIC_BACKEND_FIREBASE_APP_ID || firebaseConfig.appId,
+};
+
 // Initialize Firebase only on the client side
 let app: FirebaseApp | undefined;
 let analytics: Analytics | undefined;
 let db: Database | undefined;
 let auth: Auth | undefined;
 let firestore: Firestore | undefined;
+let backendAuth: Auth | undefined;
 
 if (typeof window !== 'undefined') {
   try {
@@ -41,6 +52,14 @@ if (typeof window !== 'undefined') {
   } catch (error) {
     console.error('Firebase initialization error:', error);
   }
+
+  try {
+    if (backendFirebaseConfig.apiKey && backendFirebaseConfig.projectId) {
+      backendAuth = getAuth(initializeApp(backendFirebaseConfig, 'backend'));
+    }
+  } catch (error) {
+    console.error('Backend Firebase initialization error:', error);
+  }
 }
 
 // Analytics is a passive tracking technology, so it does NOT auto-initialize on load.
@@ -58,4 +77,4 @@ export async function initAnalytics(): Promise<void> {
   }
 }
 
-export { app, analytics, db, ref, push, set, auth, firestore };
+export { app, analytics, db, ref, push, set, auth, firestore, backendAuth };
