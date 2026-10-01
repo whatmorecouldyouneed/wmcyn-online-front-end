@@ -22,6 +22,7 @@ export const privacyDocument: LegalDocument = {
           list: [
             'Account information — if you create an account, we collect your email address and password (handled by Firebase Authentication) and, if you sign in with Google, basic profile information Google shares with us.',
             'Newsletter information — if you subscribe to updates, we collect the email address you provide, along with a timestamp and your browser’s user agent string.',
+            'Custom order request information — if you ask WMCYN to make something, we collect the contact details, product idea, requested size and quantity, budget, notes, and optional reference images you submit. An account is not required. If you are signed in, we also associate the request with your account.',
             'Order and purchase information — purchases are completed through Shopify’s hosted checkout. We do not collect or store your payment card details ourselves; that information goes directly to Shopify and its payment processor.',
             'AR/XR interaction information — our AR experiences use your device camera, processed locally in your browser, to recognize a physical marker (like a printed logo or garment) and overlay a 3D scene. See "AR/XR and camera access" below for how this works.',
             'AR "moment" captures — if you choose to capture and share an image from an AR experience, that image is generated on your device for you to share or save; it is not uploaded to or stored on WMCYN’s servers by that feature.',
@@ -30,7 +31,7 @@ export const privacyDocument: LegalDocument = {
             'Cart information — items you add to your cart are stored in your browser’s local storage so your cart persists between visits.',
           ],
         },
-        'We do not currently offer profile photo uploads, other user-uploaded media, or precise location collection as part of the public site.',
+        'We do not currently offer profile photo uploads or precise location collection as part of the public site. Optional reference images are accepted only through the custom order request form and are stored privately.',
       ],
     },
     {
@@ -41,6 +42,7 @@ export const privacyDocument: LegalDocument = {
         {
           list: [
             'operate the site and your account, including authentication and session management',
+            'review custom order ideas, contact you with what is possible and a quote, and prevent duplicate or abusive submissions',
             'process and fulfill orders placed through our shop',
             'run AR/XR experiences you choose to start',
             'send the newsletter updates you sign up for',
@@ -59,8 +61,9 @@ export const privacyDocument: LegalDocument = {
         'We rely on the following categories of service providers to operate WMCYN. We only list a provider here if it’s actually integrated into the site today.',
         {
           list: [
-            'Firebase (Google) — authentication, our database (account records and the newsletter list), and, once you consent, analytics.',
+            'Firebase and Google Cloud — authentication, databases, private custom order reference storage, server functions, and, once you consent, analytics.',
             'Shopify — product catalog, cart checkout, and order processing. Shopify handles payment processing for us; we don’t receive or store your card details.',
+            'Our configured transactional email delivery provider — delivery of custom order notifications to authorized WMCYN founders.',
           ],
         },
         'We do not currently work with a dedicated email marketing platform, ad network, or session-recording tool — if that changes, we’ll update this policy and, where required, our cookie consent options first.',
@@ -87,7 +90,7 @@ export const privacyDocument: LegalDocument = {
       heading: 'data retention',
       requiresLegalReview: true,
       body: [
-        'We retain account and order records for as long as your account is active or as needed to provide the service, and newsletter records until you ask us to remove them.',
+        'We retain account, order, and custom order request records for as long as needed to provide the service, document the request and any resulting product lineage, meet legal obligations, or resolve disputes. We retain newsletter records until you ask us to remove them.',
         'We are still finalizing exact retention schedules for each data category (for example, how long inactive account or order records are kept). Until that review is complete, treat this section as directional rather than a fixed timetable, and contact us if you need a specific answer for your data.',
       ],
     },

@@ -24,6 +24,7 @@ import {
   UploadMarkerPatternResponse,
   ArConfigResponse
 } from '@/types/arSessions';
+import { CustomOrderRequest, CustomOrderResponse } from '@/types/customOrders';
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://us-central1-wmcyn-online-mobile.cloudfunctions.net/api';
 const DEV_X_UID = process.env.NEXT_PUBLIC_DEV_X_UID;
@@ -43,7 +44,8 @@ async function errorFromResponse(res: Response): Promise<Error> {
   let message = '';
   try {
     const body = JSON.parse(text);
-    message = body?.error || body?.message || '';
+    // routes that send both put the machine code in `error` and the sentence in `message`
+    message = body?.message || body?.error || '';
   } catch {
     message = text.replace(/<[^>]*>/g, '').trim();
   }
@@ -121,6 +123,11 @@ export const getMyProfile = () => apiFetch('/v1/profile/me');
 export const getVrProfile = () => apiFetch('/v1/vr/profile');
 export const getInventory = (includeProduct = false) =>
   apiFetch(`/v1/profile/inventory${includeProduct ? '?includeProduct=true' : ''}`);
+export const submitCustomOrder = (request: CustomOrderRequest) =>
+  apiFetch<CustomOrderResponse>('/v1/custom-orders', {
+    method: 'POST',
+    body: JSON.stringify(request)
+  });
 
 export type AdminProfile = { id: string; email: string | null; roles: string[]; hasAccess: boolean };
 export const getAdminProfile = () => adminApiFetch<AdminProfile>('/v1/profile/me');

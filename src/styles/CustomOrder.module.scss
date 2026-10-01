@@ -1,0 +1,430 @@
+.page {
+  min-height: 100vh;
+  padding: 1rem 1rem 8rem;
+  color: #fff;
+  background: #000;
+}
+
+.header {
+  width: min(100%, 760px);
+  margin: 0 auto 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.backLink,
+.accountState {
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+}
+
+.backLink {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.accountState {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.hero {
+  width: min(100%, 760px);
+  margin: 0 auto 3rem;
+  text-align: left;
+}
+
+.eyebrow {
+  margin-bottom: 0.65rem;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.hero h1,
+.success h1 {
+  font-size: clamp(2.8rem, 11vw, 5.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.055em;
+  text-transform: lowercase;
+}
+
+.intro {
+  max-width: 650px;
+  margin-top: 1.5rem;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: clamp(1.05rem, 4vw, 1.35rem);
+  line-height: 1.55;
+}
+
+.steps {
+  margin-top: 2rem;
+  display: flex;
+  justify-content: flex-start;
+  gap: 0;
+}
+
+.steps span {
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.steps span:not(:last-child)::after {
+  content: '→';
+  margin: 0 0.7rem;
+  color: rgba(255, 255, 255, 0.28);
+}
+
+.form {
+  width: min(100%, 760px);
+  margin: 0 auto;
+}
+
+.formSection,
+.philosophy {
+  margin: 0;
+  padding: 2.5rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.formSection h2 {
+  margin: 0 0 0.35rem;
+  font-size: clamp(1.5rem, 5vw, 2.15rem);
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  text-transform: lowercase;
+}
+
+.sectionCopy {
+  margin: 0 0 1.35rem;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.92rem;
+}
+
+.twoColumn {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  justify-content: stretch;
+  gap: 0.85rem;
+}
+
+.field {
+  width: 100%;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0.38rem;
+}
+
+.label {
+  font-size: 0.88rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  text-transform: lowercase;
+}
+
+.hint {
+  margin-top: -0.2rem;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  min-height: 50px;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 0.4rem;
+  outline: none;
+  background: #0a0a0a;
+  color: #fff;
+  font: inherit;
+  font-size: 1rem;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.field textarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: #fff;
+  box-shadow: 0 0 0 1px #fff;
+}
+
+.field input[aria-invalid="true"],
+.field select[aria-invalid="true"],
+.field textarea[aria-invalid="true"] {
+  border-color: #ff7777;
+}
+
+.error {
+  color: #ff9292;
+  font-size: 0.78rem;
+}
+
+.upload {
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed rgba(255, 255, 255, 0.32);
+  border-radius: 0.4rem;
+  background: #080808;
+  cursor: pointer;
+}
+
+.upload input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.upload span {
+  font-weight: 650;
+}
+
+.fileList {
+  padding-left: 1.2rem;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.8rem;
+}
+
+.budgets {
+  margin-bottom: 1rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  justify-content: stretch;
+  gap: 0.65rem;
+}
+
+.budget,
+.budgetSelected {
+  min-height: 50px;
+  padding: 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 0.4rem;
+  background: #0a0a0a;
+  color: #fff;
+}
+
+.budgetSelected {
+  border-color: #fff;
+  background: #fff;
+  color: #111;
+}
+
+.moneyInput {
+  position: relative;
+}
+
+.moneyInput span {
+  position: absolute;
+  top: 50%;
+  left: 0.9rem;
+  z-index: 1;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.moneyInput input {
+  padding-left: 2rem;
+}
+
+.disclaimer,
+.metadataNote,
+.privacy,
+.finePrint {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.philosophy {
+  margin-top: 0;
+}
+
+.philosophy h2 {
+  margin-bottom: 0.75rem;
+  font-size: clamp(1.8rem, 6vw, 3rem);
+  letter-spacing: -0.04em;
+  text-transform: lowercase;
+}
+
+.philosophy > p:not(.eyebrow) {
+  max-width: 640px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
+}
+
+.philosophy .metadataNote {
+  margin-top: 1rem;
+  color: rgba(255, 255, 255, 0.48);
+}
+
+.submitError {
+  margin: 1rem 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(255, 80, 80, 0.35);
+  border-radius: 0.8rem;
+  background: rgba(255, 70, 70, 0.1);
+  color: #ffb0b0;
+}
+
+.submitBar {
+  position: sticky;
+  bottom: 0.75rem;
+  z-index: 5;
+  margin-top: 1rem;
+  padding: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 0.5rem;
+  background: rgba(0, 0, 0, 0.96);
+}
+
+.submitBar > div {
+  padding-left: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.submitBar strong {
+  font-size: 0.9rem;
+}
+
+.submitBar span {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.68rem;
+}
+
+.submitBar button {
+  min-height: 50px;
+  padding: 0.75rem 1.15rem;
+  border: 0;
+  border-radius: 0.35rem;
+  background: #fff;
+  color: #111;
+  font-weight: 750;
+}
+
+.submitBar button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.privacy {
+  margin: 1rem auto 0;
+  max-width: 560px;
+  text-align: center;
+}
+
+.privacy a {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.success {
+  width: min(100%, 650px);
+  min-height: 75vh;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.success > p:not(.eyebrow) {
+  max-width: 560px;
+  margin-top: 1rem;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 1.05rem;
+  line-height: 1.55;
+}
+
+.globe {
+  margin-bottom: 1.2rem;
+  font-size: 3rem;
+}
+
+.requestNumber {
+  width: 100%;
+  margin: 2rem 0 0.5rem;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.4rem;
+  background: #080808;
+  font-size: clamp(1rem, 5vw, 1.5rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+.homeLink {
+  min-height: 48px;
+  margin-top: 2rem;
+  padding: 0.75rem 1rem;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 0.35rem;
+  background: #fff;
+  color: #111;
+  font-weight: 700;
+}
+
+@media (max-width: 620px) {
+  .page {
+    padding: 0.9rem 0.75rem 7rem;
+  }
+
+  .header {
+    margin-bottom: 2.4rem;
+  }
+
+  .twoColumn {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .budgets {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .formSection,
+  .philosophy {
+    padding: 2rem 0;
+  }
+
+  .submitBar > div {
+    display: none;
+  }
+
+  .submitBar button {
+    width: 100%;
+  }
+}
