@@ -1,0 +1,198 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "CXTU43NJCA.com.wmcyn.mobile"
+        ],
+        "components": [
+          {
+            "/": "/",
+            "?": {
+              "orderId": "?*",
+              "claimId": "?*"
+            }
+          },
+          {
+            "/": "/",
+            "?": {
+              "sessionId": "?*"
+            }
+          },
+          {
+            "/": "/",
+            "exclude": true
+          },
+          {
+            "/": "/404",
+            "exclude": true
+          },
+          {
+            "/": "/404/*",
+            "exclude": true
+          },
+          {
+            "/": "/accessibility",
+            "exclude": true
+          },
+          {
+            "/": "/accessibility/*",
+            "exclude": true
+          },
+          {
+            "/": "/admin",
+            "exclude": true
+          },
+          {
+            "/": "/admin/*",
+            "exclude": true
+          },
+          {
+            "/": "/api",
+            "exclude": true
+          },
+          {
+            "/": "/api/*",
+            "exclude": true
+          },
+          {
+            "/": "/cookies",
+            "exclude": true
+          },
+          {
+            "/": "/cookies/*",
+            "exclude": true
+          },
+          {
+            "/": "/dashboard",
+            "exclude": true
+          },
+          {
+            "/": "/dashboard/*",
+            "exclude": true
+          },
+          {
+            "/": "/debug",
+            "exclude": true
+          },
+          {
+            "/": "/debug/*",
+            "exclude": true
+          },
+          {
+            "/": "/fonts",
+            "exclude": true
+          },
+          {
+            "/": "/fonts/*",
+            "exclude": true
+          },
+          {
+            "/": "/index",
+            "exclude": true
+          },
+          {
+            "/": "/index/*",
+            "exclude": true
+          },
+          {
+            "/": "/login",
+            "exclude": true
+          },
+          {
+            "/": "/login/*",
+            "exclude": true
+          },
+          {
+            "/": "/pair",
+            "exclude": true
+          },
+          {
+            "/": "/pair/*",
+            "exclude": true
+          },
+          {
+            "/": "/privacy",
+            "exclude": true
+          },
+          {
+            "/": "/privacy/*",
+            "exclude": true
+          },
+          {
+            "/": "/privacy-choices",
+            "exclude": true
+          },
+          {
+            "/": "/privacy-choices/*",
+            "exclude": true
+          },
+          {
+            "/": "/shipping-returns",
+            "exclude": true
+          },
+          {
+            "/": "/shipping-returns/*",
+            "exclude": true
+          },
+          {
+            "/": "/shop",
+            "exclude": true
+          },
+          {
+            "/": "/shop/*",
+            "exclude": true
+          },
+          {
+            "/": "/terms",
+            "exclude": true
+          },
+          {
+            "/": "/terms/*",
+            "exclude": true
+          },
+          {
+            "/": "/models",
+            "exclude": true
+          },
+          {
+            "/": "/models/*",
+            "exclude": true
+          },
+          {
+            "/": "/patterns",
+            "exclude": true
+          },
+          {
+            "/": "/patterns/*",
+            "exclude": true
+          },
+          {
+            "/": "/static",
+            "exclude": true
+          },
+          {
+            "/": "/static/*",
+            "exclude": true
+          },
+          {
+            "/": "/_next",
+            "exclude": true
+          },
+          {
+            "/": "/_next/*",
+            "exclude": true
+          },
+          {
+            "/": "/*"
+          }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "CXTU43NJCA.com.wmcyn.mobile"
+    ]
+  }
+}

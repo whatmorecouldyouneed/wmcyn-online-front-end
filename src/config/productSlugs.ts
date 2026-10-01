@@ -3,7 +3,7 @@
 // keep in sync with wmcyn-backend-infra/functions/src/services/productSlug.ts
 export const RESERVED_SLUGS = [
   '404', 'accessibility', 'admin', 'api', 'ar', 'ar-session', 'cookies', 'cross-body-bag',
-  'dashboard', 'debug', 'fonts', 'index', 'login', 'pair', 'privacy', 'privacy-choices', 'qr',
+  'dashboard', 'debug', 'fonts', 'friends-and-family', 'index', 'login', 'pair', 'privacy', 'privacy-choices', 'qr',
   'session', 'shipping-returns', 'shop', 'shoulder-bag', 'terms', 'viewer',
   'models', 'patterns', 'static', '_next', 'p',
 ];

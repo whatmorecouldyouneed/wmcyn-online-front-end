@@ -129,6 +129,13 @@ export const submitCustomOrder = (request: CustomOrderRequest) =>
     body: JSON.stringify(request)
   });
 
+// per-code scan counts for /admin; the app posts the same body with platform 'ios'
+export const postScanEvent = (code: string) =>
+  apiFetch<{ ok: boolean }>('/v1/events/scan', {
+    method: 'POST',
+    body: JSON.stringify({ event: 'scan', code, timestamp: new Date().toISOString(), meta: { platform: 'web' } })
+  });
+
 export type AdminProfile = { id: string; email: string | null; roles: string[]; hasAccess: boolean };
 export const getAdminProfile = () => adminApiFetch<AdminProfile>('/v1/profile/me');
 
