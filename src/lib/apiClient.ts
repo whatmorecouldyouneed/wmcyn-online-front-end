@@ -44,7 +44,8 @@ async function errorFromResponse(res: Response): Promise<Error> {
   let message = '';
   try {
     const body = JSON.parse(text);
-    message = body?.error || body?.message || '';
+    // routes that send both put the machine code in `error` and the sentence in `message`
+    message = body?.message || body?.error || '';
   } catch {
     message = text.replace(/<[^>]*>/g, '').trim();
   }
