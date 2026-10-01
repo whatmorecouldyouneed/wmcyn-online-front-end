@@ -25,6 +25,9 @@ import {
   ArConfigResponse
 } from '@/types/arSessions';
 import { CustomOrderRequest, CustomOrderResponse } from '@/types/customOrders';
+import type { AdminInstance, CollectionItem, MintRequest, MintResponse, PublicInstance } from '@/types/instances';
+
+export type { CollectionItem } from '@/types/instances';
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://us-central1-wmcyn-online-mobile.cloudfunctions.net/api';
 const DEV_X_UID = process.env.NEXT_PUBLIC_DEV_X_UID;
@@ -314,3 +317,30 @@ export const generateARSessionQR = async (sessionId: string, options?: {
 // fetch ar config by qr code (public endpoint, no auth required)
 export const fetchArConfigByCode = (code: string): Promise<ArConfigResponse> =>
   publicFetch(`/v1/qrcodes/${encodeURIComponent(code)}/ar-config`);
+
+// product instances: a signed-in request adds ownedByYou; anyone can see what an item is
+export const getInstance = (publicId: string) =>
+  apiFetch<PublicInstance>(`/v1/instances/${encodeURIComponent(publicId)}`);
+
+export const claimInstance = (publicId: string, secret: string) =>
+  apiFetch<{ ok: boolean; ownershipId: string; alreadyOwned?: boolean }>(`/v1/instances/${encodeURIComponent(publicId)}/claim`, {
+    method: 'POST',
+    body: JSON.stringify({ secret })
+  });
+
+export const getMyCollection = () => apiFetch<{ items: CollectionItem[]; linkedOrders: number }>('/v1/me/collection');
+
+export const mintInstances = (request: MintRequest) =>
+  adminApiFetch<MintResponse>('/v1/admin/instances/mint', { method: 'POST', body: JSON.stringify(request) });
+
+export const listInstances = (productSetId: string) =>
+  adminApiFetch<{ items: AdminInstance[] }>(`/v1/admin/instances?productSetId=${encodeURIComponent(productSetId)}`);
+
+export const voidInstance = (publicId: string) =>
+  adminApiFetch<{ ok: boolean }>(`/v1/admin/instances/${encodeURIComponent(publicId)}/void`, { method: 'POST' });
+
+export const rotateInstanceSecret = (publicId: string) =>
+  adminApiFetch<{ ok: boolean; claimUrl: string; claimCode: string }>(
+    `/v1/admin/instances/${encodeURIComponent(publicId)}/rotate-secret`,
+    { method: 'POST' }
+  );

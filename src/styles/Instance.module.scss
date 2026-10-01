@@ -1,0 +1,80 @@
+.card {
+  padding: 28px 24px;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  opacity: 0.6;
+  margin: 0;
+}
+
+.title {
+  font-size: 1.8rem;
+  font-weight: 300;
+  margin: 0;
+}
+
+.edition {
+  font-size: 15px;
+  opacity: 0.85;
+  margin: 0;
+}
+
+.status {
+  font-size: 14px;
+  margin: 0;
+  opacity: 0.8;
+}
+
+.owned {
+  color: #9be7a5;
+}
+
+.note {
+  font-size: 13px;
+  line-height: 1.5;
+  opacity: 0.65;
+  margin: 0;
+}
+
+.error {
+  color: #ff8a8a;
+  font-size: 14px;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.codeInput {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 12px;
+  color: white;
+  font-size: 18px;
+  letter-spacing: 0.12em;
+  padding: 12px 14px;
+  text-align: center;
+  text-transform: uppercase;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.link {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+}

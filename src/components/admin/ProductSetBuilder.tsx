@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ProductSet, ProductSetItem, CheckoutMode, UpdateProductSetRequest } from '@/types/productSets';
-import LandingFields, { LandingFormValues, landingErrors, landingPayload } from './LandingFields';
+import LandingFields, { LandingFormValues, landingErrors, landingPayload, widthCmFromMeters } from './LandingFields';
 import styles from '@/styles/Admin.module.scss';
 
 interface ProductSetBuilderProps {
@@ -26,6 +26,7 @@ const EMPTY_FORM: FormData = {
   slug: '',
   garmentWord: '',
   modelUrl: '',
+  physicalWidthCm: '',
   items: [],
   checkoutMode: 'NONE',
   discountCode: '',
@@ -47,6 +48,7 @@ export default function ProductSetBuilder({ productSet, onSubmit, onCancel, load
         slug: productSet.slug || '',
         garmentWord: productSet.garmentWord || '',
         modelUrl: productSet.modelUrl || '',
+        physicalWidthCm: widthCmFromMeters(productSet.physicalWidthMeters),
         items: productSet.items || [],
         checkoutMode: productSet.checkoutMode || 'NONE',
         discountCode: productSet.discountCode || '',

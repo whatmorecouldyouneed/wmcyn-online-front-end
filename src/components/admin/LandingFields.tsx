@@ -5,6 +5,8 @@ export type LandingFormValues = {
   slug: string;
   garmentWord: string;
   modelUrl: string;
+  // printed marker width in centimeters; the api stores meters
+  physicalWidthCm: string;
 };
 
 type LandingField = keyof LandingFormValues;
@@ -17,6 +19,10 @@ export function landingErrors(values: LandingFormValues): Record<string, string>
   if (modelUrl && !/^https:\/\/\S+\.(glb|gltf)(\?\S*)?$/i.test(modelUrl)) {
     errors.modelUrl = '3d model must be an https link to a .glb or .gltf file';
   }
+  const width = values.physicalWidthCm.trim();
+  if (width && !(Number(width) >= 2 && Number(width) <= 500)) {
+    errors.physicalWidthCm = 'marker width must be between 2 and 500 cm';
+  }
   return errors;
 }
 
@@ -26,12 +32,17 @@ export function landingPayload(values: LandingFormValues, forUpdate: boolean) {
     const trimmed = value.trim();
     return trimmed || (forUpdate ? '' : undefined);
   };
+  const width = values.physicalWidthCm.trim();
   return {
     slug: clean(values.slug),
     garmentWord: clean(values.garmentWord),
     modelUrl: clean(values.modelUrl),
+    // null clears the width on update, like '' does for the text fields
+    physicalWidthMeters: width ? Math.round(Number(width) * 10) / 1000 : forUpdate ? null : undefined,
   };
 }
+
+export const widthCmFromMeters = (meters?: number | null) => (meters ? String(Math.round(meters * 1000) / 10) : '');
 
 interface LandingFieldsProps {
   values: LandingFormValues;
@@ -106,6 +117,28 @@ export default function LandingFields({ values, errors, disabled = false, onChan
             <div style={errorStyle}>{errors.modelUrl}</div>
           ) : (
             <div style={hintStyle}>leave empty to use the wmcyn 3d logo</div>
+          )}
+        </div>
+        <div className={styles.formRowItem}>
+          <label style={{ display: 'block', marginBottom: '8px', color: 'white' }}>
+            printed marker width (cm)
+          </label>
+          <input
+            type="number"
+            inputMode="decimal"
+            min={2}
+            max={500}
+            step={0.1}
+            value={values.physicalWidthCm}
+            onChange={(e) => onChange('physicalWidthCm', e.target.value)}
+            className={`${styles.inputField} ${errors.physicalWidthCm ? styles.error : ''}`}
+            placeholder="e.g., 24.5"
+            disabled={disabled}
+          />
+          {errors.physicalWidthCm ? (
+            <div style={errorStyle}>{errors.physicalWidthCm}</div>
+          ) : (
+            <div style={hintStyle}>measure the printed artwork; the ios app needs it to track this product in ar</div>
           )}
         </div>
       </div>

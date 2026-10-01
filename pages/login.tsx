@@ -20,8 +20,10 @@ export default function Login() {
 
   useEffect(() => {
     if (currentUser) {
-      // ensure we redirect to dashboard without trailing slash
-      router.replace('/dashboard');
+      // only same-site paths, so a crafted ?next= can't send people off wmcyn.online
+      const next = typeof router.query.next === 'string' ? router.query.next : '';
+      const safeNext = next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\') ? next : '/dashboard';
+      router.replace(safeNext);
     }
   }, [currentUser, router]);
 
