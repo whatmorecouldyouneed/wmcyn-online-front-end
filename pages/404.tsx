@@ -15,6 +15,8 @@ const DYNAMIC_ROUTES = [
   /^\/admin\/product-sets\/[^/]+$/,
   /^\/admin\/product-sets\/[^/]+\/details$/,
   /^\/admin\/ar-sessions\/[^/]+$/,
+  /^\/p\/[^/]+$/,
+  /^\/p\/[^/]+\/claim$/,
   /^\/[^/]+$/,
 ];
 

@@ -28,6 +28,7 @@ export default function ARProductBuilder({ onSubmit, onCancel, loading = false }
     slug: '',
     garmentWord: '',
     modelUrl: '',
+    physicalWidthCm: '',
     markerPatternId: '',
     arTitle: '',
     arDescription: '',

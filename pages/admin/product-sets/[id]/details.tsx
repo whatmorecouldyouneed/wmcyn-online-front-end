@@ -6,6 +6,7 @@ import { ProductSet, QRCodeData, BackendRedeemPolicy } from '@/types/productSets
 import { ARSessionData } from '@/types/arSessions';
 import QRCodeGenerator from '@/components/admin/QRCodeGenerator';
 import NFTMarkerCompiler from '@/components/admin/NFTMarkerCompiler';
+import InstanceMinter from '@/components/admin/InstanceMinter';
 import NextImage from '@/components/NextImage';
 import styles from '@/styles/Admin.module.scss';
 
@@ -1029,6 +1030,8 @@ export default function ProductSetDetails() {
             </div>
           )}
         </div>
+
+        <InstanceMinter productSetId={productSet.id} productSetName={productSet.name} />
 
         {/* QR code generator modal */}
         <QRCodeGenerator

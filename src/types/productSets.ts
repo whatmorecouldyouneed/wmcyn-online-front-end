@@ -27,6 +27,8 @@ export interface ProductLanding {
   scale?: number;
   yOffset?: number;
   rotationOffset?: [number, number, number];
+  // printed marker width; native arkit tracking needs it. null clears it on update
+  physicalWidthMeters?: number | null;
 }
 
 // geofence configuration

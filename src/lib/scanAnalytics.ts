@@ -19,3 +19,13 @@ export async function trackProductScan(enabled: boolean, url: string) {
   if (analytics) logEvent(analytics, 'product_scan_completed', parameters);
   if (link.kind === 'qr') await postScanEvent(link.code).catch(() => undefined);
 }
+
+export async function trackClaimEvent(
+  enabled: boolean,
+  name: 'product_claim_started' | 'product_claim_completed',
+  publicId: string
+) {
+  if (!enabled) return;
+  await initAnalytics();
+  if (analytics) logEvent(analytics, name, { kind: 'instance', public_id: publicId, platform: 'web' });
+}

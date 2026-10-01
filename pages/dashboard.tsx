@@ -2,7 +2,8 @@
 import { useRouter } from 'next/router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
-import { useInventory } from '@/hooks/useInventory';
+import { useCollection } from '@/hooks/useCollection';
+import type { CollectionItem } from '@/lib/apiClient';
 import NextImage from '@/components/NextImage';
 import LiquidGlassEffect from '@/components/ui/LiquidGlassEffect';
 import styles from '@/styles/Index.module.scss';
@@ -12,13 +13,8 @@ const WMCYNLOGO = '/wmcyn_logo_white.png';
 export default function Dashboard() {
   const { currentUser, logout } = useAuth();
   const { data: profile, loading: loadingProfile, error: profileError } = useProfile();
-  const { items: inventory, loading: loadingInventory, error: inventoryError } = useInventory(true);
+  const { items: inventory, loading: loadingInventory, error: inventoryError } = useCollection();
   const router = useRouter();
-  const [transferEmail, setTransferEmail] = useState('');
-  const [transferProductId, setTransferProductId] = useState('');
-  const [showTransferModal, setShowTransferModal] = useState(false);
-  const [transferLoading, setTransferLoading] = useState(false);
-  const [transferError, setTransferError] = useState('');
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -53,29 +49,12 @@ export default function Dashboard() {
     }
   };
 
-  const handleTransfer = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!transferEmail || !transferProductId) return;
-    
-    try {
-      setTransferLoading(true);
-      setTransferError('');
-      // TODO: implement transfer via API endpoint
-      // await transferProduct(transferProductId, transferEmail);
-      setShowTransferModal(false);
-      setTransferEmail('');
-      setTransferProductId('');
-    } catch (error: any) {
-      setTransferError(error.message || 'transfer failed');
-    } finally {
-      setTransferLoading(false);
+  const describe = (item: CollectionItem) => {
+    if (item.kind === 'instance') {
+      return item.editionNumber && item.editionSize ? `${item.editionNumber} of ${item.editionSize}` : 'claimed item';
     }
-  };
-
-  const openTransferModal = (productId: string) => {
-    setTransferProductId(productId);
-    setShowTransferModal(true);
-    setTransferError('');
+    if (item.kind === 'purchase') return 'purchased';
+    return 'redeemed';
   };
 
   if (!currentUser) {
@@ -228,7 +207,7 @@ export default function Dashboard() {
                 justifyItems: 'center'
               }}>
                 {(inventory ?? []).map((item) => (
-                  <LiquidGlassEffect key={item.entitlementId} variant="button">
+                  <LiquidGlassEffect key={`${item.kind}:${item.id}`} variant="button">
                     <div style={{ 
                       padding: !mounted ? '1.5rem' : (isMobile ? '1rem' : '1.5rem'),
                       textAlign: 'center',
@@ -241,8 +220,12 @@ export default function Dashboard() {
                         marginBottom: '0.5rem',
                         color: 'white'
                       }}>
-                        {item.product?.title ?? item.productId}
+                        {item.title ?? 'wmcyn item'}
                       </h3>
+
+                      <p style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '0.5rem' }}>
+                        {describe(item)}
+                      </p>
                       
                       {item.acquiredAt && (
                         <p style={{ 
@@ -253,24 +236,26 @@ export default function Dashboard() {
                           acquired: {new Date(item.acquiredAt).toLocaleDateString()}
                         </p>
                       )}
-                      
-                      <LiquidGlassEffect variant="button">
-                        <button
-                          onClick={() => openTransferModal(item.entitlementId)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: 'rgba(255, 255, 255, 0.8)',
-                            fontSize: '13px',
-                            padding: '0.4rem 0.8rem',
-                            borderRadius: '0.6rem',
-                            cursor: 'pointer',
-                            fontFamily: 'inherit'
-                          }}
-                        >
-                          transfer
-                        </button>
-                      </LiquidGlassEffect>
+
+                      {item.kind === 'instance' && item.publicId && (
+                        <LiquidGlassEffect variant="button">
+                          <button
+                            onClick={() => router.push(`/p/${item.publicId}`)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'rgba(255, 255, 255, 0.8)',
+                              fontSize: '13px',
+                              padding: '0.4rem 0.8rem',
+                              borderRadius: '0.6rem',
+                              cursor: 'pointer',
+                              fontFamily: 'inherit'
+                            }}
+                          >
+                            view item
+                          </button>
+                        </LiquidGlassEffect>
+                      )}
                     </div>
                   </LiquidGlassEffect>
                 ))}
@@ -365,170 +350,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* transfer modal */}
-      {showTransferModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'rgba(20, 20, 30, 0.85)',
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backdropFilter: 'blur(4px)',
-          animation: 'modalFadeIn 0.4s ease-out forwards'
-        }}>
-          <div style={{
-            background: 'rgba(30, 35, 50, 0.85)',
-            border: '1.5px solid rgba(255,255,255,0.22)',
-            borderRadius: 18,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.32)',
-            padding: '28px 24px 24px 24px',
-            margin: '20px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '24px',
-            minWidth: 320,
-            maxWidth: 400,
-            backdropFilter: 'blur(12px)',
-            position: 'relative',
-            animation: 'modalSlideIn 0.5s ease-out forwards',
-            transform: 'translateY(-20px)',
-            opacity: 0
-          }}>
-            <button 
-              onClick={() => setShowTransferModal(false)} 
-              style={{ 
-                position: 'absolute', 
-                top: 8, 
-                right: 12, 
-                background: 'none', 
-                border: 'none', 
-                color: 'white', 
-                fontSize: 24, 
-                cursor: 'pointer', 
-                padding: 4, 
-                borderRadius: 8, 
-                zIndex: 2 
-              }}
-            >
-              ×
-            </button>
-            
-            <h2 style={{ 
-              fontFamily: 'var(--font-outfit), sans-serif', 
-              color: 'white', 
-              fontWeight: 500, 
-              fontSize: '1.5rem', 
-              margin: 0, 
-              textAlign: 'center', 
-              letterSpacing: '-0.02em' 
-            }}>
-              transfer item
-            </h2>
-            
-            <p style={{ 
-              color: 'rgba(255, 255, 255, 0.85)', 
-              fontFamily: 'var(--font-outfit), sans-serif', 
-              fontSize: 15, 
-              textAlign: 'center', 
-              margin: 0, 
-              maxWidth: 300, 
-              lineHeight: 1.4 
-            }}>
-              enter the email address of the wmcyn user you want to transfer this item to.
-            </p>
-
-            <form onSubmit={handleTransfer} style={{ 
-              width: '100%', 
-              maxWidth: 300, 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: '16px' 
-            }}>
-              <LiquidGlassEffect variant="button">
-                <input
-                  type="email"
-                  placeholder="recipient email"
-                  value={transferEmail}
-                  onChange={(e) => setTransferEmail(e.target.value)}
-                  required
-                  style={{ 
-                    background: 'transparent', 
-                    border: 'none', 
-                    color: 'white', 
-                    fontSize: 14, 
-                    padding: '0.8rem 1rem', 
-                    borderRadius: '0.8rem', 
-                    width: '100%',
-                    boxSizing: 'border-box',
-                    fontFamily: 'var(--font-outfit), sans-serif'
-                  }}
-                />
-              </LiquidGlassEffect>
-              
-              <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
-                <LiquidGlassEffect variant="button">
-                  <button 
-                    type="button"
-                    onClick={() => setShowTransferModal(false)}
-                    style={{ 
-                      background: 'none', 
-                      border: 'none', 
-                      color: 'rgba(255, 255, 255, 0.7)', 
-                      fontSize: 14, 
-                      padding: '0.8rem 1.2rem', 
-                      borderRadius: '0.8rem', 
-                      flex: 1,
-                      cursor: 'pointer',
-                      fontFamily: 'var(--font-outfit), sans-serif'
-                    }}
-                  >
-                    cancel
-                  </button>
-                </LiquidGlassEffect>
-                
-                <LiquidGlassEffect variant="button">
-                  <button 
-                    type="submit"
-                    disabled={transferLoading || !transferEmail}
-                    style={{ 
-                      background: 'none', 
-                      border: 'none', 
-                      color: (transferLoading || !transferEmail) ? 'rgba(255, 255, 255, 0.5)' : 'white', 
-                      fontSize: 14, 
-                      padding: '0.8rem 1.2rem', 
-                      borderRadius: '0.8rem', 
-                      flex: 1,
-                      cursor: (transferLoading || !transferEmail) ? 'not-allowed' : 'pointer',
-                      fontFamily: 'var(--font-outfit), sans-serif'
-                    }}
-                  >
-                    {transferLoading ? 'transferring...' : 'transfer'}
-                  </button>
-                </LiquidGlassEffect>
-              </div>
-              
-              {transferError && (
-                <p style={{ 
-                  color: '#ff6b6b', 
-                  fontSize: 14, 
-                  textAlign: 'center', 
-                  margin: 0,
-                  fontFamily: 'var(--font-outfit), sans-serif',
-                  lineHeight: 1.4
-                }}>
-                  {transferError}
-                </p>
-              )}
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 } 
