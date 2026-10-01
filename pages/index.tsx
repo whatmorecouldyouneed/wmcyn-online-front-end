@@ -496,7 +496,10 @@ function NewsletterSection() {
             </button>
           </LiquidGlassEffect>
           <LiquidGlassEffect variant="button">
-            <button className={styles.ctaButton}>
+            <button
+              className={styles.ctaButton}
+              onClick={() => router.push('/friends-and-family')}
+            >
               custom order
             </button>
           </LiquidGlassEffect>
