@@ -4,6 +4,9 @@ import { fetchArConfigByCode } from '@/lib/apiClient';
 import { resolveArConfig } from '@/ar/overlayRegistry';
 import type { ResolvedArConfig } from '@/types/arSessions';
 import ARCameraQR from '@/components/ARCameraQR';
+import { usePrivacy } from '@/components/privacy/PrivacyProvider';
+import { SITE_URL } from '@/lib/wmcynUrl';
+import { trackProductScan } from '@/lib/scanAnalytics';
 
 // qr codes resolve here from /qr?code=; all content comes from the api so new codes need no deploy
 export default function ARByCode() {
@@ -13,6 +16,7 @@ export default function ARByCode() {
   const [startAR, setStartAR] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const { consent } = usePrivacy();
 
   useEffect(() => {
     if (!isReady || !code) return;
@@ -36,6 +40,10 @@ export default function ARByCode() {
       cancelled = true;
     };
   }, [isReady, code]);
+
+  useEffect(() => {
+    if (config && code) void trackProductScan(consent.analytics, `${SITE_URL}/ar/${encodeURIComponent(code)}`);
+  }, [config, code, consent.analytics]);
 
   const handleViewWithoutAR = () => {
     window.open(`/viewer/${encodeURIComponent(code)}`, '_self');

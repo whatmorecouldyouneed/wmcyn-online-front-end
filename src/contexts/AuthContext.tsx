@@ -172,9 +172,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const userDoc = await getDoc(userDocRef);
           if (!userDoc.exists()) {
             await setDoc(userDocRef, { email: user.email });
-            // add mock products for testing
-            await setDoc(doc(firestore, `users/${user.uid}/products`, 'mock1'), { name: 'WMCYN Hat', acquired: new Date().toISOString() });
-            await setDoc(doc(firestore, `users/${user.uid}/products`, 'mock2'), { name: 'WMCYN Shirt', acquired: new Date().toISOString() });
           }
         } catch (error: any) {
           console.error('firestore operation failed:', error);
