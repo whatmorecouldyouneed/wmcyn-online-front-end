@@ -2,8 +2,8 @@
 import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { db, ref, push, set } from '@/utils/lib/firebase';
-import { query, get, orderByChild, equalTo } from 'firebase/database';
+import { db } from '@/utils/lib/firebase';
+import { subscribeToNewsletter } from '@/lib/newsletter';
 import Typewriter from 'typewriter-effect';
 import NextImage from '@/components/NextImage';
 import styles from '@/styles/Index.module.scss';
@@ -30,28 +30,6 @@ const ARCamera = dynamic(
     loading: () => <div className={styles.arjsLoader}>Initializing AR Scanner...</div>
   }
 );
-
-function writeUserData(emailID: string) {
-  if (!db) {
-    console.error('Firebase database not initialized');
-    return Promise.reject(new Error('Firebase not initialized'));
-  }
-  
-  const emailListRef = ref(db, 'emailList');
-  const newEmailRef = push(emailListRef);
-  const emailData = {
-    email: emailID,
-    timestamp: Date.now(),
-    userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown',
-    consentVersion: CONSENT_VERSION,
-    source: 'newsletter_modal'
-  };
-  
-  return set(newEmailRef, emailData).catch((error) => {
-    console.error('Firebase write failed:', error);
-    throw error;
-  });
-}
 
 type NewsletterModalProps = {
   open: boolean;
@@ -298,58 +276,12 @@ function NewsletterSection() {
     }, 8000);
     return () => {
       clearTimeout(timer);
-      // cleanup debounced email check on unmount
-      if (debouncedEmailCheck.current) {
-        clearTimeout(debouncedEmailCheck.current);
-      }
     };
   }, []);
 
-  // debounced email checking to avoid too many API calls
-  const debouncedEmailCheck = useRef<NodeJS.Timeout | null>(null);
-  
-  const checkEmailSubscription = async (emailToCheck: string) => {
-    if (!emailToCheck || !emailToCheck.includes('@') || !db) {
-      setError('');
-      return;
-    }
-    
-    try {
-      setIsChecking(true);
-      const emailListRef = ref(db, 'emailList');
-      const emailQuery = query(emailListRef, orderByChild('email'), equalTo(emailToCheck));
-      const snapshot = await get(emailQuery);
-      
-      if (snapshot.exists()) {
-        setError('you\'re already subscribed!');
-      } else {
-        setError('');
-      }
-    } catch (err) {
-      // silently fail for email checking, don't show error
-      console.log('Email check failed:', err);
-    } finally {
-      setIsChecking(false);
-    }
-  };
-
   const handleEmailChange = (newEmail: string) => {
     setEmail(newEmail);
-    
-    // clear previous timeout
-    if (debouncedEmailCheck.current) {
-      clearTimeout(debouncedEmailCheck.current);
-    }
-    
-    // clear error immediately if email is changed
-    if (error.includes('already subscribed')) {
-      setError('');
-    }
-    
-    // debounce the email check by 800ms
-    debouncedEmailCheck.current = setTimeout(() => {
-      checkEmailSubscription(newEmail);
-    }, 800);
+    if (error.includes('already subscribed')) setError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -366,17 +298,16 @@ function NewsletterSection() {
         return;
       }
       
-      // double-check for duplicates before submitting
-      const emailListRef = ref(db, 'emailList');
-      const emailQuery = query(emailListRef, orderByChild('email'), equalTo(email));
-      const snapshot = await get(emailQuery);
-
-      if (snapshot.exists()) {
+      setIsChecking(true);
+      const result = await subscribeToNewsletter(email, {
+        userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown',
+        consentVersion: CONSENT_VERSION,
+        source: 'newsletter_modal'
+      }).finally(() => setIsChecking(false));
+      if (result === 'already_subscribed') {
         setError('this email is already subscribed.');
         return;
       }
-
-      await writeUserData(email);
       setHasSubscribed(true);
       setEmail('');
       setError('');
