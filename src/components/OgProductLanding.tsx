@@ -1,9 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import LiquidGlassEffect from '@/components/ui/LiquidGlassEffect';
+import { usePrivacy } from '@/components/privacy/PrivacyProvider';
 import { type MarkerConfig } from '@/config/markers';
+import { trackProductScan } from '@/lib/scanAnalytics';
 import styles from '@/styles/Index.module.scss';
 
 const ARCamera = dynamic(() => import('@/components/ARCamera'), { ssr: false });
@@ -38,6 +40,11 @@ export default function OgProductLanding({
   const router = useRouter();
   const [cameraState, setCameraState] = useState<CameraState>('idle');
   const [showAR, setShowAR] = useState(false);
+  const { consent } = usePrivacy();
+
+  useEffect(() => {
+    void trackProductScan(consent.analytics, canonicalUrl);
+  }, [canonicalUrl, consent.analytics]);
 
   const handleAllowCamera = useCallback(async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
