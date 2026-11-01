@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import styles from '@/styles/Index.module.scss';
 import LiquidGlassEffect from '@/components/ui/LiquidGlassEffect';
+import { PASSWORD_UPDATED_NOTICE, RESET_SENT_NOTICE } from '@/utils/password-reset';
 
 export default function Login() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function Login() {
   const [authPassword, setAuthPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [authError, setAuthError] = useState('');
+  const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   
@@ -37,10 +39,16 @@ export default function Login() {
   }, []);
 
   useEffect(() => {
-    if (mode === 'signup') {
-      setAuthMode('signup');
+    if (!router.isReady) return;
+    const nextMode = Array.isArray(mode) ? mode[0] : mode;
+    if (nextMode === 'signup' || nextMode === 'forgot') {
+      setAuthMode(nextMode);
     }
-  }, [mode]);
+    const resetFlag = Array.isArray(router.query.reset) ? router.query.reset[0] : router.query.reset;
+    if (resetFlag === '1') {
+      setNotice(PASSWORD_UPDATED_NOTICE);
+    }
+  }, [router.isReady, mode, router.query.reset]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -58,6 +66,7 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     setAuthError('');
+    setNotice('');
 
     try {
       if (authMode === 'login') {
@@ -72,14 +81,21 @@ export default function Login() {
         router.replace('/dashboard');
       } else if (authMode === 'forgot') {
         await resetPassword(authEmail);
-        setAuthError('password reset email sent! check your inbox.');
-        return;
+        setNotice(RESET_SENT_NOTICE);
       }
     } catch (err: any) {
       setAuthError(err.message || 'authentication failed');
     } finally {
       setLoading(false);
     }
+  };
+
+  const goToMode = (next: 'login' | 'signup' | 'forgot') => {
+    setAuthMode(next);
+    setAuthError('');
+    setNotice('');
+    const query = next === 'login' ? {} : { mode: next };
+    void router.replace({ pathname: '/login', query }, undefined, { shallow: true });
   };
 
   const handleGoogleSignIn = async () => {
@@ -114,7 +130,8 @@ export default function Login() {
             value={authEmail} 
             onChange={e => setAuthEmail(e.target.value)} 
             placeholder="email" 
-            className={styles.inputField} 
+            className={styles.inputField}
+            autoComplete="email"
             required 
           />
           
@@ -124,7 +141,8 @@ export default function Login() {
               value={authPassword} 
               onChange={e => setAuthPassword(e.target.value)} 
               placeholder="password" 
-              className={styles.inputField} 
+              className={styles.inputField}
+              autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'}
               required 
             />
           )}
@@ -154,7 +172,7 @@ export default function Login() {
           {authMode === 'login' && (
             <button
               type="button"
-              onClick={() => setAuthMode('forgot')}
+              onClick={() => goToMode('forgot')}
               className={`${styles.submitButton} ${styles.secondaryButton}`}
             >
               forgot password?
@@ -164,20 +182,26 @@ export default function Login() {
           {authMode !== 'login' && (
             <button
               type="button"
-              onClick={() => setAuthMode('login')}
+              onClick={() => goToMode('login')}
               className={`${styles.submitButton} ${styles.secondaryButton}`}
             >
               back to login
             </button>
           )}
 
-          {authError && (
-            <div className={authError.includes('sent') ? styles.success : styles.error}>
-              {authError}
-            </div>
-          )}
+          {notice && <div className={styles.success}>{notice}</div>}
+
+          {authError && <div className={styles.error}>{authError}</div>}
         </form>
 
+        {authMode === 'forgot' && (
+          <p style={{ textAlign: 'center', margin: 0, color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px' }}>
+            signed in with google? go back to login and choose continue with google.
+          </p>
+        )}
+
+        {authMode !== 'forgot' && (
+          <>
         <div style={{ margin: '1rem 0', textAlign: 'center' }}>
           <span style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '14px' }}>or</span>
         </div>
@@ -194,7 +218,7 @@ export default function Login() {
           <p style={{ textAlign: 'center', marginTop: '0.75rem', marginBottom: 0, color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px' }}>
             don&apos;t have an account?{' '}
             <button 
-              onClick={() => setAuthMode('signup')}
+              onClick={() => goToMode('signup')}
               style={{ 
                 background: 'none', 
                 border: 'none', 
@@ -216,7 +240,7 @@ export default function Login() {
           <p style={{ textAlign: 'center', marginTop: '0.75rem', marginBottom: 0, color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px' }}>
             already have an account?{' '}
             <button 
-              onClick={() => setAuthMode('login')}
+              onClick={() => goToMode('login')}
               style={{ 
                 background: 'none', 
                 border: 'none', 
@@ -231,7 +255,9 @@ export default function Login() {
             >
               login
             </button>
-          </p>
+            </p>
+        )}
+          </>
         )}
 
         <div style={{ marginTop: isMobile ? '1rem' : '1.5rem' }}>

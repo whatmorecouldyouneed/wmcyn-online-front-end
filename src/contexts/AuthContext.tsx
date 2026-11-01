@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { auth, firestore } from '../utils/lib/firebase';
-import { User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, sendPasswordResetEmail, onAuthStateChanged, onIdTokenChanged, getIdToken } from 'firebase/auth';
+import { User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, onAuthStateChanged, onIdTokenChanged, getIdToken } from 'firebase/auth';
+import { requestPasswordReset } from '../utils/password-reset';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 type AuthContextType = {
@@ -121,14 +122,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const resetPassword = (email: string) => {
-    if (!auth) throw new Error('Authentication not initialized');
-    
-    return sendPasswordResetEmail(auth, email).catch((error: any) => {
-      if (error.code === 'auth/configuration-not-found') {
-        throw new Error('Firebase Authentication is not configured. Please enable Authentication in Firebase Console.');
-      }
-      throw error;
-    });
+    if (!auth) return Promise.reject(new Error('authentication not initialized'));
+    return requestPasswordReset(auth, email);
   };
 
   useEffect(() => {
