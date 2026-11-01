@@ -30,6 +30,8 @@ const ARCamera = ({ onClose, configs, meta, shareUrl }: ARCameraProps): JSX.Elem
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
   const [showInteractHint, setShowInteractHint] = useState(false);
+  const [capturePhase, setCapturePhase] = useState<'live' | 'paused' | 'play'>('live');
+  const [frozenFrame, setFrozenFrame] = useState<string | null>(null);
   const hasShownHintRef = useRef(false);
 
   // use provided configs or default marker configs
@@ -51,7 +53,7 @@ const ARCamera = ({ onClose, configs, meta, shareUrl }: ARCameraProps): JSX.Elem
   );
 
   // use ar scene hook — threeRef exposes renderer/scene/camera for share capture
-  const { threeRef } = useARScene({ mountRef, configs: configsWithCallbacks, setIsLoading });
+  const { threeRef, setCameraPaused } = useARScene({ mountRef, configs: configsWithCallbacks, setIsLoading });
 
   // body class management for fullscreen
   useEffect(() => {
@@ -238,6 +240,43 @@ const ARCamera = ({ onClose, configs, meta, shareUrl }: ARCameraProps): JSX.Elem
     []
   );
 
+  const freezeCamera = useCallback(() => {
+    const video = mountRef.current?.querySelector('video');
+    if (!video || !video.videoWidth || !video.videoHeight) return;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const glCanvas = threeRef.current?.renderer?.domElement as HTMLCanvasElement | undefined;
+    if (glCanvas?.width && glCanvas.height) {
+      try {
+        ctx.drawImage(glCanvas, 0, 0, canvas.width, canvas.height);
+      } catch {
+        // some gl canvases cannot be read back; the video frame still holds
+      }
+    }
+
+    setFrozenFrame(canvas.toDataURL('image/jpeg', 0.92));
+    setCameraPaused(true);
+    setCapturePhase('paused');
+  }, [setCameraPaused, threeRef]);
+
+  const resumeCamera = useCallback(() => {
+    setFrozenFrame(null);
+    setCameraPaused(false);
+    setCapturePhase('play');
+  }, [setCameraPaused]);
+
+  useEffect(() => {
+    if (capturePhase !== 'play') return;
+    const timer = window.setTimeout(() => setCapturePhase('live'), 1100);
+    return () => window.clearTimeout(timer);
+  }, [capturePhase]);
+
   const handleClaim = useCallback(() => {
     const metadata = overlayMetadata as any;
     if (metadata) {
@@ -289,6 +328,30 @@ const ARCamera = ({ onClose, configs, meta, shareUrl }: ARCameraProps): JSX.Elem
         <div className={styles.shareToast}>
           {isSharing && <span className={styles.shareSpinner} />}
           {shareStatus}
+        </div>
+      )}
+
+      {frozenFrame && capturePhase === 'paused' && (
+        <img src={frozenFrame} alt="" className={styles.frozenFrame} />
+      )}
+
+      {!isLoading && (
+        <div className={styles.captureDock}>
+          {capturePhase === 'live' && (
+            <button type="button" className={styles.captureButton} onClick={freezeCamera} aria-label="camera">
+              <span className={styles.captureRing} />
+            </button>
+          )}
+          {capturePhase === 'paused' && (
+            <button type="button" className={`${styles.captureButton} ${styles.pauseIn}`} onClick={resumeCamera} aria-label="pause">
+              <span className={styles.pauseIcon} />
+            </button>
+          )}
+          {capturePhase === 'play' && (
+            <div className={`${styles.captureButton} ${styles.playFlash}`} aria-hidden="true">
+              <span className={styles.playIcon} />
+            </div>
+          )}
         </div>
       )}
 

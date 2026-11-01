@@ -106,6 +106,7 @@ const MINDAR_INIT_CANCELLED = 'MINDAR_INIT_CANCELLED';
 
 export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const cameraPausedRef = useRef(false);
   const streamRef = useRef<MediaStream | null>(null);
   const animationIdRef = useRef<number | null>(null);
   const isInitializedRef = useRef(false);
@@ -658,7 +659,7 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
         let lastTime = performance.now();
         
         renderer.setAnimationLoop(() => {
-          if (isCancelledRef.current) return;
+          if (isCancelledRef.current || cameraPausedRef.current) return;
           
           const now = performance.now();
           const delta = Math.min((now - lastTime) / 1000, 0.1);
@@ -842,6 +843,7 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
         const animate = () => {
           if (isCancelledRef.current) return;
           animationIdRef.current = requestAnimationFrame(animate);
+          if (cameraPausedRef.current) return;
           
           const now = performance.now();
           const delta = Math.min((now - lastTime) / 1000, 0.1);
@@ -894,6 +896,22 @@ export const useARScene = ({ mountRef, configs, setIsLoading }: UseARSceneProps)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // empty deps - only run once on mount
 
+  // hold the live camera and the render loop on the current frame
+  const setCameraPaused = (paused: boolean) => {
+    cameraPausedRef.current = paused;
+    const video: HTMLVideoElement | null =
+      videoRef.current ||
+      mindARRef.current?.video ||
+      mountRef.current?.querySelector('video') ||
+      null;
+    if (!video) return;
+    if (paused) {
+      video.pause();
+      return;
+    }
+    void video.play().catch(() => undefined);
+  };
+
   // expose for share capture — caller can read renderer/scene/camera to re-render on demand
-  return { threeRef };
+  return { threeRef, setCameraPaused };
 };
