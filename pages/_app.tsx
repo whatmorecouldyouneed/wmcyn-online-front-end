@@ -87,6 +87,9 @@ export default function App({ Component, pageProps }: AppProps) {
     </>
   );
 
+  // Glasses own their backend-project auth and deliberately omit storefront chrome.
+  if (router.pathname === '/wearables') return <AppContent />;
+
   if (isAdminPage) {
     return (
       <AdminAuthProvider>

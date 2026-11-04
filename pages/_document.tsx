@@ -11,15 +11,14 @@ export default function Document() {
   };
 
   const mindArBootstrap = `
-    import * as THREE from 'three';
-    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-    import { MindARThree } from 'mindar-image-three';
-
-    window.THREE = { ...THREE, GLTFLoader };
-    window.MINDAR = {
-      IMAGE: { MindARThree },
-      MindARThree
-    };
+    // Dynamic imports keep CV off the glasses receiver on a direct URL load.
+    if (!location.pathname.startsWith('/wearables')) {
+      const [THREE, { GLTFLoader }, { MindARThree }] = await Promise.all([
+        import('three'), import('three/addons/loaders/GLTFLoader.js'), import('mindar-image-three')
+      ]);
+      window.THREE = { ...THREE, GLTFLoader };
+      window.MINDAR = { IMAGE: { MindARThree }, MindARThree };
+    }
   `;
 
   return (

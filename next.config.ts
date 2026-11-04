@@ -46,7 +46,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "media-src 'self' blob:",
-              "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.myshopify.com https://cdn.shopify.com https://cdn.jsdelivr.net",
+              "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebasedatabase.app wss://*.firebasedatabase.app https://*.myshopify.com https://cdn.shopify.com https://cdn.jsdelivr.net",
               "worker-src 'self' blob:",
               "frame-ancestors 'self'",
             ].join('; '),

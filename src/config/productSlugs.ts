@@ -5,7 +5,7 @@ export const RESERVED_SLUGS = [
   '404', 'accessibility', 'admin', 'api', 'ar', 'ar-session', 'cookies', 'cross-body-bag',
   'dashboard', 'debug', 'fonts', 'index', 'login', 'pair', 'privacy', 'privacy-choices', 'qr',
   'session', 'shipping-returns', 'shop', 'shoulder-bag', 'terms', 'viewer',
-  'models', 'patterns', 'static', '_next', 'p',
+  'wearables', 'models', 'patterns', 'static', '_next', 'p',
 ];
 
 const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/;
